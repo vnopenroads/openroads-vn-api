@@ -4,7 +4,7 @@ module.exports = [
   /**
    * @api {get} /ids Return all VProMMS ids in the database
    *
-   * @apiSuccess {Array<number>} ids
+   * @apiSuccess {Array} ids IDs
    *
    * @apiExample {curl} Example Usage:
    *    curl http://localhost:4000/ids
