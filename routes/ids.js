@@ -20,6 +20,7 @@ module.exports = [
         .where('k', 'or_vpromms')
         .distinct('v')
         .select('v')
+        .map(entry => entry.v)
       .then(res);
     }
   }
