@@ -249,6 +249,5 @@ module.exports = [
     method: 'POST',
     path: '/api/0.6/changeset/{changesetID}/upload',
     handler: upload
-
   }
 ];

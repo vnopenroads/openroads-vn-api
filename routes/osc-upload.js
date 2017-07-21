@@ -87,7 +87,9 @@ module.exports = {
   path: '/upload/{changesetID?}',
   config: {
     payload: {
-      parse: false
+      parse: false,
+      // Increase the maximum upload size to 4 GB, from default of 1 GB
+      maxBytes: 4194304
     }
   },
   handler: oscUpload
