@@ -14,27 +14,33 @@ var reduce = require('lodash.reduce');
 Promise = require('bluebird');
 module.exports = [
   /**
-   * @api {get} /ids Return all VProMMS ids in the database
+   * @api {get} /properties Returns properties related to each VProMMS ids in the database
    *
-   * @apiSuccess {Array} ids IDs
+   * @apiSuccess {Object} with nested objects for each of the keys in the query string. If no query string is passed, nested objects are blank
    *
    * @apiExample {curl} Example Usage:
-   *    curl http://localhost:4000/ids
+   *    curl http://localhost:4000/properties
+   *    curl http://localhost:4000/properties?key=source,iri_mean
    *
    * @apiSuccessExample {json} Success-Response:
-   *  [1, 2, 3, 4]
+   *  {
+   *    'vpromms_id': {
+   *      'source': 'RoadLab',
+   *      'iri_mean': 3.42
+   *     }
+   *  },
+   *  ...
    */
   {
     method: 'GET',
     path: '/properties',
     handler: function (req, res) {
-      let desired;
-      if (req.query) {
-
-      }
-      rp(api + 'ids')
+      knex('current_way_tags')
+        .where('k', 'or_vpromms')
+        .distinct('v')
+        .select('v')
+        .map(entry => entry.v)
       .then((ids) => {
-        ids = JSON.parse(ids)
         return knex.select('way_id')
           .from('current_way_tags')
           .whereIn('v', ids)
