@@ -40,6 +40,7 @@
     "knex": "^0.7.6",
     "libxmljs": "^0.14.0",
     "lodash": "^3.6.0",
+    "lodash.assign": "^4.2.0",
     "lodash.flattendeep": "^4.4.0",
     "lodash.groupby": "^4.6.0",
     "lodash.includes": "^4.3.0",
