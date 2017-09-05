@@ -1,8 +1,13 @@
+'use strict';
+
 var knex = require('../connection.js');
 
 module.exports = [
   /**
    * @api {get} /ids Return all VProMMS ids in the database
+   * @apiGroup Misc
+   * @apiName dbIds
+   * @apiVersion 0.1.0
    *
    * @apiSuccess {Array} ids IDs
    *
