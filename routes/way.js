@@ -8,6 +8,7 @@ var log = require('../services/log');
 var Node = require('../models/node-model');
 var bbox = require('@turf/bbox');
 var point = require('@turf/helpers').point;
+var flatten = require('lodash.flatten');
 var fc = require('@turf/helpers').featureCollection;
 var Promise = require('bluebird');
 
@@ -48,20 +49,22 @@ function singleWayBBOX(req, res) {
   knex('current_way_tags')
   .where('v', vprommsId)
   .then(function (result) {
-    console.log(result.length);
-    // get nodes of that way, then return bbox that surround those nodes
-    queryWays(knex, result[0].way_id)
-    .then(function (result) {
-      // make points from each way node, then use those points to make a bbox
-      Promise.map(result.nodes, function (node) {
-        return point(nodeCoordinates(node));
-      })
-      .then(function (points) {
-        points = fc(points);
-        const bboxRes = {};
-        bboxRes[vprommsId] = bbox(points);
-        res(bboxRes);
+    // make points for each of the returned ways as mutiple ways can have the same VProMMs;
+    Promise.map(result, (res) => {
+      // get nodes of that way, then return bbox that surround those nodes
+      return queryWays(knex, result[0].way_id)
+      .then(function (result) {
+        // make points from each way node, then use those points to make a bbox
+        return Promise.map(result.nodes, function (node) {
+          return point(nodeCoordinates(node));
+        });
       });
+    })
+    .then(function (points) {
+      points = fc(flatten(points));
+      const bboxRes = {};
+      bboxRes[vprommsId] = bbox(points);
+      res(bboxRes);
     });
   })
   .catch(function (err) {
