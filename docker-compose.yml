@@ -1,12 +1,16 @@
-postgres:
-  build: ./db-server
-  ports:
-    - "5433:5432"
-api:
-  build: .
-  environment:
-    - DATABASE_URL=postgres://osm:password@postgres:5432/macrocosm_test
-  links:
-    - postgres:postgres
-  ports:
-    - "4000:4000"
+version: "3"
+services:
+  db:
+    build: ./db
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRES_DB=openroads
+  api:
+    build: .
+    environment:
+      - DATABASE_URL=postgres://postgres@postgres:5432/openroads
+    links:
+      - db:postgres
+    ports:
+      - "4000:4000"
