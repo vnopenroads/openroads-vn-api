@@ -20,11 +20,15 @@ function upload (req, res) {
   }
 
   const roadIdName = parsed.columns[0];
-  if (parsed[parsed.columns[0]].contains('"')) {
-    return res(Boom.badRequest('Do not use quotes in the CSV, except when cell contains a comma'));
+  const roadIds = parsed.map(p => p[roadIdName]);
+
+  if (parsed.columns.some(c => c.includes('"') || c.includes(','))) {
+    return res(Boom.badRequest('Do not use quotes or commans in the CSV headers'));
+  }
+  if (roadIds.some(id => id.includes('"'))) {
+    return res(Boom.badRequest('Do not use unnecessary quotations'));
   }
 
-  const roadIds = parsed.map(p => p[roadIdName]);
   knex.select()
     .from('road_properties')
     .whereIn('id', roadIds)
@@ -61,7 +65,7 @@ function upload (req, res) {
 
 module.exports = [
   /**
-   * @api {POST} /tabular Upload properties by road ID
+   * @api {POST} /properties/roads/tabular Upload properties by road ID
    * @apiVersion 0.3.0
    * @apiGroup Properties
    * @apiName UploadTabular
@@ -73,7 +77,8 @@ module.exports = [
    * contain the road ID; accordingly, the first column's header
    * doesn't matter. All other column headers will be used as
    * the property name for that value in ORMA. All values are imported
-   * as strings. Do not quote headers or values unless they contain commas.
+   * as strings. Commas and quotes not allowed in header cells. Do not
+   * use quotes in any cells, unless they contain a comma.
    *
    * @apiParam {Object} properties CSV of properties by road ID
    *
@@ -89,7 +94,7 @@ module.exports = [
    *  curl -d 'road ID,your property,another property,Yet Another Property
    *  123AB87654,concrete,52,high
    *  001ZZ33333,gravel,990,high
-   *  987NA00001,earth,1.23,medium' -H 'Content-Type: text/csv' http://localhost:4000/tabular
+   *  987NA00001,earth,1.23,medium' -H 'Content-Type: text/csv' http://localhost:4000/properties/roads/tabular
    *
    * @apiSuccessExample {json} Success-Response:
    *  {
@@ -107,7 +112,7 @@ module.exports = [
    */
   {
     method: 'POST',
-    path: '/tabular',
+    path: '/properties/roads/tabular',
     handler: upload,
     config: {
       payload: {
