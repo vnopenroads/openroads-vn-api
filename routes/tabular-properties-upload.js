@@ -20,6 +20,10 @@ function upload (req, res) {
   }
 
   const roadIdName = parsed.columns[0];
+  if (parsed[parsed.columns[0]].contains('"')) {
+    return res(Boom.badRequest('Do not use quotes in the CSV, except when cell contains a comma'));
+  }
+
   const roadIds = parsed.map(p => p[roadIdName]);
   knex.select()
     .from('road_properties')
@@ -58,24 +62,18 @@ function upload (req, res) {
 module.exports = [
   /**
    * @api {POST} /tabular Upload properties by road ID
+   * @apiVersion 0.3.0
    * @apiGroup Properties
    * @apiName UploadTabular
    * @apiDescription Upload tabular properties, with each row a road ID
    * Return a list of which roads were created, versus updated
    * in the road_properties table
    *
-   * Upload CSV data in the following form. The first column header
-   * doesn't matter, and all other column headers will be used as
+   * Upload CSV data in the following form: The first column should
+   * contain the road ID; accordingly, the first column's header
+   * doesn't matter. All other column headers will be used as
    * the property name for that value in ORMA. All values are imported
    * as strings. Do not quote headers or values unless they contain commas.
-   * <pre><code>
-   * road ID,your property,another property,Yet Another Property
-   * 123AB87654,concrete,52,high
-   * 001ZZ33333,gravel,990,high
-   * 987NA00001,earth,1.23,medium
-   * </code></pre>
-   *
-   * @apiVersion 0.3.0
    *
    * @apiParam {Object} properties CSV of properties by road ID
    *

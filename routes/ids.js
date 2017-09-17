@@ -2,7 +2,7 @@ var knex = require('../connection.js');
 
 module.exports = [
   /**
-   * @api {get} /ids Return all VProMMS ids in the database
+   * @api {get} /ids Return all road IDs
    *
    * @apiSuccess {Array} ids IDs
    *
@@ -10,17 +10,19 @@ module.exports = [
    *    curl http://localhost:4000/ids
    *
    * @apiSuccessExample {json} Success-Response:
-   *  [1, 2, 3, 4]
+   *  [
+   *    "001ZZ33333",
+   *    "123AB87654",
+   *    "987NA00001"
+   *  ]
    */
   {
     method: 'GET',
     path: '/ids',
     handler: function (req, res) {
-      knex('current_way_tags')
-        .where('k', 'or_vpromms')
-        .distinct('v')
-        .select('v')
-        .map(entry => entry.v)
+      knex('road_properties')
+        .select('id')
+        .map(entry => entry.id)
       .then(res);
     }
   }
