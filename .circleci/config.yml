@@ -10,5 +10,10 @@ jobs:
       - setup_remote_docker   # (2)
 
       # build and push Docker image
-      - run: |
-          docker-compose run api npm test
+      - run:
+          name: test
+          command: docker-compose run api npm test
+
+      - run:
+          name: deploy to AWS
+          command: docker-compose run deploy
