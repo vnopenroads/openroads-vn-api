@@ -1,0 +1,6 @@
+stackName: orma
+capabilities:
+   - CAPABILITY_NAMED_IAM
+stage: roles
+buckets:
+ internal: orma-d-deploy
