@@ -1,0 +1,20 @@
+version: 2
+jobs:
+  build:
+    docker:
+      #- image: docker:17.05.0-ce-git   # (1)
+      - image: docker/compose:1.16.0
+    working_directory: ~/openroads-vn-api
+    steps:
+      - checkout
+      - setup_remote_docker   # (2)
+
+      # build and push Docker image
+      - run:
+          name: test
+          command: docker-compose run api npm test
+
+      # until the package runs on node >= 6.10 can't deploy with kes
+      #- run:
+          #name: deploy to AWS
+          #command: docker-compose run deploy

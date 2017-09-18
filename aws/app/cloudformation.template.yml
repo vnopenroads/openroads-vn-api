@@ -1,0 +1,176 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'stack: {{stackName}} | stage: {{stage}} | deployed by Kes'
+
+Resources:
+
+  #################################################
+  # ECS config BEGIN
+  #################################################
+
+  ECSCluster:
+    Type: AWS::ECS::Cluster
+
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: {{stackName}}-{{stage}}-ecs-securitygroup
+      GroupDescription: Security Group for ECS containter instances of {{stackName}}-{{stage}}
+      Tags:
+        - Key: Name
+          Value: "{{stackName}}-{{stage}}"
+      VpcId: {{ecs.vpcId}}
+      SecurityGroupEgress:
+        CidrIp: 0.0.0.0/0
+        IpProtocol: -1
+      SecurityGroupIngress:
+        - CidrIp: 0.0.0.0/0
+          IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+        - CidrIp: 0.0.0.0/0
+          IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+
+  ContainerInstanceLaunch:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Metadata:
+      AWS::CloudFormation::Init:
+        config:
+          commands:
+            01_add_instance_to_cluster:
+              command: !Sub |
+                #!/bin/bash
+                echo ECS_CLUSTER=${ECSCluster} >> /etc/ecs/ecs.config
+                echo ECS_ENGINE_TASK_CLEANUP_WAIT_DURATION=1m >> /etc/ecs/ecs.config
+          files:
+            "/etc/cfn/cfn-hup.conf":
+              content: !Sub |
+                [main]
+                stack=${AWS::StackId}
+                region=${AWS::Region}
+              mode: '000400'
+              owner: root
+              group: root
+            "/etc/cfn/hooks.d/cfn-auto-reloader.conf":
+              content: !Sub |
+                [cfn-auto-reloader-hook]
+                triggers=post.update
+                path=Resources.ContainerInstanceLaunch.Metadata.AWS::CloudFormation::Init
+                action=/opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource ContainerInstanceLaunch --region ${AWS::Region}
+                runas=root
+          services:
+            sysvinit:
+              cfn-hup:
+                enabled: 'true'
+                ensureRunning: 'true'
+                files:
+                - "/etc/cfn/cfn-hup.conf"
+                - "/etc/cfn/hooks.d/cfn-auto-reloader.conf"
+    Properties:
+      SecurityGroups:
+        - !GetAtt SecurityGroup.GroupId
+      ImageId: {{ecs.amiid}}
+      InstanceType: {{ecs.instanceType}}
+      IamInstanceProfile: {{ecs.ecsInstanceProfileArn}}
+      BlockDeviceMappings:
+      - DeviceName: "/dev/xvda"
+        Ebs:
+          DeleteOnTermination: true
+          VolumeSize: {{ecs.volumeSize}}
+      KeyName: {{ ecs.keyPairName }}
+      UserData:
+        "Fn::Base64": !Join
+          - ""
+          - - "#cloud-config\n"
+            - "\nruncmd:\n"
+            - " - yum install -y aws-cfn-bootstrap\n"
+            - !Sub " - /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource ContainerInstanceLaunch --region ${AWS::Region}\n"
+            - !Sub " - /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource ECSAutoScalingGroup --region ${AWS::Region}"
+
+
+  ECSAutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    UpdatePolicy:
+      AutoScalingRollingUpdate:
+        MinInstancesInService: 0
+    Properties:
+      AvailabilityZones:
+        - {{ecs.availabilityZone}}
+      LaunchConfigurationName: !Ref ContainerInstanceLaunch
+      MinSize: '0'
+      MaxSize: {{ ecs.maxInstances }}
+      DesiredCapacity: {{ ecs.desiredInstances }}
+      Tags:
+      - Key: Name
+        Value: "{{stackName}}-{{stage}}-ecs"
+        PropagateAtLaunch: true
+
+{{#each ecs.services}}
+  # adding TaskDefinition for Lambda/ECS services
+  {{name}}TaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      ContainerDefinitions:
+    {{#each containers}}
+        - Name: {{name}}
+          Cpu: {{#if cpu }}{{ cpu }}{{ else }}10{{/if}}
+          Essential: true
+          Environment:
+          {{#each envs}}
+            - Name: {{@key}}
+              Value: {{this}}
+          {{/each}}
+          Image: {{image}}
+        {{# if links}}
+          Links:
+          {{#each links}}
+            - {{ @this }}
+          {{/each}}
+        {{/if}}
+        {{# if ports}}
+          PortMappings:
+          {{#each ports}}
+            - ContainerPort: {{container}}
+              HostPort: {{host}}
+              Protocol: {{protocol}}
+          {{/each}}
+        {{/if}}
+          MemoryReservation: {{#if memory }}{{ memory }}{{ else }}256{{/if}}
+        {{# if commands }}
+          Command:
+          {{# each commands }}
+          - {{{ @this }}}
+          {{/each}}
+        {{/if}}
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref {{../name}}EcsLogs
+              awslogs-region: !Sub ${AWS::Region}
+    {{/each}}
+
+  {{name}}EcsLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: {{../stackName}}-{{../stage}}-{{name}}EcsLogs
+
+  {{name}}ECSService:
+    Type: AWS::ECS::Service
+    DependsOn:
+    - ECSAutoScalingGroup
+    Properties:
+      Cluster: !Ref ECSCluster
+      DesiredCount: {{# if count}}{{count}}{{ else }} 0 {{/if}}
+      TaskDefinition: !Ref {{name}}TaskDefinition
+      DeploymentConfiguration:
+        MaximumPercent: 100
+        MinimumHealthyPercent: 0
+
+{{/each}}
+
+  #################################################
+  # ECS config END
+  #################################################
+
+
