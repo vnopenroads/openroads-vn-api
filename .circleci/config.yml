@@ -2,7 +2,8 @@ version: 2
 jobs:
   build:
     docker:
-      - image: docker:17.05.0-ce-git   # (1)
+      #- image: docker:17.05.0-ce-git   # (1)
+      - image: docker/compose:1.16.0
     working_directory: ~/openroads-vn-api
     steps:
       - checkout
