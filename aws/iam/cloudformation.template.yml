@@ -1,0 +1,72 @@
+Description: {{stackName}} IAM Role
+Resources:
+  ECSRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: {{stackName}}-ecs
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      Path: "/"
+      Policies:
+        - PolicyName: ECSRole
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - cloudwatch:GetMetricStatistics
+                  - ecr:BatchCheckLayerAvailability
+                  - ecr:BatchGetImage
+                  - ecr:GetAuthorizationToken
+                  - ecr:GetDownloadUrlForLayer
+                  - ecs:DeregisterContainerInstance
+                  - ecs:DescribeClusters
+                  - ecs:DescribeContainerInstances
+                  - ecs:DescribeServices
+                  - ecs:DiscoverPollEndpoint
+                  - ecs:ListContainerInstances
+                  - ecs:ListServices
+                  - ecs:ListTaskDefinitions
+                  - ecs:ListTasks
+                  - ecs:Poll
+                  - ecs:RegisterContainerInstance
+                  - ecs:RunTask
+                  - ecs:StartTelemetrySession
+                  - ecs:Submit*
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:DescribeLogStreams
+                  - logs:PutLogEvents
+                Resource: "*"
+
+              # Allow writing to ingest buckets
+              - Effect: Allow
+                Action:
+                  - s3:AbortMultipartUpload
+                  - s3:Get*
+                  - s3:Put*
+                  - s3:List*
+                  - s3:DeleteObject
+                  - s3:DeleteObjectVersion
+                Resource:
+                  - arn:aws:s3:::{{buckets.internal}}"
+                  - arn:aws:s3:::{{buckets.internal}}/*"
+
+  InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: {{stackName}}-ecs
+      Path: "/"
+      Roles:
+        - !Ref ECSRole
+
+Outputs:
+  InstanceProfileArn:
+    Value: !GetAtt InstanceProfile.Arn
+  EcsRoleArn:
+    Value: !GetAtt ECSRole.Arn

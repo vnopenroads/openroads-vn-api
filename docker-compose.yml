@@ -14,3 +14,9 @@ services:
       - db:postgres
     ports:
       - "4000:4000"
+  deploy:
+    build: .
+    command: npm run kes-app-update
+    environment:
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
