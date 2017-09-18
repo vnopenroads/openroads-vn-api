@@ -14,6 +14,7 @@ jobs:
           name: test
           command: docker-compose run api npm test
 
-      - run:
-          name: deploy to AWS
-          command: docker-compose run deploy
+      # until the package runs on node >= 6.10 can't deploy with kes
+      #- run:
+          #name: deploy to AWS
+          #command: docker-compose run deploy
