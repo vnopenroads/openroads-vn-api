@@ -1,0 +1,13 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: docker:17.05.0-ce-git   # (1)
+    working_directory: ~/openroads-vn-api
+    steps:
+      - checkout
+      - setup_remote_docker   # (2)
+
+      # build and push Docker image
+      - run: |
+          docker-compose run api npm test
