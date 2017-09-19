@@ -6,42 +6,10 @@ var getParents = require('../services/admin').getParents;
 var formatBox = require('../services/admin').formatBOX;
 Promise = require('bluebird');
 
-// module.exports = {
-  /**
-   * @api {get} /admin/:level
-   * @apiGroup Admin
-   * @apiName ListAdmins
-   * @apiDescription Returns list of admin unit ids of specified level.
-   * @apiVersion 0.1.0
-   *
-   * @apiParam {String} level Admin level (province, district, or commune)
-   *
-   * @apiSuccess {JSON} Sucess-Response object including list of all admin ids in the level supplied in parameters
-   *
-   * @apiSuccessExample {JSON} Example Usage:
-   *  curl http://localhost:4000/api/admins/commune
-   *
-   * @apiSuccessExample {JSON} Success-Response
-   * {
-   *  'commune': [
-   *    123456,
-   *    789101,
-   *    654321
-   *  ]
-   * }
-  */
-//   method: 'GET',
-//   path: '/admin/{level}',
-//   handler: function (req, res) {
-//     console.log(req.param.level);
-//     res('surf')
-//   }
-// }
-
 module.exports = [
   {
     /**
-     * @api {get} /admin/:level/units
+     * @api {get} /admin/:level/units List Admins
      * @apiGroup Admin
      * @apiName ListAdmins
      * @apiDescription Returns list of admin unit ids of specified level.
@@ -98,10 +66,10 @@ module.exports = [
   },
   {
     /**
-     * @api {get} /admin/:unit_id/info
+     * @api {get} /admin/:unit_id/info Admin Info
      * @apiGroup Admin
      * @apiName AdminInfo
-     * @apiDescription Returns information for a provided admin_id
+     * @apiDescription Returns information for admin unit with provided unit_id
      * @apiVersion 0.1.0
      *
      * @apiParam {String} unit_id Admin unit id
@@ -114,10 +82,35 @@ module.exports = [
      *
      *
      * @apiSuccessExample {JSON} Example Usage:
-     *  curl http://localhost:4000/api/admins/commune
+     *  curl http://localhost:4000/admin/10153/info
      *
      * @apiSuccessExample {JSON} Success-Response
-     * []
+     * {
+     *   level: 'district',
+     *   id: 10153,
+     *   name_en: 'Me Linh',
+     *   parent_ids: [101],
+     *   child_ids: [
+     *     1015301,
+     *     1015303,
+     *     1015315,
+     *     1015317,
+     *     1015319,
+     *     1015321,
+     *     1015325,
+     *     1015327,
+     *     1015329,
+     *     1015331,
+     *     1015333,
+     *     1015335,
+     *     1015337,
+     *     1015339,
+     *     1015341,
+     *     1015343,
+     *     1015345,
+     *     1015347
+     *   ]
+     * }
      *
     */
     method: 'GET',
@@ -140,14 +133,16 @@ module.exports = [
         // SELECT type, id, parent_id, bbox FROM admin_boundaries WHERE id=${unitId}
         knex('admin_boundaries')
         .where({ id: unitId })
-        .select(knex.raw(`type, id, parent_id, ST_Extent(geom)`))
+        .select(knex.raw(`type, id, parent_id, name_en, ST_Extent(geom)`))
         .groupBy('id')
         .then((info) => {
           // format response so it includes a valid bbox array and parent_ids array
           info = info[0];
           info.bbox = formatBox(info.st_extent);
           info.parent_ids = getParents(info.id.toString());
-          // remove unwanted parent_id and st_extent properties
+          info.level = info.type;
+          // remove unwanted type, parent_id, st_extent properties
+          delete info.type
           delete info.parent_id;
           delete info.st_extent;
           return info;
