@@ -127,55 +127,56 @@ module.exports = [
       } else if (!validIdCheck) {
         return res(Boom.badRequest('unit_id must be a numeric code of length 7, 5, or 3. See documentation'));
       }
-      // make 2 queries and combine results
-      Promise.all([
-        // mirrors:
-        // SELECT type, id, parent_id, bbox FROM admin_boundaries WHERE id=${unitId}
-        knex('admin_boundaries')
-        .where({ id: unitId })
-        .select(knex.raw(`type, id, parent_id, name_en, ST_Extent(geom)`))
-        .groupBy('id')
-        .then((info) => {
-          // format response so it includes a valid bbox array and parent_ids array
-          info = info[0];
-          info.bbox = formatBox(info.st_extent);
-          info.parent_ids = getParents(info.id.toString());
-          info.level = info.type;
-          // remove unwanted type, parent_id, st_extent properties
-          delete info.type
-          delete info.parent_id;
-          delete info.st_extent;
-          return info;
-        })
-        .catch((e) => {
-          console.log(e);
-          throw e;
-        }),
-        // mirrorw:
-        // SELECT id WHERE id::text LIKE '${unitid}%';
-        // ... this statement selects all ids where leading numbers in id match ${unitId}
-        knex('admin_boundaries')
-        .where(knex.raw(`id::text LIKE '${unitId}%';`))
-        .select('id')
-        .then((ids) => {
-          // return array of ids without ${unitId} (as it too is selected), then sort results
-          // in ascending order. ascending order makes sure children come before grandchildren ids
-          return ids.map(id => id[Object.keys(id)[0]])
-          .filter(id => id.toString() !== unitId)
-          .sort((a, b) => a - b );
-        })
-        .catch((e) => {
-          console.log(e);
-          throw e;
-        })
-      ])
-      .then((results) => {
-        // serve object from first query with the second query attached as a child_ids property
-        const info = results[0];
-        info.child_ids = results[1];
+      // joins two tables made from select statements:
+      //   1. a table with admin:
+      //      - level
+      //      - id
+      //      - parent_id
+      //      - bbox
+      //      - parent_id name
+      //      - parent_id level
+      //   2. a table with admin:
+      //      - id
+      //      - child_admin ids
+      //      - child_admin names
+      // on id
+      knex.raw(`
+      SELECT * FROM
+        (
+          SELECT type as level, id, parent_id, ST_Extent(geom) as bbox,
+            p.name as p_name_en, name_en, p.p_type as p_level
+          FROM admin_boundaries
+            JOIN (SELECT name_en as name, id as parent, type as p_type FROM admin_boundaries) p
+          ON parent_id=p.parent
+          AND id=${unitId}
+          GROUP BY id, p_name_en, p_level
+        ) a
+        JOIN (
+          SELECT parent_id as p_id, type as c_level, string_agg(id::text, ', ') AS child_ids, string_agg(name_en, ', ') as child_names
+          FROM admin_boundaries
+          WHERE parent_id=${unitId}
+          GROUP BY parent_id, c_level
+        ) b
+      ON (a.id = b.p_id);
+      `)
+      .then((info) => {
+        console.log()
+        // // format the results, making the bouding box of correct spec, finding parent_ids
+        info = info.rows[0];
+        info.bbox = formatBox(info.bbox);
+        info.parent_ids = getParents(info.id.toString());
+        info.child_ids = info.child_ids.split(', ').map(c => Number(c));
+        info.children = info.child_names.split(', ').map((c, i ) => { return {id: info.child_ids[i], name: c }; });
+        // remove unwanted type, parent_id, st_extent properties
+        delete info.parent_id;
+        delete info.child_ids;
+        delete info.child_names;
         res(info);
+      })
+      .catch((e) => {
+        console.log(e);
+        throw e;
       });
     }
   }
 ];
-
