@@ -65,6 +65,40 @@ module.exports = [
     }
   },
   {
+    /**
+     * @api {get} /admin/units?name=substring&limit=# List Matching Units
+     * @apiGroup Admin
+     * @apiName ListMathcingUnits
+     * @apiDescription Returns list of admin unit ids that match a substring.
+     * @apiVersion 0.1.0
+     *
+     * @apiParam {String} name a string used to search for matching admin units
+     * @apiParam {Number} limit a number that when passed limits the # of return units to equal limit
+     *
+     * @apiSuccess {array} units array including list of all admin ids that match the passed substring
+     * @apiSuccess {object} units[i] unit object including unit id and name_en properties
+     * @apiSuccess {Number} units[i].id unit id
+     * @apiSuccess {string} units[i].level unit level
+     * @apiSuccess {string} units[i].name_en english name of matching unit
+     *
+     *
+     * @apiSuccessExample {JSON} Example Usage:
+     *  curl http://localhost:4000/api/admins/units?name=Th&limit=2
+     *
+     * @apiSuccessExample {JSON} Success-Response
+     * [
+     *  {
+     *    id: 2071205,
+     *    name_en: "Thanh Van",
+     *    level: "commune"
+     *  },
+     *  {
+     *    id: 2071209,
+     *    name_en: "Thanh Mai",
+     *    level: "commune"
+     *  }
+     * ]
+    */
     method: 'GET',
     path: '/admin/units',
     handler: function (req, res) {
@@ -74,7 +108,7 @@ module.exports = [
       // selects all admin boundaries ids and name_en fields where name_en field matches query string
       knex('admin_boundaries')
       .where('name_en', 'LIKE', `${queryString}%`)
-      .select('id', 'name_en')
+      .select('id', 'name_en', 'type as level')
       .then((results) => {
         // serve the response. if a limit is found in the query string, limit response to that limit
         // if not, just serve all that was found
