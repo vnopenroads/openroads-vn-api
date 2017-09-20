@@ -20,7 +20,7 @@ module.exports = [
      * @apiSuccess {JSON} units object including list of all admin ids in the level supplied in parameters
      * @apiSuccess {string} units.level admin units' level
      * @apiSuccess {array} units.units list of objects representing all units in level. each object icludes an id and name
-     * 
+     *
      *
      * @apiSuccessExample {JSON} Example Usage:
      *  curl http://localhost:4000/api/admins/commune
@@ -119,7 +119,7 @@ module.exports = [
       // get unitId from request params
       const unitId = req.params.unit_id;
       // check if unitId is valid length
-      const validIdCheck = [7, 5, 3].find(idLenght => idLenght === unitId.toString().length);     
+      const validIdCheck = [7, 5, 3].find(idLenght => idLenght === unitId.toString().length);
       // serve bad request if unitId string is not an integer
       if(!Number.isInteger(Number(unitId))) {
         return res(Boom.badRequest('unit_id must be an integer'));
@@ -163,13 +163,12 @@ module.exports = [
         let children = info.map(o => {
           return {name: o.c_name, id: o.c_id};
         });
-        let parent = {name: info[0].p_name, id: info[0].p_id};
+        let parent = {name: info[0].p_name, id: info[0].p_id, level: info[0].p_level};
         let reposnse = {
           id: info[0].id,
           name: info[0].name,
           level: info[0].level,
           parent: parent,
-          parent_level: info[0].p_level,
           children: children,
           children_level: info[0].c_level,
           bbox: formatBox(info[0].bbox)
