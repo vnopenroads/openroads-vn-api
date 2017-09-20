@@ -140,38 +140,38 @@ module.exports = [
       //      - child_admin ids
       //      - child_admin names
       // on id
-      knex.raw(`
-      SELECT * FROM
-        (
-          SELECT type as level, id, parent_id, ST_Extent(geom) as bbox,
-            p.name as p_name_en, name_en, p.p_type as p_level
-          FROM admin_boundaries
-            JOIN (SELECT name_en as name, id as parent, type as p_type FROM admin_boundaries) p
-          ON parent_id=p.parent
-          AND id=${unitId}
-          GROUP BY id, p_name_en, p_level
-        ) a
-        JOIN (
-          SELECT parent_id as p_id, type as c_level, string_agg(id::text, ', ') AS child_ids, string_agg(name_en, ', ') as child_names
-          FROM admin_boundaries
-          WHERE parent_id=${unitId}
-          GROUP BY parent_id, c_level
-        ) b
-      ON (a.id = b.p_id);
-      `)
+      knex
+      .select(
+        'self.id as id',
+        'self.name_en as name',
+        'self.type as level',
+        'child.name_en as c_name',
+        'child.id as c_id',
+        'child.type as c_level',
+        'parent.id as p_id',
+        'parent.name_en as p_name',
+        'parent.type as p_level',
+        knex.raw(`ST_Extent(self.geom) as bbox`)
+      )
+      .from('admin_boundaries AS self')
+      .where('self.id', unitId)
+      .leftJoin('admin_boundaries AS child', 'self.id', 'child.parent_id')
+      .leftJoin('admin_boundaries AS parent', 'self.parent_id', 'parent.id')
+      .groupBy('self.id', 'child.name_en', 'child.id', 'parent.id')
       .then((info) => {
-        console.log()
         // // format the results, making the bouding box of correct spec, finding parent_ids
-        info = info.rows[0];
-        info.bbox = formatBox(info.bbox);
-        info.parent_ids = getParents(info.id.toString());
-        info.child_ids = info.child_ids.split(', ').map(c => Number(c));
-        info.children = info.child_names.split(', ').map((c, i ) => { return {id: info.child_ids[i], name: c }; });
-        // remove unwanted type, parent_id, st_extent properties
-        delete info.parent_id;
-        delete info.child_ids;
-        delete info.child_names;
-        res(info);
+        let children = info.map(o => {
+          return {name: o.c_name, id: o.c_id};
+        });
+        let parent = {name: info[0].p_name, id: info[0].p_id};
+        let reposnse = {
+          id: info[0].id,
+          name: info[0].name,
+          parent: parent,
+          children: children,
+          bbox: formatBox(info[0].bbox)
+        };
+        res(reposnse);
       })
       .catch((e) => {
         console.log(e);
