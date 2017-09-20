@@ -167,8 +167,11 @@ module.exports = [
         let reposnse = {
           id: info[0].id,
           name: info[0].name,
+          level: info[0].level,
           parent: parent,
+          parent_level: info[0].p_level,
           children: children,
+          children_level: info[0].c_level,
           bbox: formatBox(info[0].bbox)
         };
         res(reposnse);
