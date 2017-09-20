@@ -65,6 +65,28 @@ module.exports = [
     }
   },
   {
+    method: 'GET',
+    path: '/admin/units',
+    handler: function (req, res) {
+      // parse the query string and the limit setting
+      const queryString = req.query.name;
+      const limit = req.query.limit;
+      // selects all admin boundaries ids and name_en fields where name_en field matches query string
+      knex('admin_boundaries')
+      .where('name_en', 'LIKE', `${queryString}%`)
+      .select('id', 'name_en')
+      .then((results) => {
+        // serve the response. if a limit is found in the query string, limit response to that limit
+        // if not, just serve all that was found
+        limit ? res(results.slice(0, Number(limit))) : res(results);
+      })
+      .catch((e) => {
+        console.log(e)
+        req(Boom.warp(e));
+      })
+    }
+  },
+  {
     /**
      * @api {get} /admin/:unit_id/info Admin Info
      * @apiGroup Admin
