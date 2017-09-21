@@ -103,11 +103,12 @@ module.exports = [
     path: '/admin/units',
     handler: function (req, res) {
       // parse the query string and the limit setting
-      const queryString = req.query.name;
+      const queryString = req.query.name.toLowerCase();
+      console.log(queryString);
       const limit = req.query.limit;
       // selects all admin boundaries ids and name_en fields where name_en field matches query string
       knex('admin_boundaries')
-      .where('name_en', 'LIKE', `${queryString}%`)
+      .where('name_en', 'ILIKE', `${queryString}%`)
       .select('id', 'name_en', 'type as level')
       .then((results) => {
         // serve the response. if a limit is found in the query string, limit response to that limit
@@ -162,6 +163,15 @@ module.exports = [
      *     1015337,
      *     1015339,
      *     1015341,
+     *  level: 'province',
+     *  'units': [
+     *    {
+     *      id: 106,
+     *      name_en: 'Bac Ninh
+     *    }
+     *    ...
+     *  ]
+     * }
      *     1015343,
      *     1015345,
      *     1015347
