@@ -2,10 +2,9 @@
 
 const _ = require('lodash');
 const fastCSV = require('fast-csv');
-const path_ = require('path');
 const linestring = require('turf-linestring');
 const moment = require('moment');
-const standardizeRoadId = require('../util/standardize-road-id');
+const getRoadIdFromPath = require('../util/road-id-utils').getRoadIdFromPath;
 
 moment.locale('en');
 
@@ -45,16 +44,7 @@ function cleanGeometry (points) {
 }
 
 module.exports = async function (path, contentsStream) {
-  // Check each ancestor directory name for a valid road ID
-  const ROAD_ID_PATTERN = /^(\d{3}[A-Za-z]{2}\d{1,5}).*?$/;
-  const pathParts = path.split(path_.sep).reverse();
-  const roadId = pathParts.reduce((found, one) => {
-    if (!found) {
-      const match = one.match(ROAD_ID_PATTERN);
-      if (match) { found = standardizeRoadId(match[1]); }
-    }
-    return found;
-  }, null);
+  const roadId = getRoadIdFromPath(path);
 
   let points = [];
   return new Promise(resolve =>

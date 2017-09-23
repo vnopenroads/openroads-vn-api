@@ -1,3 +1,5 @@
+'use strict';
+
 const _ = require('lodash');
 const geojsontoosm = require('geojsontoosm');
 const knex = require('../connection.js');
@@ -5,12 +7,13 @@ const knexPostgis = require('knex-postgis');
 const libxml = require('libxmljs');
 const unzip = require('unzip2');
 const parseGeometries = require('../services/rlp-geometries');
+const parseProperties = require('../services/rlp-properties');
 const uploadChangeset = require('./osc-upload').handler;
 
 const st = knexPostgis(knex);
 
 async function geometriesHandler (req, res) {
-  const filenamePattern = /^.*\/RoadPath.*.csv$/;
+  const filenamePattern = /^.*\/RoadPath.*\.csv$/;
 
   let fileReads = [];
   req.payload[Object.keys(req.payload)[0]]
@@ -35,9 +38,9 @@ async function geometriesHandler (req, res) {
             return knex.insert({
               id: fr.road_id,
               properties: {}
-            }).into('road_properties')
+            }).into('road_properties');
           } else {
-            return Promise.resolve()
+            return Promise.resolve();
           }
         })
       )
@@ -64,8 +67,55 @@ async function geometriesHandler (req, res) {
         const changeset = `<osmChange version="0.6" generator="OpenRoads">\n<create>\n${osm}\n</create>\n</osmChange>`;
 
         return Promise.resolve(uploadChangeset({payload: changeset}, res));
-      })
+      });
+    });
+}
+
+async function propertiesHandler (req, res) {
+  const filenamePattern = /^.*\/Intervals.*\.csv$/;
+
+  let rows = [];
+  req.payload[Object.keys(req.payload)[0]]
+    .pipe(unzip.Parse())
+    .on('entry', async e => {
+      if (e.type === 'File' && filenamePattern.test(e.path)) {
+        const read = await parseProperties(e.path, e);
+        rows = rows.concat(read);
+      } else {
+        // Avoid memory consumption by unneeded files
+        e.autodrain();
+      }
     })
+    .on('close', async () => {
+      // Create `road_property` rows for roads that aren't known yet
+      const knownRoads = await knex.select('id').from('road_properties').map(r => r.id);
+      Promise.all(
+        // Remove duplicate road IDs for the `road_property` write
+        _.uniqBy(rows, r => r.road_id)
+        .map(r => {
+          if (r.road_id && !knownRoads.includes(r.road_id)) {
+            return knex.insert({
+              id: r.road_id,
+              properties: {}
+            }).into('road_properties');
+          } else {
+            return Promise.resolve();
+          }
+        })
+      )
+      .then(() => Promise.all(rows.map(r =>
+        // Add roads to the `point_properties` table
+        // TO-DO: detect if this is identically already in the database
+        knex.insert({
+          geom: st.geomFromGeoJSON(JSON.stringify(r.geom)),
+          source: r.source,
+          datetime: r.datetime,
+          road_id: r.road_id,
+          properties: r.properties
+        }).into('point_properties')
+      )))
+      .then(() => res(_.uniq(rows.map(r => r.road_id))));
+    });
 }
 
 module.exports = [
@@ -116,10 +166,58 @@ module.exports = [
    *     "num_changes":31076
    *     }
    *  }
-   */  {
+   */
+  {
     method: 'POST',
     path: '/fielddata/geometries/rlp',
     handler: geometriesHandler,
+    config: {
+      payload: {
+        // Increase the maximum upload size to 4 GB, from default of 1 GB
+        maxBytes: 4194304,
+        output: 'stream',
+        uploads: '/tmp',
+        // Using a normal file POST not working as expected, so have to
+        // use multipart upload (even if just ingesting the one file)
+        allow: 'multipart/form-data'
+      }
+    }
+  },
+
+  /**
+   * @api {POST} /fielddata/properties/rlp Upload RoadLabPro properties
+   * @apiVersion 0.3.0
+   * @apiGroup Field Data
+   * @apiName UploadRLPProperties
+   * @apiDescription Upload a ZIP containing one or many RoadLabPro
+   * runs. Ingests the point-properties from all `Intervals_*` CSV files.
+   * Returns a list of all road IDs that were ingested.
+   *
+   * Uploaded ZIP should not include ZIPs within. Furthermore, it is
+   * expected that the road ID will be within the parent, grandparent,
+   * or great-granparent's directory name. For compatibility reasons,
+   * the ZIP must be uploaded in multi-part form data, not with a standard
+   * file POST; see the example below. All properties will be ingested
+   * as string data, regardless of whether they're boolean, numeric, or string.
+   *
+   * @apiExample {curl} Example Usage:
+   *  curl --form file=rlp.zip http://localhost:4000/fielddata/properties/rlp
+   *
+   * @apiParam {Object} properties ZIP of RoadLabPro field data
+   *
+   * @apiSuccess {Array} added Road IDs for which point-properties were uploaded
+   *
+   * @apiSuccessExample {json} Success-Response:
+   *  [
+   *    "001ZZ33333",
+   *    "123AB87654",
+   *    "987NA00001"
+   *  ]
+   */
+  {
+    method: 'POST',
+    path: '/fielddata/properties/rlp',
+    handler: propertiesHandler,
     config: {
       payload: {
         // Increase the maximum upload size to 4 GB, from default of 1 GB
