@@ -20,7 +20,7 @@ module.exports = [
      *
      *
      * @apiSuccessExample {JSON} Example Usage:
-     *  curl http://localhost:4000/api/district/units
+     *  curl http://localhost:4000/district/units
      *
      * @apiSuccessExample {JSON} Success-Response
      * {
@@ -141,6 +141,7 @@ module.exports = [
      * @apiSuccess {string} unitInfo.children[0].name_en english name of a given child admin unit
      * @apiSuccess {string} unitInfo.children[0].name_vn vietnamese name of a given child admin unit
      * @apiSuccess {number} unitInfo.children[0].id id of a given child admin unit
+     * @apiSuccess {string} unitInfo.children_level unit children admin level
      * @apiSuccess {array} unitInfo.bbox unit's bounding box
      *
      *
@@ -149,38 +150,30 @@ module.exports = [
      *
      * @apiSuccessExample {JSON} Success-Response
      * {
-     *   level: 'district',
      *   id: 10153,
      *   name_en: 'Me Linh',
-     *   parent_ids: [101],
+     *   name_vn: 'H. M Linn',
+     *   level: 'district',
+     *   parent: {
+     *     name_en: 'Ha Noi',
+     *     name_vn: 'Hà Nội',
+     *     id: 101,
+     *     level: 'province'
+     *   },
      *   child_ids: [
-     *     1015301,
-     *     1015303,
-     *     1015315,
-     *     1015317,
-     *     1015319,
-     *     1015321,
-     *     1015325,
-     *     1015327,
-     *     1015329,
-     *     1015331,
-     *     1015333,
-     *     1015335,
-     *     1015337,
-     *     1015339,
-     *     1015341,
-     *  level: 'province',
-     *  'units': [
-     *    {
-     *      id: 106,
-     *      name_en: 'Bac Ninh
-     *    }
-     *    ...
-     *  ]
-     * }
-     *     1015343,
-     *     1015345,
-     *     1015347
+     *     {
+     *       name_en: 'Kim Hoa',
+     *       name_vn: 'Kim Hoa',
+     *       id: 1015315
+     *     },
+     *     ...
+     *   ],
+     *   children_level: 'commune',
+     *   bbox: [
+     *     105.615146129347,
+     *     21.121647339736,
+     *     105.791829672926,
+     *     21.2396319143545
      *   ]
      * }
      *
@@ -246,7 +239,8 @@ module.exports = [
         };
         let response = {
           id: info[0].id,
-          name: info[0].name,
+          name_en: info[0].name_en,
+          name_vn: info[0].name_vn,
           level: info[0].level,
           parent: parent,
           children: children,
