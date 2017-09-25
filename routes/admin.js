@@ -117,7 +117,7 @@ module.exports = [
       })
       .catch((e) => {
         console.log(e)
-        req(Boom.warp(e));
+        req(Boom.wrap(e));
       })
     }
   },
@@ -209,13 +209,16 @@ module.exports = [
       knex
       .select(
         'self.id as id',
-        'self.name_en as name',
+        'self.name_en as name_en',
+        'self.name_vn as name_vn',
         'self.type as level',
-        'child.name_en as c_name',
+        'child.name_en as c_name_en',
+        'child.name_vn as c_name_vn',
         'child.id as c_id',
         'child.type as c_level',
         'parent.id as p_id',
-        'parent.name_en as p_name',
+        'parent.name_en as p_name_en',
+        'parent.name_vn as p_name_vn',
         'parent.type as p_level',
         knex.raw(`ST_Extent(self.geom) as bbox`)
       )
@@ -223,13 +226,18 @@ module.exports = [
       .where('self.id', unitId)
       .leftJoin('admin_boundaries AS child', 'self.id', 'child.parent_id')
       .leftJoin('admin_boundaries AS parent', 'self.parent_id', 'parent.id')
-      .groupBy('self.id', 'child.name_en', 'child.id', 'parent.id')
+      .groupBy('self.id', 'child.id', 'parent.id', 'child.name_en', 'child.name_vn')
       .then((info) => {
-        // // format the results, making the bouding box of correct spec, finding parent_ids
+        // format the results, making the bouding box of correct spec, finding parent_ids
         let children = info.map(o => {
-          return {name: o.c_name, id: o.c_id};
+          return {name_en: o.c_name_en, name_vn: o.c_name_vn, id: o.c_id};
         });
-        let parent = {name: info[0].p_name, id: info[0].p_id, level: info[0].p_level};
+        let parent = {
+          name_en: info[0].p_name_en,
+          name_vn: info[0].p_name_vn,
+          id: info[0].p_id,
+          level: info[0].p_level
+        };
         let reposnse = {
           id: info[0].id,
           name: info[0].name,
