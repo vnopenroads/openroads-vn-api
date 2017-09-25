@@ -2,9 +2,7 @@
 
 var Boom = require('boom');
 var knex = require('../connection');
-var getParents = require('../services/admin').getParents;
 var formatBox = require('../services/admin').formatBOX;
-Promise = require('bluebird');
 
 module.exports = [
   {
@@ -18,20 +16,19 @@ module.exports = [
      * @apiParam {String} level Admin level (province, district, or commune)
      *
      * @apiSuccess {JSON} units object including list of all admin ids in the level supplied in parameters
-     * @apiSuccess {string} units.level admin units' level
-     * @apiSuccess {array} units.units list of objects representing all units in level. each object icludes an id and name
+     * @apiSuccess {string} units[:level] list of objects representing all units in level. each object includes an id, english name, and vietnamese name
      *
      *
      * @apiSuccessExample {JSON} Example Usage:
-     *  curl http://localhost:4000/api/admins/commune
+     *  curl http://localhost:4000/api/district/units
      *
      * @apiSuccessExample {JSON} Success-Response
      * {
-     *  level: 'province',
-     *  'units': [
+     *  'district': [
      *    {
-     *      id: 106,
-     *      name_en: 'Bac Ninh
+     *      id: 60511,
+     *      name_en: 'Buon Don',
+     *      name_vn:'Buôn Đôn'
      *    }
      *    ...
      *  ]
@@ -42,14 +39,14 @@ module.exports = [
     handler: function (req, res) {
       const level = req.params.level;
       // check to make sure admin level is of the proper type
-      const levelCheck = ['commune', 'district', 'province'].find((l) => { return l === level; });
-      if (!levelCheck) {
-        res(Boom.badRequest('Admin level must be of type \'province\', \'district\', or \'commune'));
+      const levelCheck = ['commune', 'district', 'province'].indexOf(level);
+      if (levelCheck === -1) {
+        return res(Boom.badRequest('Admin level must be of type \'province\', \'district\', or \'commune'));
       }
       // if proper, SELECT id FROM admin_boundaries WHERE type=${level}
       knex('admin_boundaries')
       .where({ type: level })
-      .select('id', 'name_en')
+      .select('id', 'name_en', 'name_vn')
       .then((ids) => {
         // format response per apiSuccessExample spec
         const resObj = {};
@@ -68,8 +65,8 @@ module.exports = [
     /**
      * @api {get} /admin/units?name=substring&limit=# List Matching Units
      * @apiGroup Admin
-     * @apiName ListMathcingUnits
-     * @apiDescription Returns list of admin unit ids that match a substring.
+     * @apiName ListMatchingUnits
+     * @apiDescription Returns list of admin unit ids that match a substring in ascending order.
      * @apiVersion 0.1.0
      *
      * @apiParam {String} name a string used to search for matching admin units
@@ -83,18 +80,20 @@ module.exports = [
      *
      *
      * @apiSuccessExample {JSON} Example Usage:
-     *  curl http://localhost:4000/api/admins/units?name=Th&limit=2
+     *  curl http://localhost:4000/api/admins/units?name=Nie&limit=2
      *
      * @apiSuccessExample {JSON} Success-Response
      * [
      *  {
-     *    id: 2071205,
-     *    name_en: "Thanh Van",
-     *    level: "commune"
+     *    "id": 1030523,
+     *    "name_en": "Niem Nghia",
+     *    "name_vn": "Niệm Nghĩa",
+     *    "level": "commune"
      *  },
      *  {
-     *    id: 2071209,
-     *    name_en: "Thanh Mai",
+     *    "id": 2010531,
+     *    "name_en": "Niem Son",
+     *    "name_vn": "Niêm Sơn",
      *    level: "commune"
      *  }
      * ]
@@ -104,21 +103,20 @@ module.exports = [
     handler: function (req, res) {
       // parse the query string and the limit setting
       const queryString = req.query.name.toLowerCase();
-      console.log(queryString);
-      const limit = req.query.limit;
+      const limit = (!Number.isNaN(req.query.limit) && Number(req.query.limit) > 0) ? Number(req.query.limit) : 100;
       // selects all admin boundaries ids and name_en fields where name_en field matches query string
       knex('admin_boundaries')
       .where('name_en', 'ILIKE', `${queryString}%`)
-      .select('id', 'name_en', 'type as level')
+      .select('id', 'name_en', 'name_vn', 'type as level')
+      .orderBy('name_en', 'asc')
+      .limit(limit)
       .then((results) => {
-        // serve the response. if a limit is found in the query string, limit response to that limit
-        // if not, just serve all that was found
-        limit ? res(results.slice(0, Number(limit))) : res(results);
+        res(results);
       })
       .catch((e) => {
-        console.log(e)
+        console.log(e);
         req(Boom.wrap(e));
-      })
+      });
     }
   },
   {
@@ -132,9 +130,17 @@ module.exports = [
      * @apiParam {String} unit_id Admin unit id
      *
      * @apiSuccess {JSON} unitInfo object with unit info
-     * @apiSuccess {string} unitInfo.level admin unit level
      * @apiSuccess {string} unitInfo.id unit id
-     * @apiSuccess {array} unitInfo.parent_ids unit's parent unit id(s)
+     * @apiSuccess {string} unitInfo.level admin unit level
+     * @apiSuccess {object} unitInfo.parent object with info about admin unit's parent
+     * @apiSuccess {string} unitInfo.parent.name_en parent unit's english name
+     * @apiSuccess {string} unitInfo.parent.name_vn parent unit's vietnamese name
+     * @apiSuccess {number} unitInfo.parent.id parent unit's id
+     * @apiSuccess {string} unitInfo.parent.level parent unit's level
+     * @apiSuccess {array} unitInfo.children list of admin unit's children admin units
+     * @apiSuccess {string} unitInfo.children[0].name_en english name of a given child admin unit
+     * @apiSuccess {string} unitInfo.children[0].name_vn vietnamese name of a given child admin unit
+     * @apiSuccess {number} unitInfo.children[0].id id of a given child admin unit
      * @apiSuccess {array} unitInfo.bbox unit's bounding box
      *
      *
@@ -185,12 +191,12 @@ module.exports = [
       // get unitId from request params
       const unitId = req.params.unit_id;
       // check if unitId is valid length
-      const validIdCheck = [7, 5, 3].find(idLenght => idLenght === unitId.toString().length);
+      const validIdCheck = [7, 5, 3].indexOf(unitId.toString().length);
       // serve bad request if unitId string is not an integer
       if(!Number.isInteger(Number(unitId))) {
         return res(Boom.badRequest('unit_id must be an integer'));
       // serve a bad request if unitId is not of valid length
-      } else if (!validIdCheck) {
+      } else if (validIdCheck === -1) {
         return res(Boom.badRequest('unit_id must be a numeric code of length 7, 5, or 3. See documentation'));
       }
       // joins two tables made from select statements:
@@ -228,7 +234,7 @@ module.exports = [
       .leftJoin('admin_boundaries AS parent', 'self.parent_id', 'parent.id')
       .groupBy('self.id', 'child.id', 'parent.id', 'child.name_en', 'child.name_vn')
       .then((info) => {
-        // format the results, making the bouding box of correct spec, finding parent_ids
+        // format the results, making the bounding box of correct spec, finding parent_ids
         let children = info.map(o => {
           return {name_en: o.c_name_en, name_vn: o.c_name_vn, id: o.c_id};
         });
@@ -238,7 +244,7 @@ module.exports = [
           id: info[0].p_id,
           level: info[0].p_level
         };
-        let reposnse = {
+        let response = {
           id: info[0].id,
           name: info[0].name,
           level: info[0].level,
@@ -247,7 +253,7 @@ module.exports = [
           children_level: info[0].c_level,
           bbox: formatBox(info[0].bbox)
         };
-        res(reposnse);
+        res(response);
       })
       .catch((e) => {
         console.log(e);
