@@ -41,8 +41,8 @@ jobs:
           name: Save Docker image layer cache
           command: |
             mkdir -p /caches
-            docker save -o /caches/project.tar openroads/vn-api-db:0.2.0
-            docker save -o /caches/project.tar openroads/vn-api-db:0.2.0
+            docker save -o /caches/project.tar openroads/vn-api-db:latest
+            docker save -o /caches/project.tar openroads/vn-api-app:latest
       - run:
           name: Run tests
           command: docker-compose run api npm test
