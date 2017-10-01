@@ -12,7 +12,7 @@ ecs:
   volumeSize: 50
   vpcId: vpc-dfe524ba
   keyPairName: openroads
-  availabilityZone: us-east-1a
+  availabilityZone: '!Sub ${AWS::Region}a'
   maxInstances: 1
   desiredInstances: 1
   services:
@@ -20,7 +20,7 @@ ecs:
       name: vn
       containers:
         - name: postgres
-          image: openroads/vn-api-db:0.2.0
+          image: vn-api-db:latest
           cpu: 100
           memory: 800
           ports:
@@ -33,7 +33,7 @@ ecs:
             AWS_REGION: '!Sub ${AWS::Region}'
 
         - name: webapp
-          image: openroads/vn-api-app:0.2.0
+          image: vn-api-app:latest
           cpu: 100
           memory: 800
           ports:
@@ -46,3 +46,38 @@ ecs:
             DATABASE_URL: postgres://postgres@postgres:5432/openroads
             AWS_DEFAULT_REGION: '!Sub ${AWS::Region}'
             AWS_REGION: '!Sub ${AWS::Region}'
+
+        - name: tiler
+          image: developmentseed/openroads-tiler
+          cpu: 100
+          memory: 800
+          ports:
+            - container: 5432
+              host: 5433
+              protocol: tcp
+          envs:
+            POSTGRES_DB: openroads
+            S3_BUCKET: $S3_BUCKET
+
+        - name: tilemap
+          image: developmentseed/openroads-tilemap
+          cpu: 100
+          memory: 800
+          ports:
+            - container: 5432
+              host: 5433
+              protocol: tcp
+          envs:
+            S3_BUCKET: $S3_BUCKET
+
+        - name: vn-tiler
+          image: developmentseed/openroads-vn-tiler
+          cpu: 100
+          memory: 800
+          ports:
+            - container: 5432
+              host: 5433
+              protocol: tcp
+          envs:
+            POSTGRES_DB: openroads
+            S3_BUCKET: $S3_BUCKET
