@@ -1,20 +1,56 @@
 version: 2
+
 jobs:
   build:
     docker:
-      #- image: docker:17.05.0-ce-git   # (1)
       - image: docker/compose:1.16.0
-    working_directory: ~/openroads-vn-api
+    working_dir: ~/project
     steps:
+      - restore_cache:
+          keys:
+            - v1-repo-{{ .Branch }}-{{ .Revision }}
+            - v1-repo-{{ .Branch }}
+            - v1-repo
       - checkout
-      - setup_remote_docker   # (2)
-
-      # build and push Docker image
+      - save_cache:
+          key: v1-repo-{{ .Branch }}-{{ .Revision }}
+          paths:
+            - ~/project
+      - setup_remote_docker
       - run:
-          name: test
+          name: Load Docker image layer cache
+          command: |
+            set +o pipefail
+            docker load -i /caches/project.tar | true
+      - run:
+          name: Build docker image
+          command: docker-compose build
+      - run:
+          name: Save Docker image layer cache
+          command: |
+            mkdir -p /caches
+            docker save -o /caches/project.tar openroads/vn-api-db:0.2.0
+            docker save -o /caches/project.tar openroads/vn-api-db:0.2.0
+      - run:
+          name: Creating .env for environment variables
+          command: |
+            echo "AWS_REGION=$AWS_REGION" >> .env
+            echo "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID" >> .env
+            echo "AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY" >> .env            
+            echo "DATABASE_URL=$DATABASE_URL" >> .env
+      - run:
+          name: Run tests
           command: docker-compose run api npm test
-
-      # until the package runs on node >= 6.10 can't deploy with kes
-      #- run:
-          #name: deploy to AWS
-          #command: docker-compose run deploy
+      - run:
+          name: Deploy
+          command: |
+            if [ "${CIRCLE_BRANCH}" == "master" ]; then
+              docker login -e $DOCKER_EMAIL -u $DOCKER_USER -p $DOCKER_PASS
+              VERSION=`awk -F\' '{print $2,$4}' worker/version.py`
+              docker tag openroads/vn-api-db:latest openroads/vn-api-db:$VERSION
+              docker tag openroads/vn-api-app:latest openroads/vn-api-app:$VERSION
+              ssh-keyscan github.com >> ~/.ssh/known_hosts
+              git tag $VERSION
+              git push origin $VERSION
+              docker-compose run deploy
+            fi
