@@ -2,8 +2,8 @@ version: 2
 
 jobs:
   build:
-    #docker:
-    #  - image: docker/compose:1.16.0
+    docker:
+      - image: docker:17.05.0-ce-git
     working_dir: ~/project
     steps:
       - restore_cache:
