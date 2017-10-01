@@ -16,6 +16,13 @@ jobs:
           key: v1-repo-{{ .Branch }}-{{ .Revision }}
           paths:
             - ~/project
+      - run:
+          name: Creating .env for environment variables
+          command: |
+            echo "AWS_REGION=$AWS_REGION" >> .env
+            echo "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID" >> .env
+            echo "AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY" >> .env            
+            echo "DATABASE_URL=$DATABASE_URL" >> .env
       - setup_remote_docker
       - run:
           name: Load Docker image layer cache
@@ -31,13 +38,6 @@ jobs:
             mkdir -p /caches
             docker save -o /caches/project.tar openroads/vn-api-db:0.2.0
             docker save -o /caches/project.tar openroads/vn-api-db:0.2.0
-      - run:
-          name: Creating .env for environment variables
-          command: |
-            echo "AWS_REGION=$AWS_REGION" >> .env
-            echo "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID" >> .env
-            echo "AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY" >> .env            
-            echo "DATABASE_URL=$DATABASE_URL" >> .env
       - run:
           name: Run tests
           command: docker-compose run api npm test
