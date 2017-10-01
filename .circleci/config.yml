@@ -25,11 +25,10 @@ jobs:
             echo "DATABASE_URL=$DATABASE_URL" >> .env
       - setup_remote_docker
       - run:
-          name: Install Docker Compose
+          name: Install dependencies
           command: |
-            set -x
-            curl -L https://github.com/docker/compose/releases/download/1.19.0/docker-compose-`uname -s`-`uname -m` > /usr/local/bin/docker-compose
-            chmod +x /usr/local/bin/docker-compose
+            apk add --no-cache py-pip=9.0.0-r1
+            pip install docker-compose==1.16.0
       - run:
           name: Load Docker image layer cache
           command: |
