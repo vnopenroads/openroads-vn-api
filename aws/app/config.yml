@@ -6,7 +6,7 @@ buckets:
   internal: orma-d-deploy
 
 ecs:
-  amiid: ami-9eb4b1e5
+  amiid: ami-9d1f7efe
   instanceType: t2.medium
   ecsInstanceProfileArn: arn:aws:iam::552819999234:instance-profile/orma-ecs
   volumeSize: 50
@@ -36,10 +36,6 @@ ecs:
           image: vn-api-app:latest
           cpu: 100
           memory: 800
-          ports:
-            - container: 4000
-              host: 80
-              protocol: tcp
           links:
             - postgres
           envs:
@@ -51,10 +47,6 @@ ecs:
           image: developmentseed/openroads-tiler
           cpu: 100
           memory: 800
-          ports:
-            - container: 5432
-              host: 5433
-              protocol: tcp
           envs:
             POSTGRES_DB: openroads
             S3_BUCKET: $S3_BUCKET
@@ -64,8 +56,8 @@ ecs:
           cpu: 100
           memory: 800
           ports:
-            - container: 5432
-              host: 5433
+            - container: 8000
+              host: 80
               protocol: tcp
           envs:
             S3_BUCKET: $S3_BUCKET
@@ -74,10 +66,6 @@ ecs:
           image: developmentseed/openroads-vn-tiler
           cpu: 100
           memory: 800
-          ports:
-            - container: 5432
-              host: 5433
-              protocol: tcp
           envs:
             POSTGRES_DB: openroads
             S3_BUCKET: $S3_BUCKET
