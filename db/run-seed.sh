@@ -1,5 +1,7 @@
 #!/bin/bash
 set -e
-
-# cp data from s3 bucket into the data folder
-aws s3 cp s3://openroads-vn-fixture/ ./db/data/ --recursive
+cd /init/
+# download fixture zip file, unzip its contents, then remove the zip
+wget -qO- -O /init/fixture.zip https://s3.amazonaws.com/openroads-vn-fixture/${SEED}.zip \
+&& unzip /init/fixture.zip \
+&& rm /init/fixture.zip

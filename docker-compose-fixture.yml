@@ -1,0 +1,25 @@
+version: "3"
+services:
+  db:
+    build: 
+      context: ./db
+      args: 
+        - seed=fixture
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRES_DB=openroads
+  api:
+    build: .
+    environment:
+      - DATABASE_URL=postgres://postgres@postgres:5432/openroads
+    links:
+      - db:postgres
+    ports:
+      - "4000:4000"
+  deploy:
+    build: .
+    command: npm run kes-app-update
+    environment:
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
