@@ -31,6 +31,10 @@ Resources:
           IpProtocol: tcp
           FromPort: 443
           ToPort: 443
+        - CidrIp: 0.0.0.0/0
+          IpProtocol: ssh
+          FromPort: 22
+          ToPort: 22
 
   ContainerInstanceLaunch:
     Type: AWS::AutoScaling::LaunchConfiguration
