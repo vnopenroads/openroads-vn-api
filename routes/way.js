@@ -8,7 +8,7 @@ var log = require('../services/log');
 var Node = require('../models/node-model');
 var bbox = require('@turf/bbox');
 var point = require('@turf/helpers').point;
-var flatten = require('lodash.flatten');
+var flatten = require('lodash').flatten;
 var fc = require('@turf/helpers').featureCollection;
 var Promise = require('bluebird');
 
