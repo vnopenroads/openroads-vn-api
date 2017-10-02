@@ -7,7 +7,7 @@ buckets:
 
 ecs:
   amiid: ami-9d1f7efe
-  instanceType: t2.medium
+  instanceType: t2.large
   ecsInstanceProfileArn: arn:aws:iam::552819999234:instance-profile/orma-ecs
   volumeSize: 50
   vpcId: vpc-1dda3b78
