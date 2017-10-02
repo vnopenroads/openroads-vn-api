@@ -1,0 +1,48 @@
+stackName: orma
+
+stage: dev
+
+buckets:
+  internal: orma-d-deploy
+
+ecs:
+  amiid: ami-9eb4b1e5
+  instanceType: t2.medium
+  ecsInstanceProfileArn: arn:aws:iam::552819999234:instance-profile/orma-ecs
+  volumeSize: 50
+  vpcId: vpc-dfe524ba
+  keyPairName: openroads
+  availabilityZone: us-east-1a
+  maxInstances: 1
+  desiredInstances: 1
+  services:
+    - count: 1
+      name: vn
+      containers:
+        - name: postgres
+          image: openroads/vn-api-db:0.2.0
+          cpu: 100
+          memory: 800
+          ports:
+            - container: 5432
+              host: 5433
+              protocol: tcp
+          envs:
+            POSTGRES_DB: openroads
+            AWS_DEFAULT_REGION: '!Sub ${AWS::Region}'
+            AWS_REGION: '!Sub ${AWS::Region}'
+
+        - name: webapp
+          image: openroads/vn-api-app:0.2.0
+          cpu: 100
+          memory: 800
+          ports:
+            - container: 4000
+              host: 80
+              protocol: tcp
+          links:
+            - postgres
+          envs:
+            DATABASE_URL: postgres://postgres@postgres:5432/openroads
+            AWS_DEFAULT_REGION: '!Sub ${AWS::Region}'
+            AWS_REGION: '!Sub ${AWS::Region}'

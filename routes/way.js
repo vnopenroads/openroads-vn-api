@@ -42,8 +42,8 @@ function nodeCoordinates (node) {
 
 function singleWayBBOX(req, res) {
   var vprommsId = req.params.VProMMs_Id;
-  if (vprommsId.length < 10) {
-    return res(Boom.badRequest('VProMMs id must be atleast 10 digits'));
+  if (vprommsId.length !== 10) {
+    return res(Boom.badRequest('VProMMs id must be exactly 10 digits'));
   }
   // get way_id for row where where the 'v' column matches vprommsId;
   knex('current_way_tags')
