@@ -150,7 +150,7 @@ module.exports = [
    * @apiSuccess {number} changeset.num_changes Number of edits in this changeset.
    *
    * @apiExample {curl} Example Usage:
-   *  curl --form file=rlp.zip http://localhost:4000/fielddata/geometries/rlp
+   *  curl --form file=@rlp.zip http://localhost:4000/fielddata/geometries/rlp
    *
    * @apiSuccessExample {json} Success-Response:
    *  {"changeset":
@@ -201,7 +201,7 @@ module.exports = [
    * as string data, regardless of whether they're boolean, numeric, or string.
    *
    * @apiExample {curl} Example Usage:
-   *  curl --form file=rlp.zip http://localhost:4000/fielddata/properties/rlp
+   *  curl --form file=@rlp.zip http://localhost:4000/fielddata/properties/rlp
    *
    * @apiParam {Object} properties ZIP of RoadLabPro field data
    *
