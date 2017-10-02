@@ -10,7 +10,7 @@ ecs:
   instanceType: t2.medium
   ecsInstanceProfileArn: arn:aws:iam::552819999234:instance-profile/orma-ecs
   volumeSize: 50
-  vpcId: vpc-dfe524ba
+  vpcId: vpc-1dda3b78
   keyPairName: openroads
   availabilityZone: '!Sub ${AWS::Region}a'
   maxInstances: 1
