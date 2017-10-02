@@ -5,11 +5,11 @@ var Boom = require('boom');
 var knex = require('../connection.js');
 var api = 'http://localhost:4000/';
 var queryWays = require('../services/query-ways');
-var flattenDeep = require('lodash.flattendeep');
-var groupBy = require('lodash.groupby')
-var includes = require('lodash.includes');
-var assign = require('lodash.assign');
-var reduce = require('lodash.reduce');
+var flattenDeep = require('lodash').flattenDeep;
+var groupBy = require('lodash').groupBy;
+var includes = require('lodash').includes;
+var assign = require('lodash').assign;
+var reduce = require('lodash').reduce;
 Promise = require('bluebird');
 module.exports = [
   /**
