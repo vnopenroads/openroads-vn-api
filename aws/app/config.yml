@@ -43,4 +43,4 @@ lambdas:
   handler: daac-ops-api.bootstrap
   timeout: 100
   memory: 256
-  source: '../db/lambda/index.js'
+  source: '../db/lambda/init-schema.js'
