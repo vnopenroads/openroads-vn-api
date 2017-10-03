@@ -1,13 +1,18 @@
 stackName: orma
 
-stage: dev
+stage: prod
 
 buckets:
   internal: orma-d-deploy
 
+rds:
+  name: openroads
+  username: {{RDS_USER}}
+  password: {{RDS_PASS}}
+
 ecs:
   amiid: ami-9d1f7efe
-  instanceType: t2.large
+  instanceType: t2.medium
   ecsInstanceProfileArn: arn:aws:iam::552819999234:instance-profile/orma-ecs
   volumeSize: 50
   vpcId: vpc-1dda3b78
@@ -19,57 +24,23 @@ ecs:
     - count: 1
       name: vn
       containers:
-        - name: postgres
-          image: openroads/vn-api-db:latest
-          cpu: 100
-          memory: 800
-          ports:
-            - container: 5432
-              host: 5433
-              protocol: tcp
-          envs:
-            POSTGRES_DB: openroads
-            AWS_DEFAULT_REGION: '!Sub ${AWS::Region}'
-            AWS_REGION: '!Sub ${AWS::Region}'
-
         - name: webapp
-          image: openroads/vn-api-app:latest
+          image: openroads/vn-api-app:0.2.0
           cpu: 100
           memory: 800
           ports:
             - container: 4000
               host: 80
               protocol: tcp
-          links:
-            - postgres
           envs:
-            DATABASE_URL: postgres://postgres@postgres:5432/openroads
+            DATABASE_URL: {{DATABASE_URL}}
             AWS_DEFAULT_REGION: '!Sub ${AWS::Region}'
             AWS_REGION: '!Sub ${AWS::Region}'
 
-        - name: tiler
-          image: developmentseed/openroads-tiler
-          cpu: 100
-          memory: 800
-          envs:
-            POSTGRES_DB: openroads
-            S3_BUCKET: $S3_BUCKET
-
-        - name: tilemap
-          image: developmentseed/openroads-tilemap
-          cpu: 100
-          memory: 800
-          ports:
-            - container: 8000
-              host: 81
-              protocol: tcp
-          envs:
-            S3_BUCKET: $S3_BUCKET
-
-        - name: vn-tiler
-          image: developmentseed/openroads-vn-tiler
-          cpu: 100
-          memory: 800
-          envs:
-            POSTGRES_DB: openroads
-            S3_BUCKET: $S3_BUCKET
+# used as custom resource for cloudformation manipulation
+lambdas:
+  name: CustomBootstrap
+  handler: daac-ops-api.bootstrap
+  timeout: 100
+  memory: 256
+  source: '../db/lambda/index.js'
