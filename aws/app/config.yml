@@ -1,9 +1,11 @@
 stackName: orma
 
-stage: prod
+stage: dev
 
 buckets:
   internal: orma-d-deploy
+
+lambdaProcessingRoleArn: {{iamroles.lambdaProcessingRoleArn}}
 
 rds:
   name: openroads
@@ -38,9 +40,9 @@ ecs:
             AWS_REGION: '!Sub ${AWS::Region}'
 
 # used as custom resource for cloudformation manipulation
-lambdas:
-  name: CustomBootstrap
-  handler: daac-ops-api.bootstrap
-  timeout: 100
-  memory: 256
-  source: '../db/lambda/init-schema.js'
+#lambdas:
+#- name: CustomBootstrap
+#  handler: init-schema.handler
+#  timeout: 100
+#  memory: 256
+#  source: 'db/lambda/init-schema.js'

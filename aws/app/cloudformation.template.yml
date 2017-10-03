@@ -6,15 +6,16 @@ Resources:
   #################################################
   # Custom Resource BEGIN
   #################################################
-  CumulusCustomResource:
-    Type: Custom::Openroads
-    Properties:
-      ServiceToken: !GetAtt CustomBootstrapLambdaFunction.Arn
-      Database:
-        URL: !Join "postgres://",
-                !GetAtt {{rds.name}}Endpoint.Address", ":",
-                !GetAtt {{rds.name}}Endpoint.Port", "/",
-                !GetAtt {{rds.name}}
+  #CumulusCustomResource:
+  #  Type: Custom::Openroads
+  #  Properties:
+  #    ServiceToken: !GetAtt CustomBootstrapLambdaFunction.Arn
+  #    Database:
+  #      URL: >
+  #        !Join ["", [postgres://",
+  #              !GetAtt {{rds.name}}Endpoint.Address", ":",
+  #              !GetAtt {{rds.name}}Endpoint.Port", "/",
+  #              !GetAtt {{rds.name}}]]
 
   #################################################
   # Custom Resource END
@@ -261,37 +262,6 @@ Resources:
         {{/each}}
     {{/if}}
     {{/if}}
-
-{{# if apiGateway }}
-  {{name}}LambdaPermissionApiGateway:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Action: lambda:InvokeFunction
-      FunctionName:
-        Fn::GetAtt:
-        - {{name}}LambdaFunction
-        - Arn
-      Principal: apigateway.amazonaws.com
-{{/if}}
-
-{{# if logToElasticSearch }}
-  {{name}}LogSubscription:
-    Type: AWS::Logs::SubscriptionFilter
-    DependsOn:
-      - {{name}}LogGroup
-      - log2elasticsearchLambdaPermissionLog
-    Properties:
-      DestinationArn: !GetAtt log2elasticsearchLambdaFunction.Arn
-      LogGroupName: '/aws/lambda/{{../stackName}}-{{../stage}}-{{name}}'
-      FilterPattern: '{ $.name = "cumulus" }'
-
-  {{name}}LogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: '/aws/lambda/{{../stackName}}-{{../stage}}-{{name}}'
-      RetentionInDays: 30
-{{/if}}
-
 {{/each}}
 
   #################################################
