@@ -2,8 +2,10 @@ version: 2
 
 jobs:
   build:
-    docker:
-      - image: docker:17.05.0-ce-git
+    machine: true
+      image: circleci/classic:201708-01
+    #docker:
+    #  - image: docker:17.05.0-ce-git
     working_dir: ~/project
     steps:
       - restore_cache:
@@ -23,7 +25,7 @@ jobs:
             echo "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID" >> .env
             echo "AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY" >> .env            
             echo "DATABASE_URL=$DATABASE_URL" >> .env
-      - setup_remote_docker
+      #- setup_remote_docker
       - run:
           name: Install dependencies
           command: |
