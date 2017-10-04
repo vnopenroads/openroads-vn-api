@@ -48,7 +48,7 @@ jobs:
           name: Run tests
           command: |
             docker-compose up -d api
-            docker-compose exec api npm test
+            docker run --env-file .env --network container:db api npm test
       - run:
           name: Deploy
           command: |
