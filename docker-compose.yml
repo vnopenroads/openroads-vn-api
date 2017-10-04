@@ -27,8 +27,8 @@ services:
       - DATABASE_URL=postgres://postgres@db:5432/openroads
 
   deploy:
-    build: .
-    command: kes cf update -k aws/app --env-file .env
+    image: developmentseed/openroads-vn-api:latest
+    command: node_modules/.bin/kes cf update -k aws/app --env-file .env
     env_file: .env
     environment:
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
