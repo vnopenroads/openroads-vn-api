@@ -48,7 +48,7 @@ jobs:
           name: Run tests
           command: |
             docker-compose up -d api
-            docker run --env-file .env --network container:db api npm test
+            docker run --env-file .env --network container:db openroads/vn-api-app:latest npm test
       - run:
           name: Deploy
           command: |
