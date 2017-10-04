@@ -5,7 +5,7 @@ jobs:
     machine: true
     #docker:
     #  - image: docker:17.05.0-ce-git
-    working_dir: /home/circleci/project
+    working_dir: ~/project
     steps:
       - restore_cache:
           keys:
@@ -16,7 +16,7 @@ jobs:
       - save_cache:
           key: v2-repo-{{ .Branch }}-{{ .Revision }}
           paths:
-            - /home/circleci/project
+            - ~/project
       - run:
           name: Creating .env for environment variables
           command: |
@@ -51,7 +51,7 @@ jobs:
           name: Deploy
           command: |
             if [ "${CIRCLE_BRANCH}" == "master" ]; then
-              ssh-keyscan github.com >> /home/circleci/.ssh/known_hosts
+              ssh-keyscan github.com >> ~/.ssh/known_hosts
               VERSION=`awk -F\' '{print $2,$4}' worker/version.py`
               docker tag openroads/vn-api-db:latest openroads/vn-api-db:$VERSION
               docker tag openroads/vn-api-app:latest openroads/vn-api-app:$VERSION
