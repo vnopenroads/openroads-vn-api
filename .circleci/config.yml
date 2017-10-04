@@ -2,9 +2,9 @@ version: 2
 
 jobs:
   build:
-    #machine: true
-    docker:
-      - image: docker:17.05.0-ce-git
+    machine: true
+    #docker:
+    #  - image: docker:17.05.0-ce-git
     working_dir: ~/project
     steps:
       - restore_cache:
@@ -24,13 +24,13 @@ jobs:
             echo "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID" >> .env
             echo "AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY" >> .env            
             echo "DATABASE_URL=$DATABASE_URL" >> .env
-      - setup_remote_docker
-      - run:
-          name: Install dependencies
-          command: |
-            apk add --no-cache py-pip=9.0.0-r1
-            apk add --update openssl
-            pip install docker-compose==1.16.0
+      #- setup_remote_docker
+      #- run:
+      #    name: Install dependencies
+      #    command: |
+      #      apk add --no-cache py-pip=9.0.0-r1
+      #      apk add --update openssl
+      #      pip install docker-compose==1.16.0
       - run:
           name: Load Docker image layer cache
           command: |
@@ -49,17 +49,6 @@ jobs:
           name: Start DB
           command: |
             docker-compose up -d db
-      - run:
-          name: install dockerize
-          command: |
-            wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz 
-            tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
-            rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
-          environment:
-            DOCKERIZE_VERSION: v0.3.0
-      - run:
-          name: Wait for db
-          command: dockerize -wait tcp://172.18.0.2:5432 -timeout 1m
       - run:
           name: Run tests
           command: |
