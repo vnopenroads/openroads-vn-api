@@ -17,7 +17,7 @@ services:
     ports:
       - "4000:4000"
     environment:
-      - DATABASE_URL=postgres://postgres@postgres:5432/openroads
+      - DATABASE_URL=postgres://postgres@postgres:5432?sslmode=disable/openroads
 
   tiler:
     image: developmentseed/openroads-tiler
