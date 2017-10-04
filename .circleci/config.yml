@@ -7,14 +7,14 @@ jobs:
       - image: docker:17.05.0-ce-git
     working_dir: ~/project
     steps:
-      #- restore_cache:
-      #    keys:
-      #      - v2-repo-{{ .Branch }}-{{ .Revision }}
-      #      - v2-repo-{{ .Branch }}
-      #      - v2-repo
+      - restore_cache:
+          keys:
+            - v0-repo-{{ .Branch }}-{{ .Revision }}
+            - v0-repo-{{ .Branch }}
+            - v0-repo
       - checkout
       - save_cache:
-          key: v2-repo-{{ .Branch }}-{{ .Revision }}
+          key: v0-repo-{{ .Branch }}-{{ .Revision }}
           paths:
             - ~/project
       - run:
@@ -23,32 +23,32 @@ jobs:
             echo "AWS_REGION=$AWS_REGION" >> .env
             echo "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID" >> .env
             echo "AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY" >> .env            
-            echo "DATABASE_URL=postgres://postgres@db:5432/openroads" >> .env
+            echo "DATABASE_URL=$DATABASE_URL" >> .env
       - setup_remote_docker
       - run:
           name: Install dependencies
           command: |
             apk add --no-cache py-pip=9.0.0-r1
             pip install docker-compose==1.16.0
-      #- run:
-      #    name: Load Docker image layer cache
-      #    command: |
-      #      set +o pipefail
-      #      docker load -i ~/vn-api-db.tar | true
-      #      docker load -i ~/vn-api-app.tar | true
+      - run:
+          name: Load Docker image layer cache
+          command: |
+            set +o pipefail
+            docker load -i ~/vn-api-db.tar | true
+            docker load -i ~/vn-api-app.tar | true
       - run:
           name: Build docker image
           command: docker-compose build
-      #- run:
-      #    name: Save Docker image layer cache
-      #    command: |
-      #      docker save -o ~/vn-api-db.tar openroads/vn-api-db:latest
-      #      docker save -o ~/vn-api-app.tar openroads/vn-api-app:latest
+      - run:
+          name: Save Docker image layer cache
+          command: |
+            docker save -o ~/vn-api-db.tar openroads/vn-api-db:latest
+            docker save -o ~/vn-api-app.tar openroads/vn-api-app:latest
       - run:
           name: Run tests
           command: |
             docker-compose up -d api
-            docker-compose exec api npm test
+          #docker-compose exec api npm test
       - run:
           name: Deploy
           command: |
