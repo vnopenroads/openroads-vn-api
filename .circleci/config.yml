@@ -45,9 +45,12 @@ jobs:
             docker save -o ~/vn-api-db.tar openroads/vn-api-db:latest
             docker save -o ~/vn-api-app.tar openroads/vn-api-app:latest
       - run:
-          name: Run tests
+          name: Start DB
           command: |
             docker-compose up -d db
+      - run:
+          name: Run tests
+          command: |
             docker-compose run api npm test
       - run:
           name: Deploy
