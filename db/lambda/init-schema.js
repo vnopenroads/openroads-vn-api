@@ -1,7 +1,6 @@
 'use strict';
 
 var knex = require('./connection');
-var assert = require('assert');
 var readFileSync = require('fs').readFileSync;
 Promise = require('bluebird');
 
@@ -18,22 +17,21 @@ exports.initSchema = function (databaseConnection) {
     .then(function() { return adminBoundariesSchema(knex, Promise); })
     .then(function() { return fieldDataSchema(knex, Promise); })
     .then(function() { return roadStatsSchema(knex, Promise); })
-    .then(function() { return knex.destroy() })
+    .then(function() { return knex.destroy(); })
     .then(function() { return resolve()})
     .catch(function(e) { 
-      throw new Error(e) 
-      return reject()
-    })
-  })
-}
-  
+      throw new Error(e); 
+      return reject();
+    });
+  });
+};
 
 /**
  * given a db url, returns a knex obj to connect a pg client
  * @func dbConnect
- * @param {string} connection 
+ * @param {string} connection
  */
-exports.dbConnect = function (connection) { 
+exports.dbConnect = function (connection) {
   return require('knex')({
     client: 'pg',
     connection: connection,
@@ -43,7 +41,7 @@ exports.dbConnect = function (connection) {
       max: 10
     }
   });
-}
+};
 
 /**
  * makes macrocosm schema
@@ -57,7 +55,7 @@ function macrocosmSchema (knex, Promise) {
 }
 
 /**
- * makes admin boundaries table 
+ * makes admin boundaries table
  * @func adminBoundariesSchema schema
  */
 function adminBoundariesSchema (knex, Promise) {

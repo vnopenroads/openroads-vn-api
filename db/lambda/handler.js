@@ -15,23 +15,23 @@ Promise = require('bluebird');
  * @param {func} cb 
  */
 exports.handler = function(event, context, cb) {
-  const es = get(event, 'ResourceProperties.ElasticSearch')
-  const dbConnection = get(event, 'ResourceProperties.something')
+  const es = get(event, 'ResourceProperties.ElasticSearch');
+  const db = get(event, 'ResourceProperties.database');
   const requestType = get(event, 'RequestType');
 
   const actions = [
     bootstrapElasticSearch(get(es, 'host')),
-    bootstrapDBConnection(get(es, 'something'))
+    bootstrapDBConnection(get(db, 'url'))
   ];
   
   return Promise.all(actions).then((results) => {
     const dbURL = results[1];
     const dbConnection = dbConnect(dbURL);
     // initSchema. If there are no errors, send a SUCCESS response. Otherwise, send a FAILED response.
-    initSchema(dbConnect)
-    .then(() => { return sendResponse(event, 'SUCCESS', data, cb); })
+    initSchema(dbConnection)
+    .then(() => { return sendResponse(event, 'SUCCESS', {}, cb); })
     .catch((e) => {
-      log.error(e);
+      console.error(e);
       return sendResponse(event, 'FAILED', null, cb);
     });
   });
@@ -53,10 +53,10 @@ async function bootstrapElasticSearch(host, index = 'openroads-db-index') {
       index,
       body: { mappings }
     });
-    // log.info(`index ${index} created and mappings added.`);
+    console.log(`index ${index} created and mappings added.`);
   }
   else {
-    // log.info(`index ${index} already exists`);
+    console.log(`index ${index} already exists`);
   }
 
   return;
@@ -76,7 +76,7 @@ function bootstrapDBConnection(db) {
  * sends response of elastic search
  * @func sendResponse
  * @param {object} event
- * @param {*} status 
+ * @param {*} status
  * @param {object} data
  * @param {func} cb
  */
@@ -89,8 +89,8 @@ function sendResponse(event, status, data = {}, cb = () => {}) {
     LogicalResourceId: event.LogicalResourceId,
     Data: data
   });
-  
-  // log.info('RESPONSE BODY:\n', body);
+
+  console.log('RESPONSE BODY:\n', body);
 
   const parsedUrl = url.parse(event.ResponseURL);
   const options = {
@@ -102,23 +102,23 @@ function sendResponse(event, status, data = {}, cb = () => {}) {
       'content-type': '',
       'content-length': body.length
     }
-  }
-  
-  // log.info('SENDING RESPONSE...\n');
-  
+  };
+
+  console.log('SENDING RESPONSE...\n');
+
   const request = https.request(options, (response) => {
-    // log.info(`STATUS: ${response.statusCode}`);
-    // log.info(`HEADERS: ${JSON.stringify(response.headers)}`);
+    console.log(`STATUS: ${response.statusCode}`);
+    console.log(`HEADERS: ${JSON.stringify(response.headers)}`);
     // Tell AWS Lambda that the function execution is done
     cb();
   });
-  
+
   request.on('error', (error) => {
-    // log.info(`sendResponse Error: ${error}`);
+    console.log(`sendResponse Error: ${error}`);
     // Tell AWS Lambda that the function execution is done
     cb(error);
   });
-  
+
   // write data to request body
   request.write(body);
   request.end();
