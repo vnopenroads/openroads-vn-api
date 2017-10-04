@@ -11,4 +11,4 @@ RUN mkdir -p /seed
 # Initialize the database using all SQL commands in the directory
 ADD run-seed.sh /seed/
 RUN sh /seed/run-seed.sh
-ADD sql/*.sql /docker-entrypoint-initdb.d
+ADD sql/*.sql /docker-entrypoint-initdb.d/
