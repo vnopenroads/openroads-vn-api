@@ -3,6 +3,9 @@ services:
   db:
     build: ./db
     image: openroads/vn-api-db:latest
+    container_name: vn-api-db
+    networks:
+      - openroads
     ports:
       - "5432:5432"
     environment:
@@ -18,30 +21,10 @@ services:
       - db
     ports:
       - "4000:4000"
+    networks:
+      - openroads
     environment:
       - DATABASE_URL=postgres://postgres@postgres:5432/openroads
-
-  tiler:
-    image: developmentseed/openroads-tiler
-    env_file: .env
-    command: bash -c "cd /opt/app; echo 'export DATABASE_URL=$DATABASE_URL' >> .env; echo 'export S3_BUCKET=$S3_BUCKET' >> .env; echo 'export PATH=$PATH:/usr/local/bin' >> .env; echo '*/5 * * * * . /opt/app/.env; cd /opt/app; node index.js >> /opt/app/cron.log 2>&1' | crontab; cron start -f;"
-    links: 
-      - db:postgres
-    environment:
-      - DATABASE_URL=postgres://postgres@postgres:5432/openroads
-
-  tilemap:
-    image: developmentseed/openroads-tilemap
-    env_file: .env
-    ports:
-      - "80:3000"
-
-  vn-tiler:
-    image: developmentseed/openroads-vn-tiler
-    env_file: .env
-    command: bash -c "cd /opt/app; echo 'export DATABASE_URL=$DATABASE_URL' >> .env; echo 'export S3_BUCKET=$S3_BUCKET' >> .env; echo 'export PATH=$PATH:/usr/local/bin' >> .env; echo '*/5 * * * * . /opt/app/.env; cd /opt/app; node index.js >> /opt/app/cron.log 2>&1' | crontab; cron start -f;"
-    links:
-      - db:postgres
 
   deploy:
     build: .
@@ -51,6 +34,8 @@ services:
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
 
+networks:
+  openroads:
 #networks:
 #  default:
 #    external:
