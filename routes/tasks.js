@@ -8,9 +8,11 @@ const toGeoJSON = require('../services/osm-data-to-geojson');
 const properties = ['id', 'way_id', 'neighbors'];
 
 async function getNextTask (req, res) {
+  const skip = req.query.skip ? req.query.skip.split(',') : [];
   const task = await knex.select(properties)
   .from('tasks')
   .where('pending', false)
+  .whereNotIn('id', skip)
   .limit(1);
   if (!task.length) return res.sendStatus(404);
   const ids = [task[0].way_id].concat(task[0].neighbors);
@@ -57,11 +59,13 @@ module.exports = [
      * @apiName GetNextTask
      * @apiVersion 0.3.0
      *
+     * @apiParam {Array} skip List of task ID's to exclude from this response.
+     *
      * @apiSuccess {GeoJSON} data FeatureCollection of Roads that require merging and/or joining.
-     * @apiSuccess {Integer} id current task ID
+     * @apiSuccess {Integer} id Current task ID
      *
      * @apiExample {curl} Example Usage:
-     *    curl http://localhost:4000/tasks/next
+     *    curl http://localhost:4000/tasks/next?skip=2
      *
      * @apiSuccessExample {json} Success-Response:
      *  {
