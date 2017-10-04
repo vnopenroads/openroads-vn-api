@@ -1,5 +1,4 @@
 FROM mdillon/postgis:9.4-alpine
-ARG seed
 # additions needed for wget
 RUN apk update && apk add ca-certificates wget && update-ca-certificates   
 # make needed directories. 
