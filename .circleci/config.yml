@@ -2,9 +2,9 @@ version: 2
 
 jobs:
   build:
-    machine: true
-    #docker:
-    #  - image: docker:17.05.0-ce-git
+    #machine: true
+    docker:
+      - image: docker:17.05.0-ce-git
     working_dir: ~/project
     steps:
       - restore_cache:
@@ -24,12 +24,12 @@ jobs:
             echo "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID" >> .env
             echo "AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY" >> .env            
             echo "DATABASE_URL=$DATABASE_URL" >> .env
-      #- setup_remote_docker
-      #- run:
-      #    name: Install dependencies
-      #    command: |
-      #      apt-get install -y pip
-      #      pip install docker-compose==1.16.0
+      - setup_remote_docker
+      - run:
+          name: Install dependencies
+          command: |
+            apt-get install -y pip
+            pip install docker-compose==1.16.0
       - run:
           name: Load Docker image layer cache
           command: |
