@@ -37,12 +37,34 @@ ecs:
           envs:
             AWS_DEFAULT_REGION: '!Sub ${AWS::Region}'
             AWS_REGION: '!Sub ${AWS::Region}'
-#        - name: tiler
-#          image: developmentseed/openroads-tiler:latest
-#          cpu: 50
-#          memory: 800
-#          envs:
-#3            S3_BUCKET: $S3_BUCKET
+        - name: tiler
+          image: developmentseed/openroads-tiler:latest
+          cpu: 50
+          memory: 500
+          commands:
+            - cd /opt/app
+            - echo 'export DATABASE_URL=$DATABASE_URL' >> .env
+            - echo 'export S3_BUCKET=$S3_BUCKET' >> .env
+            - echo 'export PATH=$PATH:/usr/local/bin' >> .env
+            - echo '*/5 * * * * . /opt/app/.env; cd /opt/app; node index.js >> /opt/app/cron.log 2>&1' | crontab
+            - cron start -f
+          envs:
+            S3_BUCKET: openroads-vn-tiles
+            S3_TEMPLATE: s3://openroads-vn-tiles/tiles/{z}/{x}/{y}.vector.pbf
+        - name: vn-tiler
+          image: developmentseed/openroads-vn-tiler:latest
+          cpu: 50
+          memory: 500
+          commands:
+            - cd /opt/app
+            - echo 'export DATABASE_URL=$DATABASE_URL' >> .env
+            - echo 'export S3_BUCKET=$S3_BUCKET' >> .env
+            - echo 'export PATH=$PATH:/usr/local/bin' >> .env
+            - echo '*/5 * * * * . /opt/app/.env; cd /opt/app; node index.js >> /opt/app/cron.log 2>&1' | crontab
+            - cron start -f
+          envs:
+            S3_BUCKET: openroads-vn-tiles
+            S3_TEMPLATE: s3://openroads-vn-tiles/tiles/{z}/{x}/{y}.vector.pbf
 
 # used as custom resource for cloudformation manipulation
 #lambdas:
