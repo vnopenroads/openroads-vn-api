@@ -30,20 +30,20 @@ jobs:
           command: |
             apk add --no-cache py-pip=9.0.0-r1
             pip install docker-compose==1.16.0
-      - run:
-          name: Load Docker image layer cache
-          command: |
-            set +o pipefail
-            docker load -i ~/vn-api-db.tar | true
-            docker load -i ~/vn-api-app.tar | true
+      #- run:
+      #    name: Load Docker image layer cache
+      #    command: |
+      #      set +o pipefail
+      #      docker load -i ~/vn-api-db.tar | true
+      #      docker load -i ~/vn-api-app.tar | true
       - run:
           name: Build docker image
           command: docker-compose build
-      - run:
-          name: Save Docker image layer cache
-          command: |
-            docker save -o ~/vn-api-db.tar openroads/vn-api-db:latest
-            docker save -o ~/vn-api-app.tar openroads/vn-api-app:latest
+      #- run:
+      #    name: Save Docker image layer cache
+      #    command: |
+      #      docker save -o ~/vn-api-db.tar openroads/vn-api-db:latest
+      #      docker save -o ~/vn-api-app.tar openroads/vn-api-app:latest
       - run:
           name: Run tests
           command: |
