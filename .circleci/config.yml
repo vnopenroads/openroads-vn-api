@@ -2,11 +2,10 @@ version: 2
 
 jobs:
   build:
-    machine:
-      image: circleci/classic:201708-01
+    machine: true
     #docker:
     #  - image: docker:17.05.0-ce-git
-    working_dir: /home/circleci/project
+    working_dir: ~/project
     steps:
       - restore_cache:
           keys:
