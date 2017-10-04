@@ -2,7 +2,7 @@ version: "2"
 services:
   db:
     build: ./db
-    image: openroads/vn-api-db:latest
+    image: developmentseed/openroads-vn-db:latest
     container_name: vn-api-db
     networks:
       - openroads
@@ -13,7 +13,7 @@ services:
 
   api:
     build: .
-    image: openroads/vn-api-app:latest
+    image: developmentseed/openroads-vn-api:latest
     env_file: .env
     links:
       - db:postgres
@@ -36,7 +36,4 @@ services:
 
 networks:
   openroads:
-#networks:
-#  default:
-#    external:
-#      name: openroads
+
