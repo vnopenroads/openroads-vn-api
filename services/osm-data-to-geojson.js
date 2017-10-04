@@ -22,7 +22,7 @@ module.exports = function toGeoJSON(data, geometryType) {
       return [node.longitude / ratio, node.latitude / ratio];
     });
 
-    var properties = _.zipObject(way.tags.map(function (t) {
+    var properties = _.fromPairs(way.tags.map(function (t) {
       return [t.k, t.v];
     }));
 
