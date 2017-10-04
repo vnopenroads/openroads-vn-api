@@ -34,16 +34,16 @@ jobs:
           name: Load Docker image layer cache
           command: |
             set +o pipefail
-            docker load -i ~/vn-api-db.tar | true
-            docker load -i ~/vn-api-app.tar | true
+            docker load -i ~/openroads-vn-db.tar | true
+            docker load -i ~/openroads-vn-api.tar | true
       - run:
           name: Build docker image
           command: docker-compose build
       - run:
           name: Save Docker image layer cache
           command: |
-            docker save -o ~/vn-api-db.tar openroads/vn-api-db:latest
-            docker save -o ~/vn-api-app.tar openroads/vn-api-app:latest
+            docker save -o ~/openroads-vn-db.tar developmentseed/openroads-vn-db:latest
+            docker save -o ~/openroads-vn-api.tar developmentseed/openroads-vn-api:latest
       - run:
           name: Run tests
           command: |
@@ -54,7 +54,6 @@ jobs:
           command: |
             if [ "${CIRCLE_BRANCH}" == "master" ]; then
               docker login -e $DOCKER_EMAIL -u $DOCKER_USER -p $DOCKER_PASS
-              docker push openroads/vn-api-db:latest
-              docker push openroads/vn-api-app:latest
+              docker push developmentseed/openroads-vn-api:latest
               docker-compose run deploy
             fi
