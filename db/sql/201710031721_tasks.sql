@@ -4,9 +4,9 @@
 
 CREATE TABLE tasks (
 	id text PRIMARY KEY,
-	way_id int REFERENCES current_ways,
-        neighbors text[]
-	pending boolean DEFAULT FALSE
+	way_id int,
+        neighbors text[],
+	pending BOOLEAN DEFAULT FALSE
 );
 
 CREATE INDEX tasks_task_idx ON tasks USING btree (id);
