@@ -2,7 +2,7 @@ version: "2"
 services:
   db:
     build: ./db
-    image: openroads/vn-api-db:0.2.0
+    image: openroads/vn-api-db:latest
     ports:
       - "5433:5432"
     environment:
@@ -10,7 +10,7 @@ services:
 
   api:
     build: .
-    image: openroads/vn-api-app:0.2.0
+    image: openroads/vn-api-app:latest
     env_file: .env
     links:
       - db:postgres
