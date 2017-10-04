@@ -10,7 +10,7 @@ There are a number of files that add schema to the db as. The only file that ins
 COPY ${table_name} FROM '/path/to/${table_name}.csv' DELIMITER ',' CSV HEADER;
 ```
 
-...make sure that this new data is additionaly in the correct s3 bucket so that it is copied into the image when it is built. To do so first zip up all CSVs to add in a `fixture.zip` file. Then, copy them to the `openroads-vn-fixture` bucket. 
+...make sure that this new data is additionally in the correct s3 bucket so that it is copied into the image when it is built. To do so first zip up all CSVs to add in a `fixture.zip` file. Then, copy them to the `openroads-vn-fixture` bucket. 
 
 
 ```
@@ -26,6 +26,6 @@ This is effectively boilerpate to get data from a prod. db so it can be added in
 
 The image first build pulls fixture data located in s3 via the `run-seed.sh` script, then adds the sql files to an `docker-entrypoint-initdb.d` folder. This folder is standard to the official docker [postgres image](https://hub.docker.com/_/postgres/) (the image ths Dockerfile's PostGIS image is built from) to add schema and data to a database.
 
-### `./run-seed.sh` the shell script that downloads the fixture CSV files from s3 during the image build. 
+#### `./run-seed.sh` the shell script that downloads the fixture CSV files from s3 during the image build. 
 
 These CSVs, after being added to image, are *copied* into the database when db container is run.
