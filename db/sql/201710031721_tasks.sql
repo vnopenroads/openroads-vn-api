@@ -5,7 +5,7 @@
 CREATE TABLE tasks (
 	id text PRIMARY KEY,
 	way_id int REFERENCES current_ways,
-   collisions text[]
+        neighbors text[]
 	pending boolean DEFAULT FALSE
 );
 
