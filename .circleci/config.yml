@@ -5,7 +5,7 @@ jobs:
     #machine: true
     docker:
       - image: docker:17.05.0-ce-git
-    working_dir: ~/project
+    working_dir: ~/openroadsvnapi
     steps:
       #- restore_cache:
       #    keys:
@@ -16,7 +16,7 @@ jobs:
       - save_cache:
           key: v2-repo-{{ .Branch }}-{{ .Revision }}
           paths:
-            - ~/project
+            - ~/openroadsvnapi
       - run:
           name: Creating .env for environment variables
           command: |
@@ -56,14 +56,8 @@ jobs:
           name: Deploy
           command: |
             if [ "${CIRCLE_BRANCH}" == "master" ]; then
-              ssh-keyscan github.com >> ~/.ssh/known_hosts
-              VERSION=`awk -F\' '{print $2,$4}' worker/version.py`
-              docker tag openroads/vn-api-db:latest openroads/vn-api-db:$VERSION
-              docker tag openroads/vn-api-app:latest openroads/vn-api-app:$VERSION
               docker login -e $DOCKER_EMAIL -u $DOCKER_USER -p $DOCKER_PASS
-              docker push openroads/vn-api-db:$VERSION
-              docker push openroads/vn-api-app:$VERSION
-              git tag $VERSION
-              git push origin $VERSION
+              docker push openroads/vn-api-db:latest
+              docker push openroads/vn-api-app:latest
               docker-compose run deploy
             fi
