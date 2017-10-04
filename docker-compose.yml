@@ -28,7 +28,7 @@ services:
 
   deploy:
     build: .
-    command: npm run kes-app-update
+    command: kes cf update -k aws/app --env-file .env
     env_file: .env
     environment:
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}

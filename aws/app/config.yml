@@ -27,7 +27,7 @@ ecs:
       name: vn
       containers:
         - name: webapp
-          image: openroads/vn-api-app:0.2.0
+          image: developmentseed/openroads-vn-api:latest
           cpu: 100
           memory: 800
           ports:
