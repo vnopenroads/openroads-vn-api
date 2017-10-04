@@ -2,7 +2,7 @@ version: 2
 
 jobs:
   build:
-    machine: true
+    machine:
       image: circleci/classic:201708-01
     #docker:
     #  - image: docker:17.05.0-ce-git
