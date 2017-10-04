@@ -48,7 +48,7 @@ jobs:
       - run:
           name: Start DB
           command: |
-            docker-compose up -d db
+            docker-compose up -d api
       - run:
           name: Run tests
           command: |
