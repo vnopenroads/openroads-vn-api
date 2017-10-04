@@ -1,8 +1,49 @@
 'use strict';
 
 var knex = require('./connection');
+var assert = require('assert');
 var readFileSync = require('fs').readFileSync;
 Promise = require('bluebird');
+
+/**
+ * given a knex db connect object, initializes schema for db to which it is connected
+ * @func initSchema
+ * @param {object} databaseConnection knex connection object
+ */
+exports.initSchema = function (databaseConnection) {
+  return Promise(function(resolve, reject) {
+    // insert db schema by chaining each of the table's schema functions together
+    macrocosmSchema(knex, Promise)
+    .then(function() { return propertiesSchema(knex, Promise); })
+    .then(function() { return adminBoundariesSchema(knex, Promise); })
+    .then(function() { return fieldDataSchema(knex, Promise); })
+    .then(function() { return roadStatsSchema(knex, Promise); })
+    .then(function() { return knex.destroy() })
+    .then(function() { return resolve()})
+    .catch(function(e) { 
+      throw new Error(e) 
+      return reject()
+    })
+  })
+}
+  
+
+/**
+ * given a db url, returns a knex obj to connect a pg client
+ * @func dbConnect
+ * @param {string} connection 
+ */
+exports.dbConnect = function (connection) { 
+  return require('knex')({
+    client: 'pg',
+    connection: connection,
+    debug: false,
+    pool: {
+      min: 2,
+      max: 10
+    }
+  });
+}
 
 /**
  * makes macrocosm schema
@@ -55,13 +96,3 @@ function roadStatsSchema (knex, Promise) {
   .then(function() {})
   .catch(function(e) { throw new Error(e); });
 }
-
-
-// insert db schema by chaining each of the table's schema functions together
-macrocosmSchema(knex, Promise)
-.then(function() { return adminBoundariesSchema(knex, Promise); })
-.then(function() { return propertiesSchema(knex, Promise); })
-.then(function() { return fieldDataSchema(knex, Promise); })
-.then(function() { return roadStatsSchema(knex, Promise); })
-.catch(function(e) { throw new Error(e); })
-.finally(function() { return knex.destroy(); });
