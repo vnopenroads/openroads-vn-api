@@ -35,9 +35,14 @@ ecs:
               host: 80
               protocol: tcp
           envs:
-            DATABASE_URL: {{DATABASE_URL}}
             AWS_DEFAULT_REGION: '!Sub ${AWS::Region}'
             AWS_REGION: '!Sub ${AWS::Region}'
+#        - name: tiler
+#          image: developmentseed/openroads-tiler:latest
+#          cpu: 50
+#          memory: 800
+#          envs:
+#3            S3_BUCKET: $S3_BUCKET
 
 # used as custom resource for cloudformation manipulation
 #lambdas:
