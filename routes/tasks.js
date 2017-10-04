@@ -5,7 +5,7 @@ const knex = require('../connection');
 const queryWays = require('../services/query-ways');
 const toGeoJSON = require('../services/osm-data-to-geojson');
 
-const properties = ['way_id', 'neighbors'];
+const properties = ['id', 'way_id', 'neighbors'];
 
 async function getNextTask (req, res) {
   const task = await knex.select(properties)
@@ -15,7 +15,10 @@ async function getNextTask (req, res) {
   if (!task.length) return res.sendStatus(404);
   const ids = [task[0].way_id].concat(task[0].neighbors);
   queryWays(knex, ids).then(function (ways) {
-    return res(toGeoJSON(ways)).type('application/json');
+    return res({
+      id: task[0].id,
+      data: toGeoJSON(ways)
+    }).type('application/json');
   }).catch(function () {
     return res(Boom.badImplementation('Could not retrieve task'));
   });
@@ -28,7 +31,10 @@ async function getTask (req, res) {
   if (!task.length) return res.sendStatus(404);
   const ids = [task[0].way_id].concat(task[0].neighbors);
   queryWays(knex, ids).then(function (ways) {
-    return res(toGeoJSON(ways)).type('application/json');
+    return res({
+      id: task[0].id,
+      data: toGeoJSON(ways)
+    }).type('application/json');
   }).catch(function () {
     return res(Boom.badImplementation('Could not retrieve task'));
   });
@@ -51,35 +57,39 @@ module.exports = [
      * @apiName GetNextTask
      * @apiVersion 0.3.0
      *
-     * @apiSuccess {GeoJSON} FeatureCollection List of Roads that require merging and/or joining.
+     * @apiSuccess {GeoJSON} data FeatureCollection of Roads that require merging and/or joining.
+     * @apiSuccess {Integer} id current task ID
      *
      * @apiExample {curl} Example Usage:
      *    curl http://localhost:4000/tasks/next
      *
      * @apiSuccessExample {json} Success-Response:
      *  {
+     *  "id": 1,
+     *  "data": {
      *    "type": "FeatureCollection",
-     *    "properties": {},
-     *    "features": [
-     *      {
-     *        "type": "Feature",
-     *        "properties": {
-     *          "highway": "secondary",
-     *          "or_vpromms_id": "213TT00008"
+     *      "properties": {},
+     *      "features": [
+     *        {
+     *          "type": "Feature",
+     *          "properties": {
+     *            "highway": "secondary",
+     *            "or_vpromms_id": "213TT00008"
+     *          },
+     *          "meta": {
+     *            "id": "87",
+     *            "changeset": "1",
+     *            "timestamp": "2017-10-04T21:48:20.702Z",
+     *            "version": "1"
+     *          },
+     *          "geometry": {
+     *            "type": "LineString",
+     *            "coordinates": [[123.8149137,9.5920337],
+     *              ...
+     *            ]}
      *        },
-     *        "meta": {
-     *          "id": "87",
-     *          "changeset": "1",
-     *          "timestamp": "2017-10-04T21:48:20.702Z",
-     *          "version": "1"
-     *        },
-     *        "geometry": {
-     *          "type": "LineString",
-     *          "coordinates": [[123.8149137,9.5920337],
-     *            ...
-     *          ]}
-     *      },
-     *    ...]
+     *      ...]
+     *    }
      *  }
      */
     method: 'GET',
@@ -94,35 +104,39 @@ module.exports = [
      * @apiName GetTask
      * @apiVersion 0.3.0
      *
-     * @apiSuccess {GeoJSON} FeatureCollection List of Roads that require merging and/or joining.
+     * @apiSuccess {GeoJSON} data FeatureCollection of Roads that require merging and/or joining.
+     * @apiSuccess {Integer} id current task ID
      *
      * @apiExample {curl} Example Usage:
      *    curl http://localhost:4000/tasks/1
      *
      * @apiSuccessExample {json} Success-Response:
      *  {
+     *  "id": 1,
+     *  "data": {
      *    "type": "FeatureCollection",
-     *    "properties": {},
-     *    "features": [
-     *      {
-     *        "type": "Feature",
-     *        "properties": {
-     *          "highway": "secondary",
-     *          "or_vpromms_id": "213TT00008"
+     *      "properties": {},
+     *      "features": [
+     *        {
+     *          "type": "Feature",
+     *          "properties": {
+     *            "highway": "secondary",
+     *            "or_vpromms_id": "213TT00008"
+     *          },
+     *          "meta": {
+     *            "id": "87",
+     *            "changeset": "1",
+     *            "timestamp": "2017-10-04T21:48:20.702Z",
+     *            "version": "1"
+     *          },
+     *          "geometry": {
+     *            "type": "LineString",
+     *            "coordinates": [[123.8149137,9.5920337],
+     *              ...
+     *            ]}
      *        },
-     *        "meta": {
-     *          "id": "87",
-     *          "changeset": "1",
-     *          "timestamp": "2017-10-04T21:48:20.702Z",
-     *          "version": "1"
-     *        },
-     *        "geometry": {
-     *          "type": "LineString",
-     *          "coordinates": [[123.8149137,9.5920337],
-     *            ...
-     *          ]}
-     *      },
-     *    ...]
+     *      ...]
+     *    }
      *  }
      */
     method: 'GET',
