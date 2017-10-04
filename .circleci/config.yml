@@ -5,7 +5,7 @@ jobs:
     #machine: true
     docker:
       - image: docker:17.05.0-ce-git
-    working_dir: ~/openroadsvnapi
+    working_dir: ~/project
     steps:
       #- restore_cache:
       #    keys:
@@ -16,14 +16,14 @@ jobs:
       - save_cache:
           key: v2-repo-{{ .Branch }}-{{ .Revision }}
           paths:
-            - ~/openroadsvnapi
+            - ~/project
       - run:
           name: Creating .env for environment variables
           command: |
             echo "AWS_REGION=$AWS_REGION" >> .env
             echo "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID" >> .env
             echo "AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY" >> .env            
-            echo "DATABASE_URL=$DATABASE_URL" >> .env
+            echo "DATABASE_URL=postgres://postgres@db:5432/openroads" >> .env
       - setup_remote_docker
       - run:
           name: Install dependencies

@@ -24,7 +24,7 @@ services:
     networks:
       - openroads
     environment:
-      - DATABASE_URL=postgres://postgres@postgres:5432/openroads
+      - DATABASE_URL=postgres://postgres@db:5432/openroads
 
   deploy:
     build: .
