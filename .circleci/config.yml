@@ -34,16 +34,16 @@ jobs:
           name: Load Docker image layer cache
           command: |
             set +o pipefail
-            docker load -i /caches/project.tar | true
+            docker load -i ~/vn-api-db.tar | true
+            docker load -i ~/vn-api-app.tar | true
       - run:
           name: Build docker image
           command: docker-compose build
       - run:
           name: Save Docker image layer cache
           command: |
-            mkdir -p /caches
-            docker save -o /caches/project.tar openroads/vn-api-db:latest
-            docker save -o /caches/project.tar openroads/vn-api-app:latest
+            docker save -o ~/vn-api-db.tar openroads/vn-api-db:latest
+            docker save -o ~/vn-api-app.tar openroads/vn-api-app:latest
       - run:
           name: Run tests
           command: docker-compose run api npm test
