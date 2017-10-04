@@ -4,7 +4,7 @@ services:
     build: ./db
     image: openroads/vn-api-db:latest
     ports:
-      - "5433:5432"
+      - "5432:5432"
     environment:
       - POSTGRES_DB=openroads
 
