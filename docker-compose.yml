@@ -12,12 +12,12 @@ services:
     build: .
     image: openroads/vn-api-app:latest
     env_file: .env
-    #links:
-    #  - db:postgres
+    links:
+      - db:postgres
     ports:
       - "4000:4000"
     environment:
-      - DATABASE_URL=postgres://postgres@db:5432/openroads
+      - DATABASE_URL=postgres://postgres@postgres:5432/openroads
 
   tiler:
     image: developmentseed/openroads-tiler
