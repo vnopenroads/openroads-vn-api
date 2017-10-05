@@ -58,5 +58,5 @@ jobs:
               docker login -e $DOCKER_EMAIL -u $DOCKER_USER -p $DOCKER_PASS
               docker tag $IMGNAME:latest $IMGNAME:$VERSION
               docker push $IMGNAME
-              docker-compose run deploy
+              docker run --env-file .env $IMGNAME:latest node_modules/.bin/kes cf update -k aws/app
             fi
