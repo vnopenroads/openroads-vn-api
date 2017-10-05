@@ -23,7 +23,7 @@ services:
   tiler:
     image: developmentseed/openroads-tiler
     env_file: .env
-    command: bash -c "cd /opt/app; echo 'export DATABASE_URL=$DATABASE_URL' >> .env; echo 'export S3_BUCKET=$S3_BUCKET' >> .env; echo 'export PATH=$PATH:/usr/local/bin' >> .env; echo '*/5 * * * * . /opt/app/.env; cd /opt/app; node index.js >> /opt/app/cron.log 2>&1' | crontab; cron start -f;"
+    command: cron.sh
     environment:
       - S3_BUCKET=openroads-vn-tiles
       - S3_TEMPLATE=s3://openroads-vn-tiles/tiles/{z}/{x}/{y}.vector.pbf
@@ -32,7 +32,7 @@ services:
   vn-tiler:
     image: developmentseed/openroads-vn-tiler
     env_file: .env
-    command: bash -c "cd /opt/app; echo 'export DATABASE_URL=$DATABASE_URL' >> .env; echo 'export S3_BUCKET=$S3_BUCKET' >> .env; echo 'export PATH=$PATH:/usr/local/bin' >> .env; echo '*/5 * * * * . /opt/app/.env; cd /opt/app; node index.js >> /opt/app/cron.log 2>&1' | crontab; cron start -f;"
+    command: cron.sh
     environment:
       - S3_BUCKET=openroads-vn-tiles
       - S3_TEMPLATE=s3://openroads-vn-tiles/tiles/{z}/{x}/{y}.vector.pbf
