@@ -52,6 +52,8 @@ ecs:
           commands:
             - /opt/app/cron.sh
           envs:
+            MAPBOX_ACCOUNT: {{MAPBOX_ACCOUNT}}
+            MAPBOX_ACCESS_TOKEN: {{MAPBOX_ACCESS_TOKEN}}
             S3_DUMP_BUCKET: openroads-vn-dumps
             S3_PROPERTIES_BUCKET: openroads-vn-properties
             WHICH_SCRIPT: make-analysis-and-display
