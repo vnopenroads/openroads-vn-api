@@ -25,6 +25,8 @@ jobs:
             echo "AWS_REGION=$AWS_REGION" >> .env
             echo "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID" >> .env
             echo "AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY" >> .env
+            echo "MAPBOX_ACCOUNT=$MAPBOX_ACCOUNT" >> .env
+            echo "MAPBOX_ACCESS_TOKEN=$MAPBOX_ACCESS_TOKEN" >> .env
             echo "RDS_USER=$RDS_USER" >> .env
             echo "RDS_PASS=$RDS_PASS" >> .env
       - setup_remote_docker
