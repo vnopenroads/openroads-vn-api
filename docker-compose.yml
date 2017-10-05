@@ -11,7 +11,7 @@ services:
 
   api:
     build: .
-    image: developmentseed/openroads-vn-api:latest
+    image: developmentseed/openroads-vn-api:0.2.0
     env_file: .env
     depends_on:
       - db
@@ -21,7 +21,7 @@ services:
       - DATABASE_URL=postgres://postgres@db:5432/openroads
 
   tiler:
-    image: developmentseed/openroads-tiler:latest
+    image: developmentseed/openroads-tiler:0.1.0
     env_file: .env
     command: ./cron.sh
     environment:
@@ -29,7 +29,7 @@ services:
       - DATABASE_URL=postgres://postgres@db:5432/openroads
 
   vn-tiler:
-    image: developmentseed/openroads-vn-tiler:latest
+    image: developmentseed/openroads-vn-tiler:0.1.0
     env_file: .env
     command: ./cron.sh
     environment:
@@ -39,7 +39,7 @@ services:
       - DATABASE_URL=postgres://postgres@db:5432/openroads
 
   tilemap:
-    image: developmentseed/openroads-tilemap:latest
+    image: developmentseed/openroads-tilemap:0.1.0
     env_file: .env
     ports:
       - "3000:3000"
@@ -47,6 +47,6 @@ services:
       - BUCKET_URL=http://openroads-vn-tiles.s3-website-us-east-1.amazonaws.com/tiles
 
   deploy:
-    image: developmentseed/openroads-vn-api:latest
+    image: developmentseed/openroads-vn-api:0.2.0
     command: node_modules/.bin/kes cf update -k aws/app --env-file .env
     env_file: .env
