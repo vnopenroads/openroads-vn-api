@@ -39,32 +39,31 @@ ecs:
             AWS_REGION: '!Sub ${AWS::Region}'
         - name: tiler
           image: developmentseed/openroads-tiler:latest
-          cpu: 50
+          cpu: 25
           memory: 500
-          commands:
-            - cd /opt/app
-            - echo 'export DATABASE_URL=$DATABASE_URL' >> .env
-            - echo 'export S3_BUCKET=$S3_BUCKET' >> .env
-            - echo 'export PATH=$PATH:/usr/local/bin' >> .env
-            - echo '*/5 * * * * . /opt/app/.env; cd /opt/app; node index.js >> /opt/app/cron.log 2>&1' | crontab
-            - cron start -f
+          commands: cron.sh
           envs:
-            S3_BUCKET: openroads-vn-tiles
             S3_TEMPLATE: s3://openroads-vn-tiles/tiles/{z}/{x}/{y}.vector.pbf
         - name: vn-tiler
           image: developmentseed/openroads-vn-tiler:latest
-          cpu: 50
+          cpu: 25
           memory: 500
-          commands:
-            - cd /opt/app
-            - echo 'export DATABASE_URL=$DATABASE_URL' >> .env
-            - echo 'export S3_BUCKET=$S3_BUCKET' >> .env
-            - echo 'export PATH=$PATH:/usr/local/bin' >> .env
-            - echo '*/5 * * * * . /opt/app/.env; cd /opt/app; node index.js >> /opt/app/cron.log 2>&1' | crontab
-            - cron start -f
+          commands: cron.sh
           envs:
-            S3_BUCKET: openroads-vn-tiles
-            S3_TEMPLATE: s3://openroads-vn-tiles/tiles/{z}/{x}/{y}.vector.pbf
+            S3_DUMP_BUCKET: openroads-vn-dumps
+            S3_PROPERTIES_BUCKET: openroads-vn-properties
+            WHICH_SCRIPT: make-analysis-and-display
+        - name: tilemap
+          image: developmentseed/openroads-tilemap:latest
+          cpu: 50
+          memory: 800
+          ports:
+            - container: 3000
+              host: 3000
+              protocol: tcp
+          envs:
+            BUCKET_URL: http://openroads-vn-tiles.s3-website-us-east-1.amazonaws.com/tiles
+
 
 # used as custom resource for cloudformation manipulation
 #lambdas:
