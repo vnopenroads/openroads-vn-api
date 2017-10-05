@@ -14,7 +14,7 @@ async function getNextTask (req, res) {
   .where('pending', false)
   .whereNotIn('id', skip)
   .limit(1);
-  if (!task.length) return res.sendStatus(404);
+  if (!task.length) return res(Boom.notFound('There are no pending tasks'));
   const ids = [task[0].way_id].concat(task[0].neighbors);
   queryWays(knex, ids).then(function (ways) {
     return res({
@@ -30,7 +30,7 @@ async function getTask (req, res) {
   const task = await knex.select(properties)
   .from('tasks')
   .where('id', req.params.taskId)
-  if (!task.length) return res.sendStatus(404);
+  if (!task.length) return res(Boom.notFound('No task with that ID'));
   const ids = [task[0].way_id].concat(task[0].neighbors);
   queryWays(knex, ids).then(function (ways) {
     return res({
