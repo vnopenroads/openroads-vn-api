@@ -100,7 +100,7 @@ async function propertiesHandler (req, res) {
         _.uniqBy(rows, r => r.road_id)
         .map(r => {
           if (r.road_id && !knownRoads.includes(r.road_id)) {
-            const or_responsibility = getResponsibilityFromRoadId(fr.road_id);
+            const or_responsibility = getResponsibilityFromRoadId(r.road_id);
             return knex.insert({
               id: r.road_id,
               properties: {or_responsibility}
