@@ -55,9 +55,10 @@ jobs:
           command: |
             if [ "${CIRCLE_BRANCH}" == "master" ]; then
               VERSION=$(grep -m1 version package.json | awk -F: '{ print $2 }' | sed 's/[", ]//g')
-              IMGNAME=developmentseed/openroads-vn-api:$VERSION
+              IMGNAME=developmentseed/openroads-vn-api
               docker login -e $DOCKER_EMAIL -u $DOCKER_USER -p $DOCKER_PASS
-              docker tag project:latest $IMGNAME
-              docker push $IMGNAME
+              docker tag project:latest $IMGNAME:latest
+              docker tag $IMGNAME:latest $IMGNAME:$VERSION
+              docker push $IMGNAME:latest $IMGNAME:$VERSION
               docker-compose run deploy
             fi
