@@ -16,7 +16,7 @@ async function getNextTask (req, res) {
   .limit(1);
   if (!task.length) return res(Boom.notFound('There are no pending tasks'));
   const ids = [task[0].way_id].concat(task[0].neighbors);
-  queryWays(knex, ids).then(function (ways) {
+  queryWays(knex, ids, true).then(function (ways) {
     return res({
       id: task[0].id,
       data: toGeoJSON(ways)
@@ -32,7 +32,7 @@ async function getTask (req, res) {
   .where('id', req.params.taskId)
   if (!task.length) return res(Boom.notFound('No task with that ID'));
   const ids = [task[0].way_id].concat(task[0].neighbors);
-  queryWays(knex, ids).then(function (ways) {
+  queryWays(knex, ids, true).then(function (ways) {
     return res({
       id: task[0].id,
       data: toGeoJSON(ways)
