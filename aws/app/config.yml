@@ -41,14 +41,16 @@ ecs:
           image: developmentseed/openroads-tiler:latest
           cpu: 25
           memory: 500
-          commands: cron.sh
+          commands:
+            - cron.sh
           envs:
             S3_TEMPLATE: s3://openroads-vn-tiles/tiles/{z}/{x}/{y}.vector.pbf
         - name: vn-tiler
           image: developmentseed/openroads-vn-tiler:latest
           cpu: 25
           memory: 500
-          commands: cron.sh
+          commands:
+            - cron.sh
           envs:
             S3_DUMP_BUCKET: openroads-vn-dumps
             S3_PROPERTIES_BUCKET: openroads-vn-properties
