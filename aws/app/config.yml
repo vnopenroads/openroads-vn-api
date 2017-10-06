@@ -1,6 +1,6 @@
 stackName: orma
 
-stage: dev
+stage: prod
 
 buckets:
   internal: orma-d-deploy
