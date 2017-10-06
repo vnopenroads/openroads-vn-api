@@ -44,6 +44,8 @@ ecs:
           commands:
             - /opt/app/cron.sh
           envs:
+            AWS_ACCESS_KEY_ID: {{AWS_ACCESS_KEY_ID}}
+            AWS_SECRET_ACCESS_KEY: {{AWS_SECRET_ACCESS_KEY}}
             MAPBOX_ACCOUNT: {{MAPBOX_ACCOUNT}}
             MAPBOX_ACCESS_TOKEN: {{MAPBOX_ACCESS_TOKEN}}
             S3_TEMPLATE: s3://openroads-vn-tiles-prod/tiles/{z}/{x}/{y}.vector.pbf
