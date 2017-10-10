@@ -59,7 +59,7 @@ ecs:
               host: 3000
               protocol: tcp
           envs:
-            BUCKET_URL: http://openroads-vn-tiles-prod.s3-website-us-east-1.amazonaws.com/tiles
+            BUCKET_URL: http://openroads-vn-tiles-prod.s3-website-ap-southeast-1.amazonaws.com/tiles
 
 
 # used as custom resource for cloudformation manipulation
