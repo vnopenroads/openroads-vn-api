@@ -295,9 +295,11 @@ module.exports = [
       const provinceId = req.query.province;
       const districtId = req.query.district || '';
       const limit = req.query.limit || 100;
+      const offset = req.query.offset || 0;
       knex('road_properties')
       .select('*')
       .whereRaw(`id LIKE '${provinceId}_${districtId}%'`)
+      .offset(offset)
       .limit(limit)
       .then(roads => res(roads));
     }
