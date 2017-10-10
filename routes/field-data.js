@@ -140,6 +140,131 @@ module.exports = [
       .whereNotNull('road_id')
       .then(roads => res(roads.map(road => road.id)));
     }
+  },
+  {
+    /**
+     * @api {get} /field/roads?province=provinceId&district=districtId
+     * @apiGroup Field
+     * @apiName List Field Data Admin Roads
+     * @apiDescription Returns list of field data roads provided province and/or district ids.
+     * @apiVersion 0.1.0
+     *
+     * @apiParam {string} provinceId a province's id
+     * @apiParam {string} districtid a district's id
+     *
+     * @apiSuccess {array} array of road ids
+     *
+     * @apiSuccessExample {JSON} Example Usage:
+     *  curl http://localhost:4000/field/roads?province=21&district=TH
+     *
+     * @apiSuccessExample {JSON} Success-Response
+     * [ "212TH00008", "212TH00023","212TH00024", ... ]
+     *
+    */
+    method: 'GET',
+    path: '/field/roads',
+    handler: function (req, res) {
+      const provinceId = req.query.province;
+      // the and statement ensures query works even
+      // if nothing is passed.
+      const districtId = req.query.district || '';
+      knex('field_data_geometries')
+      .distinct('road_id')
+      .select('road_id')
+      .whereRaw(`road_id LIKE '${provinceId}_${districtId}%'`)
+      .whereNotNull('road_id')
+      .then(roads => res(roads.map(road => road.road_id)));
+    }
+  },
+  {
+    /**
+     * @api {get} /field/roads/total
+     * @apiGroup Field
+     * @apiName List Field Data road counts at province and district level
+     * @apiDescription Returns list of field data road counts for a specific admin level
+     * @apiVersion 0.1.0
+     *
+     * @apiParam {string} level admin level
+     *
+     * @apiSuccess {array} array of objects with vpromms and field road count
+     *
+     * @apiSuccessExample {JSON} Example Usage:
+     *  curl http://localhost:4000/field/roads/total?level=district
+     *
+     * @apiSuccessExample {JSON} Success-Response
+     * [{
+     *    "total_roads": "137",
+     *    "admin": "21YD"
+     *  },
+     *  {
+     *    "total_roads": "28",
+     *    "admin": "21TH"
+     *  },
+     *  {
+     *    "total_roads": "127",
+     *    "admin": "21TT"
+     *  },
+     *  {
+     *    "total_roads": "39",
+     *    "admin": "02BX"
+     *  },
+     *  ...
+     * ]
+     *
+    */
+    method: 'GET',
+    path: '/field/roads/total',
+    handler: function (req, res) {
+      const districtQuery = req.query.level === 'district' ? ', SUBSTRING(road_id, 4, 2)' : '';
+      knex.raw(`
+        SELECT COUNT(DISTINCT road_id) as total_roads, CONCAT(SUBSTRING(road_id, 0, 3)${districtQuery}) as admin
+        FROM field_data_geometries
+        WHERE (CONCAT(SUBSTRING(road_id, 0, 3)${districtQuery}) <> '')
+        GROUP BY admin;
+      `)
+      .then(adminRoadNum => res(adminRoadNum.rows));
+    }
+  },
+  {
+    /**
+     * @api {get} /field/roads/total/{id}
+     * @apiGroup Field
+     * @apiName List Specific Admin Unit's Field Data Count
+     * @apiDescription Returns list of field data road counts for a specific admin unit
+     * @apiVersion 0.1.0
+     *
+     * @apiParam {string} id admin id
+     * @apiParam {string} level query parameter signifying admin level
+     *
+     * @apiSuccess {array} array of objects with vpromms and field road count for matching vpromms admin levels
+     *
+     * @apiSuccessExample {JSON} Example Usage:
+     *  curl http://localhost:4000/field/roads/total/21TH?level=district
+     * 
+     *  * @apiSuccessExample {JSON} Success-Response
+     * [
+     *  {
+     *    "total_roads": "21",
+     *    "admin": "21TH"
+     *  }
+     * ]
+     *
+     */
+    method: 'GET',
+    path: '/field/roads/total/{id}',
+    handler: function (req, res) {
+      const districtQuery = req.query.level === 'district' ? ', SUBSTRING(road_id, 4, 2)' : '';
+      const adminId = req.params.id.toString();
+      const adminQuery = adminId.length ? `AND CONCAT(SUBSTRING(road_id, 0, 3)${districtQuery}) = '${adminId}'` : ''
+      knex.raw(`
+        SELECT COUNT(DISTINCT road_id) as total_roads, CONCAT(SUBSTRING(road_id, 0, 3)${districtQuery}) as admin
+        FROM field_data_geometries
+        WHERE (CONCAT(SUBSTRING(road_id, 0, 3)${districtQuery}) <> '')
+        ${adminQuery}
+        GROUP BY admin;
+      `)
+      .then(adminRoadNum => res(adminRoadNum.rows))
+    }
   }
 ];
 
