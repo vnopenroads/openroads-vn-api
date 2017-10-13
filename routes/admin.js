@@ -259,15 +259,17 @@ module.exports = [
     /**
      * @api {get} /admin/roads?province=provinceId&district=districtId
      * @apiGroup Admin
-     * @apiName List Admin Roads
+     * @apiName List Admin Roads, ordered to show those with field data first.
      * @apiDescription Returns list of roads provided province and/or district ids.
      * @apiVersion 0.1.0
-     * 
+     *
      * @apiParam {string} provinceId a province's id
      * @apiParam {string} districtid a district's id
-     * 
+     * @apiParam {string} offset an (optional) offset for selection
+     * @apiParam {string} limit an (optional) limit of returned records. default is 100
+     *
      * @apiSuccess {array} array of road ids
-     * 
+     *
      * @apiSuccessExample {JSON} Example Usage:
      *  curl http://localhost:4000/admin/roads?province=21&district=TH
      *
@@ -279,21 +281,53 @@ module.exports = [
     path: '/admin/roads',
     handler: function (req, res) {
       const provinceId = req.query.province;
-      // the and statement ensures query works even 
+      // the and statement ensures query works even
       // if nothing is passed.
       const districtId = req.query.district || '';
       const offset = req.query.offset || 0;
       const limit = req.query.limit || 100;
       knex('road_properties')
-      .select('id')
-      .whereRaw(`id LIKE '${provinceId}_${districtId}%'`)
+      .select('road_properties.id')
+      .whereRaw(`road_properties.id LIKE '${provinceId}_${districtId}%'`)
+      .leftJoin('field_data_geometries', 'road_properties.id', 'field_data_geometries.road_id')
+      .groupBy('road_properties.id', 'field_data_geometries.road_id', 'field_data_geometries.id')
+      .orderBy('field_data_geometries.road_id', 'asc')
       .offset(offset)
       .limit(limit)
-      .orderBy('id', 'asc')
       .then(roads => res(roads.map(road => road.id)));
     }
   },
   {
+    /**
+     * @api {get} /admin/roads?province=provinceId&district=districtId
+     * @apiGroup Admin
+     * @apiName List Admin Road properties, ordered to show those with field data first.
+     * @apiDescription Returns list of road properties provided province and/or district ids.
+     * @apiVersion 0.1.0
+     *
+     * @apiParam {string} provinceId a province's id
+     * @apiParam {string} districtid a district's id
+     * @apiParam {string} offset (optional) offset for selection
+     * @apiParam {string} limit (optional) limit to # of roads returned. Default is 100
+     *
+     * @apiSuccess {array} array of road ids
+     *
+     * @apiSuccessExample {JSON} Example Usage:
+     *  curl http://localhost:4000/admin/roads/properties?province=21&district=TH&offset=30&limit=2
+     *
+     * @apiSuccessExample {JSON} Success-Response
+     * [
+     *  {
+     *    "id": "212TH00018",
+     *    "properties": {...}
+     *  },
+     *  {
+     *    "id": "212TH00006",
+     *    "properties": {...}
+     *  }
+     * ]
+     *
+    */
     method: 'GET',
     path: '/admin/roads/properties',
     handler: function (req, res) {
@@ -302,11 +336,13 @@ module.exports = [
       const limit = req.query.limit || 100;
       const offset = req.query.offset || 0;
       knex('road_properties')
-      .select('*')
-      .whereRaw(`id LIKE '${provinceId}_${districtId}%'`)
+      .select('road_properties.*')
+      .whereRaw(`road_properties.id LIKE '${provinceId}_${districtId}%'`)
+      .leftJoin('field_data_geometries', 'road_properties.id', 'field_data_geometries.road_id')
+      .groupBy('road_properties.id', 'field_data_geometries.road_id', 'field_data_geometries.id')
+      .orderBy('field_data_geometries.road_id', 'asc')
       .offset(offset)
       .limit(limit)
-      .orderBy('id', 'asc')
       .then(roads => res(roads));
     }
   },
@@ -324,7 +360,7 @@ module.exports = [
      *
      * @apiSuccessExample {JSON} Example Usage:
      *  curl http://localhost:4000/admin/roads?level=district
-     * 
+     *
      * @apiSuccessExample {JSON} Success-Response
      * [{
      *    "total_roads": "288",
@@ -341,12 +377,12 @@ module.exports = [
      *  ...
      * ]
      *
-    */ 
+    */
     method: 'GET',
     path: '/admin/roads/total',
     handler: function (req, res) {
-      // the query does a regex match against the first 2 (if province) or first 2 and 4th & 5th 
-      // characters in vpromms ids 
+      // the query does a regex match against the first 2 (if province) or first 2 and 4th & 5th
+      // characters in vpromms ids
       const districtQuery = req.query.level === 'district' ? ', SUBSTRING(id, 4, 2)' : '';
       knex.raw(`
         SELECT COUNT(id) as total_roads, CONCAT(SUBSTRING(id, 0, 3)${districtQuery}) as admin
@@ -371,7 +407,7 @@ module.exports = [
      *
      * @apiSuccessExample {JSON} Example Usage:
      *  curl http://localhost:4000/admin/roads/total/21TH?level=district
-     * 
+     *
      *  * @apiSuccessExample {JSON} Success-Response
      * [
      *  {
