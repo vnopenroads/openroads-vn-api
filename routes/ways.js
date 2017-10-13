@@ -25,6 +25,8 @@ module.exports = [
      * @apiSuccessExample {xml} Success-Response:
      *  <?xml version="1.0" encoding="UTF-8"?>
      *  <osm version="0.6" generator="macrocosm (v0.1.0)">
+     *    <node id="35826" visible="true" version="1" changeset="11" timestamp="2017-10-13T05:43:31.411Z" user="DevelopmentSeed" uid="1" lat="22.510901" lon="103.8839726"/>
+     *    ...
      *    <way id="88007350" visible="true" version="3" changeset="9820551" timestamp="2011-11-13T23:47:04.000Z" user="DevelopmentSeed" uid="1">
      *      <nd ref="1022995472"/>
      *      <nd ref="1502285127"/>
