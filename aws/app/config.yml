@@ -28,7 +28,7 @@ ecs:
       containers:
         - name: webapp
           image: developmentseed/openroads-vn-api:0.2.1
-          cpu: 100
+          cpu: 75
           memory: 800
           ports:
             - container: 4000
@@ -52,8 +52,8 @@ ecs:
             S3_DUMP_BUCKET: openroads-vn-dumps-prod
         - name: tilemap
           image: developmentseed/openroads-tilemap:0.1.0
-          cpu: 50
-          memory: 800
+          cpu: 75
+          memory: 1600
           ports:
             - container: 3000
               host: 3000
