@@ -1,6 +1,6 @@
 {
   "name": "macrocosm",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "The OSM API as a platform in NodeJS",
   "main": "index.js",
   "engines": {
