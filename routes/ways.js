@@ -17,9 +17,10 @@ module.exports = [
      * @apiDescription Returns OSM XML for requested way(s).
      *
      * @apiParam {String} ways Way IDs (comma-delimited)
+     * @apiParam {String} nodes Include nodes in response
      *
      * @apiExample {curl} Example Usage:
-     *    curl http://localhost:4000/api/0.6/ways?ways=ways=88007350,88027071
+     *    curl http://localhost:4000/api/0.6/ways?ways=88007350,88027071&nodes=true
      *
      * @apiSuccessExample {xml} Success-Response:
      *  <?xml version="1.0" encoding="UTF-8"?>
@@ -120,6 +121,7 @@ module.exports = [
     method: 'GET',
     path: '/api/0.6/ways',
     handler: function(req, res) {
+      var withNodes = req.query.nodes === 'true';
       var ids = req.query.ways.split(',').map(Number);
 
       if (ids.length === 0) {
@@ -128,10 +130,13 @@ module.exports = [
 
       queryWays(knex, ids)
       .then(function(result) {
-        // TODO probably doesn't return info about multiple nodes
-        var xmlDoc = XML.write({
+        var doc = {
           ways: Node.withTags(result.ways, result.waytags, 'way_id')
-        });
+        };
+        if (withNodes) {
+          doc.nodes = result.nodes;
+        }
+        var xmlDoc = XML.write(doc);
         var response = res(xmlDoc.toString());
         response.type('text/xml');
       })
