@@ -282,9 +282,14 @@ module.exports = [
       // the and statement ensures query works even 
       // if nothing is passed.
       const districtId = req.query.district || '';
+      const offset = req.query.offset || 0;
+      const limit = req.query.limit || 100;
       knex('road_properties')
       .select('id')
       .whereRaw(`id LIKE '${provinceId}_${districtId}%'`)
+      .offset(offset)
+      .limit(limit)
+      .orderBy('id', 'asc')
       .then(roads => res(roads.map(road => road.id)));
     }
   },
@@ -301,6 +306,7 @@ module.exports = [
       .whereRaw(`id LIKE '${provinceId}_${districtId}%'`)
       .offset(offset)
       .limit(limit)
+      .orderBy('id', 'asc')
       .then(roads => res(roads));
     }
   },
