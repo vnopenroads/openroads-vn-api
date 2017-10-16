@@ -16,7 +16,9 @@ Resources:
   #              !GetAtt {{rds.name}}Endpoint.Address", ":",
   #              !GetAtt {{rds.name}}Endpoint.Port", "/",
   #              !GetAtt {{rds.name}}]]
-
+  #    Tags:
+  #      - Key: Project
+  #        Value: "{{project}}"
   #################################################
   # Custom Resource END
   #################################################
@@ -37,6 +39,9 @@ Resources:
       MasterUserPassword: {{rds.password}}
       VPCSecurityGroups:
         - !GetAtt SecurityGroup.GroupId
+      Tags:
+        - Key: Project
+          Value: "{{project}}"
 
   #################################################
   # RDS config END
@@ -57,6 +62,8 @@ Resources:
       Tags:
         - Key: Name
           Value: "{{stackName}}-{{stage}}"
+        - Key: Project
+          Value: "{{project}}"
       VpcId: {{ecs.vpcId}}
       SecurityGroupEgress:
         CidrIp: 0.0.0.0/0
@@ -154,6 +161,9 @@ Resources:
       Tags:
       - Key: Name
         Value: "{{stackName}}-{{stage}}-ecs"
+        PropagateAtLaunch: true
+      - Key: Project
+        Value: "{{project}}"
         PropagateAtLaunch: true
 
 {{#each ecs.services}}

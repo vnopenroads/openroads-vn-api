@@ -2,6 +2,8 @@ stackName: orma
 
 stage: prod
 
+project: openroads-vn
+
 buckets:
   internal: orma-d-deploy
 
