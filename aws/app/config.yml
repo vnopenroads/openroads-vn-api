@@ -53,7 +53,7 @@ ecs:
             S3_TEMPLATE: s3://openroads-vn-tiles-prod/tiles/{z}/{x}/{y}.vector.pbf
             S3_DUMP_BUCKET: openroads-vn-dumps-prod
         - name: tilemap
-          image: developmentseed/openroads-tilemap:0.1.0
+          image: developmentseed/openroads-tilemap:0.1.1
           cpu: 2048
           memory: 1600
           ports:
@@ -61,7 +61,7 @@ ecs:
               host: 3000
               protocol: tcp
           envs:
-            BUCKET_URL: http://openroads-vn-tiles-prod.s3-website-ap-southeast-1.amazonaws.com/tiles
+            BUCKET_URL: https://s3-ap-southeast-1.amazonaws.com/openroads-vn-tiles-prod/tiles
 
 
 # used as custom resource for cloudformation manipulation
