@@ -41,10 +41,10 @@ function upload (req, res) {
         existingRoads.map(road =>
           knex('road_properties').where('id', road.id).update(
             'properties',
-            Object.assign({}, road.properties, _.omit(parsed.find(p => p[roadIdName]), roadIdName))
+            Object.assign({}, road.properties, _.omit(parsed.find(p => road.id === p[roadIdName]), roadIdName))
           )
         ).concat(newIds.map(id => {
-          const properties = _.omit(parsed.find(p => p[roadIdName]), roadIdName);
+          const properties = _.omit(parsed.find(p => id === p[roadIdName]), roadIdName);
           if (!properties.or_responsibility) { properties.or_responsibility = getResponsibilityFromRoadId(id); }
           return knex('road_properties').insert({id, properties});
         }))
