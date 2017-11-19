@@ -78,7 +78,8 @@ async function geometriesHandler (req, res) {
 }
 
 async function propertiesHandler (req, res) {
-  const filenamePattern = /^.*\/Intervals.*\.csv$/;
+  // Some CSV filenames start with "RoadIntervals", others with just "Intervals"
+  const filenamePattern = /^.*\/(Road)?Intervals.*\.csv$/;
 
   let rows = [];
   req.payload[Object.keys(req.payload)[0]]
