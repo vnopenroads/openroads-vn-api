@@ -15,7 +15,7 @@ describe('ways route', function () {
   after(function (done) {
     testChangeset.remove().then(() => done());
   });
-  it.only('should exclude nodes linked to other ways', function (done) {
+  it('should exclude nodes linked to other ways', function (done) {
     testChangeset.create().then(function (cid) {
       // Create two ways, both of which share one node.
       // Then query for one of the roads.
