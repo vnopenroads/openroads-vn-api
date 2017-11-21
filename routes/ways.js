@@ -1,6 +1,7 @@
 'use strict';
 
 var Boom = require('boom');
+var Promise = require('bluebird');
 
 var knex = require('../connection');
 var queryWays = require('../services/query-ways');
@@ -17,13 +18,17 @@ module.exports = [
      * @apiDescription Returns OSM XML for requested way(s).
      *
      * @apiParam {String} ways Way IDs (comma-delimited)
+     * @apiParam {String} nodes Include nodes in response
+     * @apiParam {String} excludeDoubleLinkedNodes Only include nodes that aren't part of other ways
      *
      * @apiExample {curl} Example Usage:
-     *    curl http://localhost:4000/api/0.6/ways?ways=ways=88007350,88027071
+     *    curl http://localhost:4000/api/0.6/ways?ways=88007350,88027071&nodes=true
      *
      * @apiSuccessExample {xml} Success-Response:
      *  <?xml version="1.0" encoding="UTF-8"?>
      *  <osm version="0.6" generator="macrocosm (v0.1.0)">
+     *    <node id="35826" visible="true" version="1" changeset="11" timestamp="2017-10-13T05:43:31.411Z" user="DevelopmentSeed" uid="1" lat="22.510901" lon="103.8839726"/>
+     *    ...
      *    <way id="88007350" visible="true" version="3" changeset="9820551" timestamp="2011-11-13T23:47:04.000Z" user="DevelopmentSeed" uid="1">
      *      <nd ref="1022995472"/>
      *      <nd ref="1502285127"/>
@@ -120,18 +125,39 @@ module.exports = [
     method: 'GET',
     path: '/api/0.6/ways',
     handler: function(req, res) {
-      var ids = req.query.ways.split(',').map(Number);
+      var withNodes = req.query.nodes === 'true';
+      var excludeDoubleLinkedNodes = withNodes && req.query.excludeDoubleLinkedNodes === 'true';
+      var wayIds = req.query.ways.split(',');
 
-      if (ids.length === 0) {
-        return res(Boom.badRequest('IDs must be provided.'));
+      if (wayIds.length === 0 || wayIds.filter(isNaN).length !== 0) {
+        return res(Boom.badRequest('Numerical way IDs must be provided.'));
       }
 
-      queryWays(knex, ids)
+      queryWays(knex, wayIds)
       .then(function(result) {
-        // TODO probably doesn't return info about multiple nodes
-        var xmlDoc = XML.write({
+        var doc = {
           ways: Node.withTags(result.ways, result.waytags, 'way_id')
-        });
+        };
+        if (!excludeDoubleLinkedNodes) {
+          doc.nodes = withNodes ? result.nodes : null;
+          return Promise.resolve(doc);
+        } else {
+          return knex('current_way_nodes')
+          .whereIn('node_id', result.nodes.map(nd => nd.id))
+          .then(function (wayNodes) {
+            const nodesToExclude = [];
+            for (let i = 0, ii = wayNodes.length; i < ii; ++i) {
+              let { way_id, node_id } = wayNodes[i];
+              if (wayIds.indexOf(way_id) === -1) {
+                nodesToExclude.push(node_id);
+              }
+            }
+            doc.nodes = result.nodes.filter(nd => nodesToExclude.indexOf(nd.id) === -1);
+            return Promise.resolve(doc);
+          });
+        }
+      }).then(function (doc) {
+        var xmlDoc = XML.write(doc);
         var response = res(xmlDoc.toString());
         response.type('text/xml');
       })
