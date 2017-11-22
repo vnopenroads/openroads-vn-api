@@ -24,14 +24,22 @@ module.exports = {
   ROAD_ID_PATTERN,
   POSSIBLE_ROAD_ID_PATTERN,
   getRoadIdFromPath,
-  findBadRoadIds: path => {
+  findBadRoadId: path => {
     // Check each ancestor directory name for a possible but incorrect road IDs
-    if (getRoadIdFromPath(path) !== null) { return []; }
+    if (getRoadIdFromPath(path) !== null) { return null; }
+
     const pathParts = path.split(path_.sep).reverse();
-    const possibleIds = pathParts.filter(p =>
-      p.match(POSSIBLE_ROAD_ID_PATTERN) &&
-      !p.match(ROAD_ID_PATTERN)
-    );
+    const roadId = pathParts.reduce((found, one) => {
+      if (!found) {
+        if (
+          one.match(POSSIBLE_ROAD_ID_PATTERN) &&
+          !one.match(ROAD_ID_PATTERN)
+        ) { found = one; }
+      }
+      return found;
+    }, null);
+    return roadId;
+
     return possibleIds;
   },
   getResponsibilityFromRoadId: roadId => {

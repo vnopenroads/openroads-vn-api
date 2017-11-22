@@ -34,7 +34,7 @@ function upload (req, res) {
   }
   const badIds = roadIds.filter(id => !id.match(POSSIBLE_ROAD_ID_PATTERN));
   if (badIds.length) {
-    return res(Boom.badRequest(`Improper road IDs detected: ${badIds.join(', ')}`));
+    return res(Boom.badRequest(`Improper road IDs detected; correct and upload again: ${badIds.join(', ')}`));
   }
 
   knex.select()
@@ -44,29 +44,28 @@ function upload (req, res) {
       const existingIds = existingRoads.map(er => er.id);
       const newIds = _.difference(roadIds, existingIds);
 
+      if (newIds.length) {
+        return res(Boom.badRequest(
+          'Failed to ingest tabular data; ' +
+          'cannot ingest properties whose IDs are not already known to the system: ' +
+          difference.join(', ')
+        ));
+      }
+      if (existingIds.includes(null) || newIds.includes(null)) {
+        return res(Boom.badRequest(
+          'Failed to ingest tabular data; ' +
+          'cannot ingest properties with invalid or missing road IDs.'
+        ));
+      }
+
       Promise.all(
         existingRoads.map(road =>
           knex('road_properties').where('id', road.id).update(
             'properties',
             Object.assign({}, road.properties, _.omit(parsed.find(p => road.id === p[roadIdName]), roadIdName))
           )
-        ).concat(newIds.map(id => {
-          const properties = _.omit(parsed.find(p => id === p[roadIdName]), roadIdName);
-          if (!properties.or_responsibility) { properties.or_responsibility = getResponsibilityFromRoadId(id); }
-          return knex('road_properties').insert({id, properties});
-        }))
-      ).then(() => res({
-        tabular: {
-          new_roads: {
-            count: newIds.length,
-            ids: newIds
-          },
-          updated_roads: {
-            count: existingIds.length,
-            ids: existingIds
-          }
-        }
-      }));
+        )
+      ).then(() => res(existingIds));
     });
 };
 
@@ -77,8 +76,7 @@ module.exports = [
    * @apiGroup Properties
    * @apiName UploadTabular
    * @apiDescription Upload tabular properties, with each row a road ID
-   * Return a list of which roads were created, versus updated
-   * in the road_properties table
+   * Return a list of which roads were updated in the `road_properties` table
    *
    * Upload CSV data in the following form: The first column should
    * contain the road ID; accordingly, the first column's header
@@ -89,13 +87,7 @@ module.exports = [
    *
    * @apiParam {Object} properties CSV of properties by road ID
    *
-   * @apiSuccess {Object} tabular Tabular response object
-   * @apiSuccess {Object} tabular.new_roads Roads that weren't already in the `road_properties` table
-   * @apiSuccess {Number} tabular.new_roads.count Number of new roads
-   * @apiSuccess {Array} tabular.new_roads.road_ids List of which roads these were
-   * @apiSuccess {Object} tabular.updated_roads Roads that were already in the `road_properties` table
-   * @apiSuccess {Number} tabular.updated_roads.count Number of updated roads
-   * @apiSuccess {Array} tabular.updated_roads.road_ids List of which roads these were
+   * @apiSuccess {Array} added Road IDs for which point-properties were uploaded
    *
    * @apiExample {curl} Example Usage:
    *  curl --data-binary 'road ID,your property,another property,Yet Another Property
@@ -104,18 +96,12 @@ module.exports = [
    *  987NA00001,earth,1.23,medium' -H 'Content-Type: text/csv' http://localhost:4000/properties/roads/tabular
    *
    * @apiSuccessExample {json} Success-Response:
-   *  {
-   *    "tabular": {
-   *      "new_roads": {
-   *        "count": 2,
-   *        "ids": ["123AB87654", "987NA00001"]
-   *      },
-   *      "updated_roads": {
-   *        "count": 1,
-   *        "ids": ["001ZZ33333"]
-   *      }
-   *    }
-   *  }
+   *  [
+   *    "001ZZ33333",
+   *    "123AB87654",
+   *    "987NA00001"
+   *  ]
+   *
    */
   {
     method: 'POST',
