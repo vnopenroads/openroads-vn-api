@@ -13,7 +13,7 @@ const getRoadIdFromPath = path => {
   const roadId = pathParts.reduce((found, one) => {
     if (!found) {
       const match = one.match(ROAD_ID_PATTERN);
-      if (match) { found = match[1]; }
+      if (match) { found = match[0]; }
     }
     return found;
   }, null);

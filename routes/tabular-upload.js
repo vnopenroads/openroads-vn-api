@@ -3,6 +3,7 @@
 const _ = require('lodash');
 const csvParse = require('d3-dsv').csvParse;
 const Boom = require('boom');
+const errors = require('../util/errors');
 const knex = require('../connection.js');
 const {
   getResponsibilityFromRoadId,
@@ -41,22 +42,11 @@ function upload (req, res) {
     .from('road_properties')
     .whereIn('id', roadIds)
     .then(existingRoads => {
+      if (roadIds.includes(null)) { return res(errors.nullRoadIds); }
+
       const existingIds = existingRoads.map(er => er.id);
       const newIds = _.difference(roadIds, existingIds);
-
-      if (newIds.length) {
-        return res(Boom.badRequest(
-          'Failed to ingest tabular data; ' +
-          'cannot ingest properties whose IDs are not already known to the system: ' +
-          difference.join(', ')
-        ));
-      }
-      if (existingIds.includes(null) || newIds.includes(null)) {
-        return res(Boom.badRequest(
-          'Failed to ingest tabular data; ' +
-          'cannot ingest properties with invalid or missing road IDs.'
-        ));
-      }
+      if (newIds.length) { return res(errors.unknownRoadIds(newIds)); }
 
       Promise.all(
         existingRoads.map(road =>

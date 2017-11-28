@@ -2,7 +2,6 @@
 
 const _ = require('lodash');
 const geojsontoosm = require('geojsontoosm');
-const Boom = require('boom');
 const knex = require('../connection.js');
 const knexPostgis = require('knex-postgis');
 const libxml = require('libxmljs');
@@ -10,8 +9,16 @@ const unzip = require('unzip2');
 const parseGeometries = require('../services/rlp-geometries');
 const parseProperties = require('../services/rlp-properties');
 const uploadChangeset = require('./osc-upload').handler;
+const errors = require('../util/errors');
 
 const st = knexPostgis(knex);
+
+const POSTGIS_SIGNIFICANT_DECIMAL_PLACES = 11;
+const equalAtPrecision = (x, y, decimalPrecision) => {
+  const truncatedX = Math.trunc(x * Math.pow(10, decimalPrecision));
+  const truncatedY = Math.trunc(y * Math.pow(10, decimalPrecision));
+  return truncatedX === truncatedY;
+}
 
 async function geometriesHandler (req, res) {
   const filenamePattern = /^.*\/RoadPath.*\.csv$/;
@@ -29,6 +36,14 @@ async function geometriesHandler (req, res) {
       }
     })
     .on('close', async () => {
+      // Prevent ingest of bad data
+      const fieldDataRoadIds = [...new Set(fileReads.map(r => r.road_id))];
+      if (fieldDataRoadIds.includes(null)) { return res(errors.nullRoadIds); }
+
+      const existingRoadIds = await knex.select('id').from('road_properties').map(r => r.id);
+      const idsNewToDB = _.difference(fieldDataRoadIds, existingRoadIds);
+      if (idsNewToDB.length) { return res(errors.unknownRoadIds(idsNewToDB)); }
+
       Promise.all(fileReads.map(fr =>
         // Add roads to the `field_data_geometries` table
         // TO-DO: detect if a road is already present, maybe using
@@ -77,18 +92,36 @@ async function propertiesHandler (req, res) {
       }
     })
     .on('close', async () => {
-      // Prevent ingest of roads that aren't already in ORMA
+      // Prevent ingest of bad data
       const fieldDataRoadIds = [...new Set(rows.map(r => r.road_id))];
+      if (fieldDataRoadIds.includes(null)) { return res(errors.nullRoadIds); }
+
+      const existingRoadIds = await knex.select('id').from('road_properties').map(r => r.id);
+      const idsNewToDB = _.difference(fieldDataRoadIds, existingRoadIds);
+      if (idsNewToDB.length) { return res(errors.unknownRoadIds(idsNewToDB)); }
 
       // This could be replaced by using a `WHERE NOT IN` clause in the `INSERT`
       const existingPointProperties = await knex
-        .select()
+        .select(
+          st.asGeoJSON('geom').as('geom'),
+          'source', 'datetime', 'road_id', 'properties'
+        )
         .from('point_properties')
-        .whereIn('road_id', fieldDataRoadIds);
+        .whereIn('road_id', fieldDataRoadIds)
+        .map(p => Object.assign(p, {geom: JSON.parse(p.geom)}));
 
-      Promise.all(rows.map(r =>
-        // Add roads to the `point_properties` table, if they don't already exist there
-        _.isMatch(existingPointProperties, row)
+      Promise.all(rows.map(r => {
+        // Add observations to the `point_properties` table,
+        // if they don't already exist there
+        const match = existingPointProperties.find(p =>
+          // Geometries are slightly simplified when added to PostGIS,
+          // so truncate to accommodate accordingly
+          equalAtPrecision(p.geom.coordinates[0], r.geom.coordinates[0], POSTGIS_SIGNIFICANT_DECIMAL_PLACES) &&
+          equalAtPrecision(p.geom.coordinates[1], r.geom.coordinates[1], POSTGIS_SIGNIFICANT_DECIMAL_PLACES) &&
+          _.isEqual(p.datetime, r.datetime) &&
+          p.road_id === r.road_id
+        );
+        return match
           ? Promise.resolve()
           : knex.insert({
             geom: st.geomFromGeoJSON(JSON.stringify(r.geom)),
@@ -96,9 +129,9 @@ async function propertiesHandler (req, res) {
             datetime: r.datetime,
             road_id: r.road_id,
             properties: r.properties
-          }).into('point_properties')
-      ))
-      .then(() => res(_.uniq(rows.map(r => r.road_id))));
+          }).into('point_properties');
+      }))
+      .then(() => res(fieldDataRoadIds));
     });
 }
 
