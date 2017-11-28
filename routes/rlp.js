@@ -13,11 +13,26 @@ const errors = require('../util/errors');
 
 const st = knexPostgis(knex);
 
-const POSTGIS_SIGNIFICANT_DECIMAL_PLACES = 11;
-const equalAtPrecision = (x, y, decimalPrecision) => {
-  const truncatedX = Math.trunc(x * Math.pow(10, decimalPrecision));
-  const truncatedY = Math.trunc(y * Math.pow(10, decimalPrecision));
-  return truncatedX === truncatedY;
+const POSTGIS_SIGNIFICANT_DECIMAL_PLACES = 7;
+const geometriesEqualAtPrecision = (x, y, decimalPrecision) => {
+  // Geometries are slightly simplified when added to PostGIS,
+  // so truncate before comparison to accommodate accordingly
+  const isCoordinatePair = c =>
+    c.length === 2 &&
+    typeof c[0] === 'number' &&
+    typeof c[1] === 'number';
+  const truncateValue = (val, prec) => Math.trunc(val * Math.pow(10, prec));
+  const compareCoordinatePair = (a, b) =>
+    truncateValue(a[0], decimalPrecision) === truncateValue(b[0], decimalPrecision) &&
+    truncateValue(a[1], decimalPrecision) === truncateValue(b[1], decimalPrecision);
+  const compareArray = (a, b) =>
+    a.length === b.length &&
+    isCoordinatePair(a)
+      ? compareCoordinatePair(a, b)
+      : a.every((aArr, index) => compareArray(aArr, b[index]));
+
+  return x.type === y.type &&
+    compareArray(x.coordinates, y.coordinates);
 }
 
 async function geometriesHandler (req, res) {
@@ -44,34 +59,55 @@ async function geometriesHandler (req, res) {
       const idsNewToDB = _.difference(fieldDataRoadIds, existingRoadIds);
       if (idsNewToDB.length) { return res(errors.unknownRoadIds(idsNewToDB)); }
 
-      Promise.all(fileReads.map(fr =>
-        // Add roads to the `field_data_geometries` table
-        // TO-DO: detect if a road is already present, maybe using
-        // datetime and road ID, or by comparing geometry or all fields?
-        knex.insert({
-          road_id: fr.road_id,
-          type: fr.type,
-          geom: st.geomFromGeoJSON(JSON.stringify(fr.geom.geometry))
-        }).into('field_data_geometries')
-      ))
-      .then(() => {
-        // Add roads to the production geometries tables, OSM format
-        // TO-DO: if a road was already present in field gemoetries,
-        // do not ingest it into the production geometries
-        const features = fileReads.map(fr => {
-          // All geometries should be tagged with a `highway` value
-          // `road` is temporary until we can do better classification here
-          const properties = {highway: 'road'}
-          if (fr.road_id) { properties.or_vpromms = fr.road_id; }
-          return Object.assign(fr.geom, {properties: properties})
-        });
-        // Need to replace the `<osm>` top-level tag with `<osmChange><create>`
-        const osm = libxml.parseXmlString(geojsontoosm(features))
-          .root().childNodes().map(n => n.toString()).join('');
-        const changeset = `<osmChange version="0.6" generator="OpenRoads">\n<create>\n${osm}\n</create>\n</osmChange>`;
+      // Ignore any duplicate input road geometries
+      fileReads = fileReads.reduce((all, fr) => {
+        if (!all.find(one => _.isEqual(one, fr))) { all = all.concat(fr); }
+        return all;
+      }, []);
 
-        return Promise.resolve(uploadChangeset({payload: changeset}, res));
-      });
+      // Ignore any roads that were ingested earlier
+      const existingFieldData = await knex
+        .select(st.asGeoJSON('geom').as('geom'), 'road_id', 'type')
+        .from('field_data_geometries')
+        .whereIn('road_id', fieldDataRoadIds);
+      fileReads = fileReads.reduce((all, fr) => {
+        const match = existingFieldData.find(efd =>
+          geometriesEqualAtPrecision(efd.geom, fr.geom.geometry, POSTGIS_SIGNIFICANT_DECIMAL_PLACES) &&
+          _.isEqual(efd.datetime, fr.datetime) &&
+          efd.road_id === fr.road_id
+        );
+        if (match) { all = all.concat(fr); }
+        return all;
+      }, []);
+
+      if (fileReads.length) {
+        Promise.all(fileReads.map(fr =>
+          // Add roads to the `field_data_geometries` table
+          knex.insert({
+            road_id: fr.road_id,
+            type: fr.type,
+            geom: st.geomFromGeoJSON(JSON.stringify(fr.geom.geometry))
+          }).into('field_data_geometries')
+        ))
+        .then(() => {
+          // Add roads to the production geometries tables, OSM format
+          const features = fileReads.map(fr => {
+            // All geometries should be tagged with a `highway` value
+            // `road` is temporary until we can do better classification here
+            const properties = {highway: 'road'}
+            if (fr.road_id) { properties.or_vpromms = fr.road_id; }
+            return Object.assign(fr.geom, {properties: properties})
+          });
+          // Need to replace the `<osm>` top-level tag with `<osmChange><create>`
+          const osm = libxml.parseXmlString(geojsontoosm(features))
+            .root().childNodes().map(n => n.toString()).join('');
+          const changeset = `<osmChange version="0.6" generator="OpenRoads">\n<create>\n${osm}\n</create>\n</osmChange>`;
+
+          return Promise.resolve(uploadChangeset({payload: changeset}, res));
+        });
+      } else {
+        return res(errors.alreadyIngested);
+      }
     });
 }
 
@@ -114,10 +150,7 @@ async function propertiesHandler (req, res) {
         // Add observations to the `point_properties` table,
         // if they don't already exist there
         const match = existingPointProperties.find(p =>
-          // Geometries are slightly simplified when added to PostGIS,
-          // so truncate to accommodate accordingly
-          equalAtPrecision(p.geom.coordinates[0], r.geom.coordinates[0], POSTGIS_SIGNIFICANT_DECIMAL_PLACES) &&
-          equalAtPrecision(p.geom.coordinates[1], r.geom.coordinates[1], POSTGIS_SIGNIFICANT_DECIMAL_PLACES) &&
+          geometriesEqualAtPrecision(p.geom, r.geom, POSTGIS_SIGNIFICANT_DECIMAL_PLACES) &&
           _.isEqual(p.datetime, r.datetime) &&
           p.road_id === r.road_id
         );

@@ -12,5 +12,9 @@ module.exports = {
     'Please add these road IDs to the platform first, ' +
     'or remove these roads from your data and upload again: ' +
     ids.join(', ')
+  ),
+  alreadyIngested: Boom.badRequest(
+    'All data in the upload is already present in the platform. ' +
+    'No further action is required.'
   )
 };
