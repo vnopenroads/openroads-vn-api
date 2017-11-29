@@ -13,6 +13,7 @@ async function getNextTask (req, res) {
   .from('tasks')
   .where('pending', false)
   .whereNotIn('id', skip)
+  .orderByRaw('random()')
   .limit(1);
   if (!task.length) return res(Boom.notFound('There are no pending tasks'));
   const ids = [task[0].way_id].concat(task[0].neighbors);
