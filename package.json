@@ -1,7 +1,7 @@
 {
-  "name": "macrocosm",
-  "version": "0.2.4",
-  "description": "The OSM API as a platform in NodeJS",
+  "name": "openroads-vn-api",
+  "version": "0.2.5",
+  "description": "An OSM-centric API for the Open Roads Vietnam platform",
   "main": "index.js",
   "engines": {
     "node": "^8"
@@ -13,7 +13,7 @@
     "docker-stop": "docker-compose stop",
     "docker-logs": "docker-compose logs api",
     "docker-test": "docker-compose build && docker-compose run api npm test; docker-compose stop && docker-compose rm -f",
-    "docker-start-db": "docker-compose up -d postgres",
+    "docker-start-db": "docker-compose up -d db",
     "docker-kill-db": "docker-compose stop && docker-compose rm -f",
     "docker-start-fixture": "docker-compose up --build db api",
     "gendoc": "./node_modules/.bin/apidoc -i routes",
@@ -27,7 +27,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/developmentseed/macrocosm.git"
+    "url": "https://github.com/orma/openroads-vn-api.git"
   },
   "keywords": [
     "OSM"
@@ -35,9 +35,9 @@
   "author": "Development Seed",
   "license": "GPL-2.0",
   "bugs": {
-    "url": "https://github.com/developmentseed/macrocosm/issues"
+    "url": "https://github.com/orma/openroads-vn-analytics/issues"
   },
-  "homepage": "https://github.com/developmentseed/macrocosm",
+  "homepage": "https://github.com/orma/openroads-vn-api",
   "dependencies": {
     "@turf/bbox": "^4.6.0",
     "@turf/distance": "^5.0.0",
@@ -53,8 +53,8 @@
     "hapi": "^16.6.0",
     "hapi-router": "^3.5.0",
     "inert": "^4.2.1",
-    "knex": "^0.7.6",
-    "knex-postgis": "^0.2.2",
+    "knex": "0.8",
+    "knex-postgis": "^0.5.0",
     "libxmljs": "^0.18.7",
     "lodash": "^4.17.4",
     "moment": "^2.18.1",

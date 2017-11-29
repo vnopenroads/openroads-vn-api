@@ -9,9 +9,31 @@ const unzip = require('unzip2');
 const parseGeometries = require('../services/rlp-geometries');
 const parseProperties = require('../services/rlp-properties');
 const uploadChangeset = require('./osc-upload').handler;
-const getResponsibilityFromRoadId = require('../util/road-id-utils').getResponsibilityFromRoadId;
+const errors = require('../util/errors');
 
 const st = knexPostgis(knex);
+
+const POSTGIS_SIGNIFICANT_DECIMAL_PLACES = 7;
+const geometriesEqualAtPrecision = (x, y, decimalPrecision) => {
+  // Geometries are slightly simplified when added to PostGIS,
+  // so truncate before comparison to accommodate accordingly
+  const isCoordinatePair = c =>
+    c.length === 2 &&
+    typeof c[0] === 'number' &&
+    typeof c[1] === 'number';
+  const truncateValue = (val, prec) => Math.trunc(val * Math.pow(10, prec));
+  const compareCoordinatePair = (a, b) =>
+    truncateValue(a[0], decimalPrecision) === truncateValue(b[0], decimalPrecision) &&
+    truncateValue(a[1], decimalPrecision) === truncateValue(b[1], decimalPrecision);
+  const compareArray = (a, b) =>
+    a.length === b.length &&
+    isCoordinatePair(a)
+      ? compareCoordinatePair(a, b)
+      : a.every((aArr, index) => compareArray(aArr, b[index]));
+
+  return x.type === y.type &&
+    compareArray(x.coordinates, y.coordinates);
+}
 
 async function geometriesHandler (req, res) {
   const filenamePattern = /^.*\/RoadPath.*\.csv$/;
@@ -29,51 +51,63 @@ async function geometriesHandler (req, res) {
       }
     })
     .on('close', async () => {
-      // Create `road_property` rows for roads that aren't known yet
-      const knownRoads = await knex.select('id').from('road_properties').map(r => r.id);
-      Promise.all(
-        // Remove duplicate road IDs for the `road_property` write
-        _.uniqBy(fileReads, fr => fr.road_id)
-        .map(fr => {
-          if (fr.road_id && !knownRoads.includes(fr.road_id)) {
-            const or_responsibility = getResponsibilityFromRoadId(fr.road_id);
-            return knex.insert({
-              id: fr.road_id,
-              properties: {or_responsibility}
-            }).into('road_properties');
-          } else {
-            return Promise.resolve();
-          }
-        })
-      )
-      .then(() => Promise.all(fileReads.map(fr =>
-        // Add roads to the `field_data_geometries` table
-        // TO-DO: detect if a road is already present, maybe using
-        // datetime and road ID, or by comparing geometry or all fields?
-        knex.insert({
-          road_id: fr.road_id,
-          type: fr.type,
-          geom: st.geomFromGeoJSON(JSON.stringify(fr.geom.geometry))
-        }).into('field_data_geometries')
-      )))
-      .then(() => {
-        // Add roads to the production geometries tables, OSM format
-        // TO-DO: if a road was already present in field gemoetries,
-        // do not ingest it into the production geometries
-        const features = fileReads.map(fr => {
-          // All geometries should be tagged with a `highway` value
-          // `road` is temporary until we can do better classification here
-          const properties = {highway: 'road'}
-          if (fr.road_id) { properties.or_vpromms = fr.road_id; }
-          return Object.assign(fr.geom, {properties: properties})
-        });
-        // Need to replace the `<osm>` top-level tag with `<osmChange><create>`
-        const osm = libxml.parseXmlString(geojsontoosm(features))
-          .root().childNodes().map(n => n.toString()).join('');
-        const changeset = `<osmChange version="0.6" generator="OpenRoads">\n<create>\n${osm}\n</create>\n</osmChange>`;
+      // Prevent ingest of bad data
+      const fieldDataRoadIds = [...new Set(fileReads.map(r => r.road_id))];
+      if (fieldDataRoadIds.includes(null)) { return res(errors.nullRoadIds); }
 
-        return Promise.resolve(uploadChangeset({payload: changeset}, res));
-      });
+      const existingRoadIds = await knex.select('id').from('road_properties').map(r => r.id);
+      const idsNewToDB = _.difference(fieldDataRoadIds, existingRoadIds);
+      if (idsNewToDB.length) { return res(errors.unknownRoadIds(idsNewToDB)); }
+
+      // Ignore any duplicate input road geometries
+      fileReads = fileReads.reduce((all, fr) => {
+        if (!all.find(one => _.isEqual(one, fr))) { all = all.concat(fr); }
+        return all;
+      }, []);
+
+      // Ignore any roads that were ingested earlier
+      const existingFieldData = await knex
+        .select(st.asGeoJSON('geom').as('geom'), 'road_id', 'type')
+        .from('field_data_geometries')
+        .whereIn('road_id', fieldDataRoadIds);
+      fileReads = fileReads.reduce((all, fr) => {
+        const match = existingFieldData.find(efd =>
+          geometriesEqualAtPrecision(efd.geom, fr.geom.geometry, POSTGIS_SIGNIFICANT_DECIMAL_PLACES) &&
+          _.isEqual(efd.datetime, fr.datetime) &&
+          efd.road_id === fr.road_id
+        );
+        if (match) { all = all.concat(fr); }
+        return all;
+      }, []);
+
+      if (fileReads.length) {
+        Promise.all(fileReads.map(fr =>
+          // Add roads to the `field_data_geometries` table
+          knex.insert({
+            road_id: fr.road_id,
+            type: fr.type,
+            geom: st.geomFromGeoJSON(JSON.stringify(fr.geom.geometry))
+          }).into('field_data_geometries')
+        ))
+        .then(() => {
+          // Add roads to the production geometries tables, OSM format
+          const features = fileReads.map(fr => {
+            // All geometries should be tagged with a `highway` value
+            // `road` is temporary until we can do better classification here
+            const properties = {highway: 'road'}
+            if (fr.road_id) { properties.or_vpromms = fr.road_id; }
+            return Object.assign(fr.geom, {properties: properties})
+          });
+          // Need to replace the `<osm>` top-level tag with `<osmChange><create>`
+          const osm = libxml.parseXmlString(geojsontoosm(features))
+            .root().childNodes().map(n => n.toString()).join('');
+          const changeset = `<osmChange version="0.6" generator="OpenRoads">\n<create>\n${osm}\n</create>\n</osmChange>`;
+
+          return Promise.resolve(uploadChangeset({payload: changeset}, res));
+        });
+      } else {
+        return res(errors.alreadyIngested);
+      }
     });
 }
 
@@ -94,35 +128,43 @@ async function propertiesHandler (req, res) {
       }
     })
     .on('close', async () => {
-      // Create `road_property` rows for roads that aren't known yet
-      const knownRoads = await knex.select('id').from('road_properties').map(r => r.id);
-      Promise.all(
-        // Remove duplicate road IDs for the `road_property` write
-        _.uniqBy(rows, r => r.road_id)
-        .map(r => {
-          if (r.road_id && !knownRoads.includes(r.road_id)) {
-            const or_responsibility = getResponsibilityFromRoadId(r.road_id);
-            return knex.insert({
-              id: r.road_id,
-              properties: {or_responsibility}
-            }).into('road_properties');
-          } else {
-            return Promise.resolve();
-          }
-        })
-      )
-      .then(() => Promise.all(rows.map(r =>
-        // Add roads to the `point_properties` table
-        // TO-DO: detect if this is identically already in the database
-        knex.insert({
-          geom: st.geomFromGeoJSON(JSON.stringify(r.geom)),
-          source: r.source,
-          datetime: r.datetime,
-          road_id: r.road_id,
-          properties: r.properties
-        }).into('point_properties')
-      )))
-      .then(() => res(_.uniq(rows.map(r => r.road_id))));
+      // Prevent ingest of bad data
+      const fieldDataRoadIds = [...new Set(rows.map(r => r.road_id))];
+      if (fieldDataRoadIds.includes(null)) { return res(errors.nullRoadIds); }
+
+      const existingRoadIds = await knex.select('id').from('road_properties').map(r => r.id);
+      const idsNewToDB = _.difference(fieldDataRoadIds, existingRoadIds);
+      if (idsNewToDB.length) { return res(errors.unknownRoadIds(idsNewToDB)); }
+
+      // This could be replaced by using a `WHERE NOT IN` clause in the `INSERT`
+      const existingPointProperties = await knex
+        .select(
+          st.asGeoJSON('geom').as('geom'),
+          'source', 'datetime', 'road_id', 'properties'
+        )
+        .from('point_properties')
+        .whereIn('road_id', fieldDataRoadIds)
+        .map(p => Object.assign(p, {geom: JSON.parse(p.geom)}));
+
+      Promise.all(rows.map(r => {
+        // Add observations to the `point_properties` table,
+        // if they don't already exist there
+        const match = existingPointProperties.find(p =>
+          geometriesEqualAtPrecision(p.geom, r.geom, POSTGIS_SIGNIFICANT_DECIMAL_PLACES) &&
+          _.isEqual(p.datetime, r.datetime) &&
+          p.road_id === r.road_id
+        );
+        return match
+          ? Promise.resolve()
+          : knex.insert({
+            geom: st.geomFromGeoJSON(JSON.stringify(r.geom)),
+            source: r.source,
+            datetime: r.datetime,
+            road_id: r.road_id,
+            properties: r.properties
+          }).into('point_properties');
+      }))
+      .then(() => res(fieldDataRoadIds));
     });
 }
 

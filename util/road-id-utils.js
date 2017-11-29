@@ -4,31 +4,43 @@ const path_ = require('path');
 const _ = require('lodash');
 
 // These are often specific to the country and road ID schema of use
-const ROAD_ID_PATTERN = /^(\d{3}[A-Za-z]{2}\d{1,5}).*?$/;
+const ROAD_ID_PATTERN = /^\d{3}[A-Z]{2}\d{1,8}$/;
+const POSSIBLE_ROAD_ID_PATTERN = /^\d+[A-Za-z]+\d+.*?$/;
 
-function standardizeRoadId (roadId) {
-  // Pad the second set of numbers in a VPRoMMS road ID using zeros
-  if (roadId.length < 10) {
-    roadId = roadId.slice(0,5)
-      .concat(_.padStart(roadId.slice(5), 5, '0'));
-  }
-  return roadId.toUpperCase();
+const getRoadIdFromPath = path => {
+  // Check each ancestor directory name for a valid road ID
+  const pathParts = path.split(path_.sep).reverse();
+  const roadId = pathParts.reduce((found, one) => {
+    if (!found) {
+      const match = one.match(ROAD_ID_PATTERN);
+      if (match) { found = match[0]; }
+    }
+    return found;
+  }, null);
+  return roadId;
 };
 
 module.exports = {
   ROAD_ID_PATTERN,
-  standardizeRoadId,
-  getRoadIdFromPath: path => {
-    // Check each ancestor directory name for a valid road ID
+  POSSIBLE_ROAD_ID_PATTERN,
+  getRoadIdFromPath,
+  findBadRoadId: path => {
+    // Check each ancestor directory name for a possible but incorrect road IDs
+    if (getRoadIdFromPath(path) !== null) { return null; }
+
     const pathParts = path.split(path_.sep).reverse();
     const roadId = pathParts.reduce((found, one) => {
       if (!found) {
-        const match = one.match(ROAD_ID_PATTERN);
-        if (match) { found = standardizeRoadId(match[1]); }
+        if (
+          one.match(POSSIBLE_ROAD_ID_PATTERN) &&
+          !one.match(ROAD_ID_PATTERN)
+        ) { found = one; }
       }
       return found;
     }, null);
     return roadId;
+
+    return possibleIds;
   },
   getResponsibilityFromRoadId: roadId => {
     // Extract the road's responsibility from its ID
@@ -44,7 +56,7 @@ module.exports = {
       '9': null,
       '0': null
     };
-    const RESPONSIBILITY_PATTERN = /^\d{2}(\d)[a-zA-Z]{2}\d{5}$/;
+    const RESPONSIBILITY_PATTERN = /^\d{2}(\d)[A-Z]{2}\d{5}$/;
     const match = roadId.match(RESPONSIBILITY_PATTERN);
     if (match) {
       return RESPONSIBILITIES[match[1]];
