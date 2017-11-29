@@ -162,7 +162,7 @@ module.exports = [
      * @api {get} /tasks/count GeoJSON - Get the count of remaining tasks
      * @apiGroup Tasks
      * @apiName GetTaskCount
-     * @apiVersion ???
+     * @apiVersion 0.3.0
      *
      * @apiSuccess {Integer} count Count of remaining tasks
      *
