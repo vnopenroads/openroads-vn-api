@@ -42,6 +42,14 @@ async function getTask (req, res) {
   });
 }
 
+async function getTaskCount (req, res) {
+  const [{ count }] = await knex('tasks')
+  .where('pending', false)
+  .count();
+
+  res({ count: Number(count) }).type('application/json');
+}
+
 async function setTaskPending (req, res) {
   console.log('Setting tasks to pending', req.payload.way_ids.join(', '));
   knex('tasks').whereIn('way_id', req.payload.way_ids).update({pending: true})
@@ -147,6 +155,28 @@ module.exports = [
     method: 'GET',
     path: '/tasks/{taskId}',
     handler: getTask
+  },
+
+  {
+    /**
+     * @api {get} /tasks/count GeoJSON - Get the count of remaining tasks
+     * @apiGroup Tasks
+     * @apiName GetTaskCount
+     * @apiVersion 0.3.0
+     *
+     * @apiSuccess {Integer} count Count of remaining tasks
+     *
+     * @apiExample {curl} Example Usage:
+     *    curl http://localhost:4000/tasks/count
+     *
+     * @apiSuccessExample {json} Success-Response:
+     *  {
+     *    "count": 100
+     *  }
+     */
+     method: 'GET',
+     path: '/tasks/count',
+     handler: getTaskCount
   },
 
   {
