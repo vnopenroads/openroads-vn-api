@@ -46,7 +46,7 @@ module.exports = function queryBbox(knex, bbox) {
       .then(function(rows) {
         return rows.map(function(row) {
           return row.id;
-        })
+        });
       });
   }
 
@@ -185,7 +185,7 @@ module.exports = function queryBbox(knex, bbox) {
         selectRelations([...relationIds]),
         selectRelationMembers([...relationIds]),
         selectRelationTags([...relationIds])
-      ])
+      ]);
     })
     .then(function(entities) {
       var nodes = entities.shift();
@@ -199,7 +199,7 @@ module.exports = function queryBbox(knex, bbox) {
 
       nodes = nodes.map(function(node) {
         node.tags = nodeTags.filter(function(tag) {
-          return tag.id === node.id
+          return tag.id === node.id;
         });
 
         return node;

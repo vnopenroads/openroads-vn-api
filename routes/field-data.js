@@ -4,7 +4,6 @@ var knex = require('../connection.js');
 var Boom = require('boom');
 var groupGeometriesById = require('../services/field-data').groupGeometriesById;
 var makeGeomsFC = require('../services/field-data').makeGeomsFC;
-var mapExistingIds = require('../services/field-data').mapExistingIds;
 
 module.exports = [
   {
@@ -240,7 +239,7 @@ module.exports = [
      *
      * @apiSuccessExample {JSON} Example Usage:
      *  curl http://localhost:4000/field/roads/total/21TH?level=district
-     * 
+     *
      *  * @apiSuccessExample {JSON} Success-Response
      * [
      *  {
@@ -255,7 +254,7 @@ module.exports = [
     handler: function (req, res) {
       const districtQuery = req.query.level === 'district' ? ', SUBSTRING(road_id, 4, 2)' : '';
       const adminId = req.params.id.toString();
-      const adminQuery = adminId.length ? `AND CONCAT(SUBSTRING(road_id, 0, 3)${districtQuery}) = '${adminId}'` : ''
+      const adminQuery = adminId.length ? `AND CONCAT(SUBSTRING(road_id, 0, 3)${districtQuery}) = '${adminId}'` : '';
       knex.raw(`
         SELECT COUNT(DISTINCT road_id) as total_roads, CONCAT(SUBSTRING(road_id, 0, 3)${districtQuery}) as admin
         FROM field_data_geometries
@@ -263,7 +262,7 @@ module.exports = [
         ${adminQuery}
         GROUP BY admin;
       `)
-      .then(adminRoadNum => res(adminRoadNum.rows))
+      .then(adminRoadNum => res(adminRoadNum.rows));
     }
   }
 ];
