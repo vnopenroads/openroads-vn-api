@@ -8,7 +8,7 @@ const getRoadIdFromPath = (path, existingRoadIds) => {
   // Check each ancestor directory name for a valid road ID
   const pathParts = path.split(path_.sep).reverse();
   const roadId = pathParts.reduce(
-    (found, one) => found || (existingRoadIds.includes(one) && one),
+    (found, one) => found || (existingRoadIds.includes(one) && one) || null,
     null
   );
   return roadId;
