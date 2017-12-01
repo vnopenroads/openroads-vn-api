@@ -23,8 +23,9 @@ function parseRow (csvRow) {
   };
 };
 
-module.exports = async function (path, contentsStream) {
-  const roadId = getRoadIdFromPath(path);
+module.exports = async function (path, contentsStream, existingRoadIds) {
+  const roadId = getRoadIdFromPath(path, existingRoadIds);
+
   let rows = [];
   return new Promise(resolve =>
     contentsStream.pipe(fastCSV

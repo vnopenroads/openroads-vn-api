@@ -58,8 +58,8 @@ function cleanGeometry (points) {
   return geom;
 }
 
-module.exports = async function (path, contentsStream) {
-  const roadId = getRoadIdFromPath(path);
+module.exports = async function (path, contentsStream, existingRoadIds) {
+  const roadId = getRoadIdFromPath(path, existingRoadIds);
 
   let points = [];
   return new Promise(resolve =>

@@ -9,6 +9,7 @@ const unzip = require('unzip2');
 const parseGeometries = require('../services/rlp-geometries');
 const parseProperties = require('../services/rlp-properties');
 const uploadChangeset = require('./osc-upload').handler;
+const { getPossibleRoadIdFromPath } = require('../util/road-id-utils');
 const errors = require('../util/errors');
 
 const st = knexPostgis(knex);
@@ -37,13 +38,18 @@ const geometriesEqualAtPrecision = (x, y, decimalPrecision) => {
 
 async function geometriesHandler (req, res) {
   const filenamePattern = /^.*\/RoadPath.*\.csv$/;
+  const existingRoadIds = await knex.select('id').from('road_properties').map(r => r.id);
 
   let fileReads = [];
+  let idsNewToDB = [];
   req.payload[Object.keys(req.payload)[0]]
     .pipe(unzip.Parse())
     .on('entry', async e => {
       if (e.type === 'File' && filenamePattern.test(e.path)) {
-        const read = await parseGeometries(e.path, e);
+        const read = await parseGeometries(e.path, e, existingRoadIds);
+        if (!read.road_id) {
+          idsNewToDB = idsNewToDB.concat(getPossibleRoadIdFromPath(e.path));
+        }
         fileReads = fileReads.concat(read);
       } else {
         // Avoid memory consumption by unneeded files
@@ -55,8 +61,6 @@ async function geometriesHandler (req, res) {
       const fieldDataRoadIds = [...new Set(fileReads.map(r => r.road_id))];
       if (fieldDataRoadIds.includes(null)) { return res(errors.nullRoadIds); }
 
-      const existingRoadIds = await knex.select('id').from('road_properties').map(r => r.id);
-      const idsNewToDB = _.difference(fieldDataRoadIds, existingRoadIds);
       if (idsNewToDB.length) { return res(errors.unknownRoadIds(idsNewToDB)); }
 
       // Ignore any duplicate input road geometries
@@ -69,14 +73,15 @@ async function geometriesHandler (req, res) {
       const existingFieldData = await knex
         .select(st.asGeoJSON('geom').as('geom'), 'road_id', 'type')
         .from('field_data_geometries')
-        .whereIn('road_id', fieldDataRoadIds);
+        .whereIn('road_id', fieldDataRoadIds)
+        .map(efd => Object.assign(efd, { geom: JSON.parse(efd.geom) }));
       fileReads = fileReads.reduce((all, fr) => {
         const match = existingFieldData.find(efd =>
           geometriesEqualAtPrecision(efd.geom, fr.geom.geometry, POSTGIS_SIGNIFICANT_DECIMAL_PLACES) &&
           _.isEqual(efd.datetime, fr.datetime) &&
           efd.road_id === fr.road_id
         );
-        if (match) { all = all.concat(fr); }
+        if (!match) { all = all.concat(fr); }
         return all;
       }, []);
 
@@ -114,13 +119,18 @@ async function geometriesHandler (req, res) {
 async function propertiesHandler (req, res) {
   // Some CSV filenames start with "RoadIntervals", others with just "Intervals"
   const filenamePattern = /^.*\/(Road)?Intervals.*\.csv$/;
+  const existingRoadIds = await knex.select('id').from('road_properties').map(r => r.id);
 
   let rows = [];
+  let idsNewToDB = [];
   req.payload[Object.keys(req.payload)[0]]
     .pipe(unzip.Parse())
     .on('entry', async e => {
       if (e.type === 'File' && filenamePattern.test(e.path)) {
-        const read = await parseProperties(e.path, e);
+        const read = await parseProperties(e.path, e, existingRoadIds);
+        if (!read[0].road_id) {
+          idsNewToDB = idsNewToDB.concat(getPossibleRoadIdFromPath(e.path));
+        }
         rows = rows.concat(read);
       } else {
         // Avoid memory consumption by unneeded files
@@ -132,8 +142,6 @@ async function propertiesHandler (req, res) {
       const fieldDataRoadIds = [...new Set(rows.map(r => r.road_id))];
       if (fieldDataRoadIds.includes(null)) { return res(errors.nullRoadIds); }
 
-      const existingRoadIds = await knex.select('id').from('road_properties').map(r => r.id);
-      const idsNewToDB = _.difference(fieldDataRoadIds, existingRoadIds);
       if (idsNewToDB.length) { return res(errors.unknownRoadIds(idsNewToDB)); }
 
       // This could be replaced by using a `WHERE NOT IN` clause in the `INSERT`
@@ -223,7 +231,7 @@ module.exports = [
     handler: geometriesHandler,
     config: {
       payload: {
-        // Increase the maximum upload size to 4 GB, from default of 1 GB
+        // Increase the maximum upload size to 4 MB, from default of 1 MB
         maxBytes: 4194304,
         output: 'stream',
         uploads: '/tmp',
@@ -270,7 +278,7 @@ module.exports = [
     handler: propertiesHandler,
     config: {
       payload: {
-        // Increase the maximum upload size to 4 GB, from default of 1 GB
+        // Increase the maximum upload size to 4 MB, from default of 1 MB
         maxBytes: 4194304,
         output: 'stream',
         uploads: '/tmp',

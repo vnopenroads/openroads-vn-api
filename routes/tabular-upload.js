@@ -5,10 +5,6 @@ const csvParse = require('d3-dsv').csvParse;
 const Boom = require('boom');
 const errors = require('../util/errors');
 const knex = require('../connection.js');
-const {
-  getResponsibilityFromRoadId,
-  POSSIBLE_ROAD_ID_PATTERN
-} = require('../util/road-id-utils');
 
 function upload (req, res) {
   var parsed;
@@ -32,10 +28,6 @@ function upload (req, res) {
   }
   if (roadIds.some(id => id.includes('"'))) {
     return res(Boom.badRequest('Do not use unnecessary quotations'));
-  }
-  const badIds = roadIds.filter(id => !id.match(POSSIBLE_ROAD_ID_PATTERN));
-  if (badIds.length) {
-    return res(Boom.badRequest(`Improper road IDs detected; correct and upload again: ${badIds.join(', ')}`));
   }
 
   knex.select()
