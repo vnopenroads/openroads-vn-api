@@ -68,6 +68,7 @@
     "xmlbuilder": "^4.2.0"
   },
   "devDependencies": {
+    "babel-eslint": "^8.0.2",
     "eslint": "^1.10.3",
     "inject-then": "^2.0.0",
     "kes": "^0.1.6",
