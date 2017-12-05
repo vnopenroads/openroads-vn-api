@@ -83,6 +83,7 @@ module.exports = [
     handler: upload,
     config: {
       payload: {
+        maxBytes: 4194304,
         allow: 'text/csv',
         parse: false
       }
