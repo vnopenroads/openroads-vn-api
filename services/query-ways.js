@@ -100,4 +100,3 @@ module.exports = function queryWays(knex, wayIds, excludeNotVisible=false) {
   });
 
 };
-

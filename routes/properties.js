@@ -1,15 +1,12 @@
-'use strict'
-
-var Boom = require('boom');
+'use strict';
 
 var knex = require('../connection.js');
-var api = 'http://localhost:4000/';
 var flattenDeep = require('lodash').flattenDeep;
 var groupBy = require('lodash').groupBy;
 var includes = require('lodash').includes;
 var assign = require('lodash').assign;
 var reduce = require('lodash').reduce;
-Promise = require('bluebird');
+
 module.exports = [
   /**
    * @api {get} /properties  Way Properties by VProMMs id
@@ -55,14 +52,14 @@ module.exports = [
             results = groupBy(
               results,
               (result) => {
-                return result.way_id
+                return result.way_id;
               }
-            )
+            );
             const finResults = {};
             Object.keys(results).map((key) => {
               let vpromms = results[key].filter((resultObj) => {
                 return (resultObj.k === 'or_vpromms' && resultObj.v !== '');
-              })[0]
+              })[0];
               if (vpromms) {
                 let data;
                 if (req.query.keys) {
@@ -70,26 +67,26 @@ module.exports = [
                   data = results[key].filter((resultObj) => {
                     return includes(desired, resultObj.k);
                   }).map((data) => {
-                    const key = data.k
-                    const val = data.v
+                    const key = data.k;
+                    const val = data.v;
                     const returnObj = {};
                     returnObj[key] = val;
                     return returnObj;
-                  })
+                  });
                 } else {
                   data = {};
                 }
                 data = reduce(data, (dataObj, d) => {
-                  return assign(dataObj, d)
-                }, {})
+                  return assign(dataObj, d);
+                }, {});
                 vpromms = vpromms.v;
                 finResults[vpromms] = data;
               }
             });
             res(finResults);
           });
-        })
-      })
+        });
+      });
     }
   }
 ];

@@ -299,7 +299,7 @@ module.exports = [
   },
   {
     /**
-     * @api {get} /admin/roads?province=provinceId&district=districtId
+     * @api {get} /admin/roads/properties?province=provinceId&district=districtId
      * @apiGroup Admin
      * @apiName List Admin Road properties, ordered to show those with field data first.
      * @apiDescription Returns list of road properties provided province and/or district ids.
@@ -422,14 +422,14 @@ module.exports = [
     handler: function (req, res) {
       const districtQuery = req.query.level === 'district' ? ', SUBSTRING(id, 4, 2)' : '';
       const adminId = req.params.id.toString();
-      const adminQuery = adminId.length ? `WHERE CONCAT(SUBSTRING(id, 0, 3)${districtQuery}) = '${adminId}'` : ''
+      const adminQuery = adminId.length ? `WHERE CONCAT(SUBSTRING(id, 0, 3)${districtQuery}) = '${adminId}'` : '';
       knex.raw(`
         SELECT COUNT(id) as total_roads, CONCAT(SUBSTRING(id, 0, 3)${districtQuery}) as admin
         FROM road_properties
         ${adminQuery}
         GROUP BY admin;
       `)
-      .then(adminRoadNum => res(adminRoadNum.rows))
+      .then(adminRoadNum => res(adminRoadNum.rows));
     }
   }
 ];

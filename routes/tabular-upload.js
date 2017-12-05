@@ -2,48 +2,32 @@
 
 const _ = require('lodash');
 const csvParse = require('d3-dsv').csvParse;
-const Boom = require('boom');
 const errors = require('../util/errors');
+const { NO_ID } = require('../util/road-id-utils');
 const knex = require('../connection.js');
-const {
-  getResponsibilityFromRoadId,
-  POSSIBLE_ROAD_ID_PATTERN
-} = require('../util/road-id-utils');
 
 function upload (req, res) {
   var parsed;
   try {
     parsed = csvParse(req.payload.toString());
   } catch (e) {
-    return res(Boom.badRequest('No CSV provided, or cannot parse CSV'));
+    return res(errors.noCSV);
   }
-  if (parsed.columns.length === 0) {
-    return res(Boom.badRequest('CSV must contain data'));
-  }
-  if (new Set(parsed.columns).size < parsed.columns.length) {
-    return res(Boom.badRequest('CSV cannot have duplicate column names'));
-  }
+  if (parsed.columns.length === 0) { return res(errors.noCSVRows); }
+  if (new Set(parsed.columns).size < parsed.columns.length) { return res(errors.noDuplicateTabularHeaders); }
 
   const roadIdName = parsed.columns[0];
   const roadIds = parsed.map(p => p[roadIdName]);
 
-  if (parsed.columns.some(c => c.includes('"') || c.includes(','))) {
-    return res(Boom.badRequest('Do not use quotes or commans in the CSV headers'));
-  }
-  if (roadIds.some(id => id.includes('"'))) {
-    return res(Boom.badRequest('Do not use unnecessary quotations'));
-  }
-  const badIds = roadIds.filter(id => !id.match(POSSIBLE_ROAD_ID_PATTERN));
-  if (badIds.length) {
-    return res(Boom.badRequest(`Improper road IDs detected; correct and upload again: ${badIds.join(', ')}`));
-  }
+  if (parsed.columns.some(c => c.includes('"') || c.includes(','))) { return res(errors.noQuotesInTabularHeader); }
+  if (roadIds.some(id => id.includes('"'))) { return res(errors.noExtraQuotesInTabular); }
+  if (roadIds.includes(null)) { return res(errors.nullRoadIds); }
+  if (roadIds.includes(NO_ID)) { return res(errors.cannotUseNoId); }
 
   knex.select()
     .from('road_properties')
     .whereIn('id', roadIds)
     .then(existingRoads => {
-      if (roadIds.includes(null)) { return res(errors.nullRoadIds); }
-
       const existingIds = existingRoads.map(er => er.id);
       const newIds = _.difference(roadIds, existingIds);
       if (newIds.length) { return res(errors.unknownRoadIds(newIds)); }
@@ -99,6 +83,7 @@ module.exports = [
     handler: upload,
     config: {
       payload: {
+        maxBytes: 4194304,
         allow: 'text/csv',
         parse: false
       }

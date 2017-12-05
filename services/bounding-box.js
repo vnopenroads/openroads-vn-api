@@ -55,31 +55,31 @@ function Bbox(minMaxLatLon) {
 
 Bbox.prototype.logError = function(msg) {
   this.error = msg;
-}
+};
 
 Bbox.prototype.area = function() {
   return (this.maxLon - this.minLon) * (this.maxLat - this.minLat);
-}
+};
 
 Bbox.prototype.centerLon = function() {
   return (this.minLon + this.maxLon) / 2.0;
-}
+};
 
 Bbox.prototype.centerLat = function() {
   return (this.minLat + this.maxLat) / 2.0;
-}
+};
 
 Bbox.prototype.width = function() {
   return this.maxLon - this.minLon;
-}
+};
 
 Bbox.prototype.height = function() {
   return this.maxLat - this.minLat;
-}
+};
 
 Bbox.prototype.toArray = function() {
   return [this.minLon, this.minLat, this.maxLon, this.maxLat];
-}
+};
 
 Bbox.prototype.toObject = function () {
   return _.extend({}, {
@@ -88,11 +88,11 @@ Bbox.prototype.toObject = function () {
     max_lon: this.maxLon,
     max_lat: this.maxLat
   });
-}
+};
 
 Bbox.prototype.toString = function() {
   return this.toArray().join(',');
-}
+};
 
 Bbox.prototype.toScaled = function() {
   this.minLon *= ratio;
@@ -100,7 +100,7 @@ Bbox.prototype.toScaled = function() {
   this.maxLon *= ratio;
   this.maxLat *= ratio;
   return this;
-}
+};
 
 function isValidBounds(bounds) {
   if (bounds.length !== 4) return false;
@@ -111,7 +111,7 @@ function isValidBounds(bounds) {
     }
   }
   return true;
-}
+};
 
 var getBbox = {
   fromCoordinates: function(coordinates) {

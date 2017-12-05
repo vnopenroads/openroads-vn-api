@@ -48,7 +48,7 @@ function changesetQuery(req, res) {
           }
           else return false;
         }).filter(Boolean);
-        return change
+        return change;
       }).value();
     return res(XML.write({changesets: result}).toString()).type('text/xml');
   })

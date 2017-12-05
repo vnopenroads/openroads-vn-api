@@ -1,6 +1,6 @@
 {
   "name": "openroads-vn-api",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "description": "An OSM-centric API for the Open Roads Vietnam platform",
   "main": "index.js",
   "engines": {
@@ -68,6 +68,7 @@
     "xmlbuilder": "^4.2.0"
   },
   "devDependencies": {
+    "babel-eslint": "^8.0.2",
     "eslint": "^1.10.3",
     "inject-then": "^2.0.0",
     "kes": "^0.1.6",

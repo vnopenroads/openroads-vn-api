@@ -30,7 +30,7 @@ async function getNextTask (req, res) {
 async function getTask (req, res) {
   const task = await knex.select(properties)
   .from('tasks')
-  .where('id', req.params.taskId)
+  .where('id', req.params.taskId);
   if (!task.length) return res(Boom.notFound('No task with that ID'));
   const ids = [task[0].way_id].concat(task[0].neighbors);
   queryWays(knex, ids, true).then(function (ways) {
@@ -175,9 +175,9 @@ module.exports = [
      *    "count": 100
      *  }
      */
-     method: 'GET',
-     path: '/tasks/count',
-     handler: getTaskCount
+    method: 'GET',
+    path: '/tasks/count',
+    handler: getTaskCount
   },
 
   {
