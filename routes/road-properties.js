@@ -18,6 +18,13 @@ function getHandler (req, res) {
     )));
 }
 
+function getIdsHandler(req, res) {
+  knex('road_properties')
+    .select('id')
+    .map(entry => entry.id)
+  .then(res);
+}
+
 function deleteHandler (req, res) {
   // This method will have issues if commas are used in road IDs
   const idsToDelete = req.query.ids && req.query.ids.split(',');
@@ -67,7 +74,27 @@ module.exports = [
     path: '/properties/roads',
     handler: getHandler
   },
-
+  /**
+   * @api {get} /properties/roads/ids All road IDs
+   * @apiGroup Properties
+   *
+   * @apiSuccess {Array} ids IDs
+   *
+   * @apiExample {curl} Example Usage:
+   *    curl http://localhost:4000/properties/roads/ids
+   *
+   * @apiSuccessExample {json} Success-Response:
+   *  [
+   *    "001ZZ33333",
+   *    "123AB87654",
+   *    "987NA00001"
+   *  ]
+   */
+  {
+    method: 'GET',
+    path: '/properties/roads/ids',
+    handler: getIdsHandler
+  },
   /**
    * @api {DELETE} /properties/roads Delete road IDs
    * @apiVersion 0.3.0
