@@ -25,6 +25,38 @@ function getIdsHandler(req, res) {
   .then(res);
 }
 
+function deleteHandler (req, res) {
+  return knex('field_data_geometries')
+    .where('road_id', req.params.road_id)
+    .update({
+      road_id: null
+    })
+  .then(function() {
+    return knex('point_properties')
+      .where('road_id', req.params.road_id)
+      .update({
+        road_id: null
+      });
+  })
+  .then(function() {
+    return knex('road_properties')
+      .where('id', req.params.road_id)
+      .delete();
+  })
+  .then(function(response) {
+    console.log('response', res);
+    if (response === 0) {
+      return res(Boom.notFound());
+    }
+
+    res();
+  })
+  .catch(function(err) {
+    console.log('error', err);
+    return res(Boom.badImplementation());
+  });
+}
+
 module.exports = [
   /**
    * @api {get} /properties/roads Properties by road ID
@@ -69,5 +101,10 @@ module.exports = [
     method: 'GET',
     path: '/properties/roads/ids',
     handler: getIdsHandler
+  },
+  {
+    method: 'DELETE',
+    path: '/properties/roads/{road_id}',
+    handler: deleteHandler
   }
 ];
