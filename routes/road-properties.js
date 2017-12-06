@@ -136,16 +136,55 @@ module.exports = [
     path: '/properties/roads/ids',
     handler: getIdsHandler
   },
+  /**
+   * @api {PUT} /properties/roads/:id/move Create road
+   * @apiGroup Properties
+   * @apiName Rename road id
+   * @apiVersion 0.3.0
+   *
+   * @apiParam {String} id new id
+   *
+   * @apiErrorExample {json} Error-Response
+   *     HTTP/1.1 409 Conflict
+   *     {
+   *       message: "road already exists"
+   *     }
+   *
+   * @apiExample {curl} Example Usage:
+   *  curl -X PUT http://localhost:4000/properties/roads/123
+   */
   {
     method: 'PUT',
     path: '/properties/roads/{road_id}',
     handler: createHandler
   },
+  /**
+   * @api {POST} /properties/roads/:id/move Rename road id
+   * @apiGroup Properties
+   * @apiName Rename road id
+   * @apiVersion 0.3.0
+   *
+   * @apiParam {String} id new id
+   *
+   * @apiExample {curl} Example Usage:
+   *  curl -X POST -H "Content-Type: application/json" -d '{"id": "456"}' http://localhost:4000/properties/roads/123/move
+   */
   {
     method: 'POST',
     path: '/properties/roads/{road_id}/move',
     handler: moveHandler
   },
+  /**
+   * @api {DELETE} /properties/roads/:id/move Delete road
+   * @apiGroup Properties
+   * @apiName Delete road
+   * @apiVersion 0.3.0
+   *
+   * @apiParam {String} id new id
+   *
+   * @apiExample {curl} Example Usage:
+   *  curl -X DELETE http://localhost:4000/properties/roads/456
+   */
   {
     method: 'DELETE',
     path: '/properties/roads/{road_id}',
