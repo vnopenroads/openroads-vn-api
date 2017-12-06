@@ -299,7 +299,7 @@ module.exports = [
   },
   {
     /**
-     * @api {get} /admin/roads?province=provinceId&district=districtId
+     * @api {get} /admin/roads/properties?province=provinceId&district=districtId
      * @apiGroup Admin
      * @apiName List Admin Road properties, ordered to show those with field data first.
      * @apiDescription Returns list of road properties provided province and/or district ids.
