@@ -25,7 +25,25 @@ function getIdsHandler(req, res) {
   .then(res);
 }
 
-function deleteHandler (req, res) {
+function createHandler(req, res) {
+  knex('road_properties')
+    .insert({
+      id: req.params.road_id,
+      properties: '{}'
+    })
+  .then(function(response) {
+    return res({ id: req.params.road_id }).type('application/json');
+  })
+  .catch(function(err) {
+    if (err.constraint === 'road_properties_pkey') {
+      return res(Boom.conflict());
+    }
+
+    return res(Boom.badImplementation());
+  });
+}
+
+function deleteHandler(req, res) {
   return knex('field_data_geometries')
     .where('road_id', req.params.road_id)
     .update({
@@ -101,6 +119,11 @@ module.exports = [
     method: 'GET',
     path: '/properties/roads/ids',
     handler: getIdsHandler
+  },
+  {
+    method: 'PUT',
+    path: '/properties/roads/{road_id}',
+    handler: createHandler
   },
   {
     method: 'DELETE',
