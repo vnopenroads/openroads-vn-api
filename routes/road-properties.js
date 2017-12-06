@@ -43,6 +43,24 @@ function createHandler(req, res) {
   });
 }
 
+function moveHandler(req, res) {
+  knex('road_properties')
+    .where({ id: req.params.road_id })
+    .update({
+      id: req.payload.id
+    })
+  .then(function(response) {
+    if (response === 0) {
+      return res(Boom.notFound());
+    }
+    return res({ id: req.payload.id }).type('application/json');
+  })
+  .catch(function(err) {
+    console.log('err', err);
+    return res(Boom.badImplementation());
+  });
+}
+
 function deleteHandler(req, res) {
   return knex('field_data_geometries')
     .where('road_id', req.params.road_id)
@@ -62,7 +80,6 @@ function deleteHandler(req, res) {
       .delete();
   })
   .then(function(response) {
-    console.log('response', res);
     if (response === 0) {
       return res(Boom.notFound());
     }
@@ -70,7 +87,6 @@ function deleteHandler(req, res) {
     res();
   })
   .catch(function(err) {
-    console.log('error', err);
     return res(Boom.badImplementation());
   });
 }
@@ -124,6 +140,11 @@ module.exports = [
     method: 'PUT',
     path: '/properties/roads/{road_id}',
     handler: createHandler
+  },
+  {
+    method: 'POST',
+    path: '/properties/roads/{road_id}/move',
+    handler: moveHandler
   },
   {
     method: 'DELETE',
