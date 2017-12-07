@@ -10,7 +10,7 @@ Promise = require('bluebird');
  */
 function macrocosmSchema (knex, Promise) {
   // statements to add macrocosm schema
-  return knex.raw(readFileSync('../sql/macrocosm-db.sql').toString())
+  return knex.raw(readFileSync('../sql/0_macrocosm-db.sql').toString())
   .then(function() {})
   .catch(function(e) { throw new Error(e); });
 }
