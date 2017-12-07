@@ -137,12 +137,12 @@ module.exports = [
     handler: getIdsHandler
   },
   /**
-   * @api {PUT} /properties/roads/:id/move Create road
+   * @api {PUT} /properties/roads/:id Create road
    * @apiGroup Properties
-   * @apiName Rename road id
+   * @apiName Create road
    * @apiVersion 0.3.0
    *
-   * @apiParam {String} id new id
+   * @apiParam {String} id new road id
    *
    * @apiErrorExample {json} Error-Response
    *     HTTP/1.1 409 Conflict
@@ -164,7 +164,7 @@ module.exports = [
    * @apiName Rename road id
    * @apiVersion 0.3.0
    *
-   * @apiParam {String} id new id
+   * @apiParam {String} id new road id
    *
    * @apiExample {curl} Example Usage:
    *  curl -X POST -H "Content-Type: application/json" -d '{"id": "456"}' http://localhost:4000/properties/roads/123/move
@@ -175,12 +175,12 @@ module.exports = [
     handler: moveHandler
   },
   /**
-   * @api {DELETE} /properties/roads/:id/move Delete road
+   * @api {DELETE} /properties/roads/:id Delete road
    * @apiGroup Properties
    * @apiName Delete road
    * @apiVersion 0.3.0
    *
-   * @apiParam {String} id new id
+   * @apiParam {String} id road id
    *
    * @apiExample {curl} Example Usage:
    *  curl -X DELETE http://localhost:4000/properties/roads/456
