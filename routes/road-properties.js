@@ -52,7 +52,7 @@ function createHandler(req, res) {
 }
 
 function moveHandler(req, res) {
-  if (!validateId(req.params.road_id)) {
+  if (!validateId(req.payload.id)) {
     return res(Boom.badData());
   }
 
