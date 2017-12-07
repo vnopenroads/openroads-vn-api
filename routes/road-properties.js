@@ -44,19 +44,35 @@ function createHandler(req, res) {
 }
 
 function moveHandler(req, res) {
-  knex('road_properties')
+  return knex('road_properties')
     .where({ id: req.params.road_id })
     .update({
       id: req.payload.id
     })
   .then(function(response) {
     if (response === 0) {
-      return res(Boom.notFound());
+      throw new Error('404');
     }
+    return response;
+  })
+  .then(function() {
+    return knex('current_way_tags')
+      .where({
+        k: 'or_vpromms',
+        v: req.params.road_id
+      })
+      .update({
+        v: req.payload.id
+      });
+  })
+  .then(function(response) {
     return res({ id: req.payload.id }).type('application/json');
   })
   .catch(function(err) {
-    console.log('err', err);
+    console.error('Error /properties/roads/{road_id}/move', err);
+    if (err === '404') {
+      return res(Boom.notFound());
+    }
     return res(Boom.badImplementation());
   });
 }
