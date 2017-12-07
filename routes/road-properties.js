@@ -4,6 +4,10 @@ const _ = require('lodash');
 const Boom = require('boom');
 const knex = require('../connection.js');
 
+function validateId (id) {
+  return /^\d{3}([A-ZĐ]{2}|00)\d{5}$/.test(id);
+}
+
 function getHandler (req, res) {
   knex('road_properties')
     .select('*')
@@ -26,6 +30,10 @@ function getIdsHandler(req, res) {
 }
 
 function createHandler(req, res) {
+  if (!validateId(req.params.road_id)) {
+    return res(Boom.badData());
+  }
+
   knex('road_properties')
     .insert({
       id: req.params.road_id,
@@ -44,6 +52,10 @@ function createHandler(req, res) {
 }
 
 function moveHandler(req, res) {
+  if (!validateId(req.params.road_id)) {
+    return res(Boom.badData());
+  }
+
   return knex('road_properties')
     .where({ id: req.params.road_id })
     .update({
@@ -163,9 +175,16 @@ module.exports = [
    * @apiParam {String} id new road id
    *
    * @apiErrorExample {json} Error-Response
+   *     Road already exists
    *     HTTP/1.1 409 Conflict
    *     {
-   *       message: "road already exists"
+   *       error: "Conflict",
+   *     }
+   * @apiErrorExample {json} Error-Response
+   *     Road id is invalid
+   *     HTTP/1.1 422 Unprocessable Entity
+   *     {
+   *       error: "Unprocessable Entity"
    *     }
    *
    * @apiExample {curl} Example Usage:
@@ -183,6 +202,13 @@ module.exports = [
    * @apiVersion 0.3.0
    *
    * @apiParam {String} id new road id
+   *
+   * @apiErrorExample {json} Error-Response
+   *     Road id is invalid
+   *     HTTP/1.1 422 Unprocessable Entity
+   *     {
+   *       error: "Unprocessable Entity"
+   *     }
    *
    * @apiExample {curl} Example Usage:
    *  curl -X POST -H "Content-Type: application/json" -d '{"id": "456"}' http://localhost:4000/properties/roads/123/move
