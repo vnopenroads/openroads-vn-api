@@ -70,7 +70,7 @@ function moveHandler(req, res) {
   })
   .catch(function(err) {
     console.error('Error /properties/roads/{road_id}/move', err);
-    if (err === '404') {
+    if (err.message === '404') {
       return res(Boom.notFound());
     }
     return res(Boom.badImplementation());
