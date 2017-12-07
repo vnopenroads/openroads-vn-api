@@ -29,7 +29,7 @@ function createHandler(req, res) {
   knex('road_properties')
     .insert({
       id: req.params.road_id,
-      properties: '{}'
+      properties: {}
     })
   .then(function(response) {
     return res({ id: req.params.road_id }).type('application/json');
