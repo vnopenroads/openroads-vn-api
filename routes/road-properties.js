@@ -51,6 +51,8 @@ function moveHandler(req, res) {
     })
   .then(function(response) {
     if (response === 0) {
+      // no road_properties rows were updated, meaning no road_properties row w/ id exists
+      // return a 404 Not Found
       throw new Error('404');
     }
     return response;
