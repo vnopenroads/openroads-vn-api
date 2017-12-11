@@ -208,6 +208,12 @@ module.exports = [
    * @apiParam {String} id new road id
    *
    * @apiErrorExample {json} Error-Response
+   *     Road already exists
+   *     HTTP/1.1 409 Conflict
+   *     {
+   *       error: "Conflict",
+   *     }
+   * @apiErrorExample {json} Error-Response
    *     Road id is invalid
    *     HTTP/1.1 422 Unprocessable Entity
    *     {
