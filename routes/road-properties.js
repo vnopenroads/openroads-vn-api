@@ -1,11 +1,18 @@
 'use strict';
 const Boom = require('boom');
+const {
+  mapValues
+} = require('lodash');
 const knex = require('../connection.js');
 
 
-function validateId (id) {
-  return /^\d{3}([A-ZĐ]{2}|00)\d{5}$/.test(id);
-}
+const validateId = (id) => /^\d{3}([A-ZĐ]{2}|00)\d{5}$/.test(id);
+
+const listToMap = (list, select = ({ id }) => id) =>
+  list.reduce((hashMap, item) => {
+    hashMap[select(item)] = item;
+    return hashMap;
+  }, {});
 
 
 function getHandler (req, res) {
@@ -38,7 +45,9 @@ function getHandler (req, res) {
     .limit(PAGE_SIZE)
     .offset((page - 1) * PAGE_SIZE)
   .then(function(response) {
-    return res(response).type('application/json');
+    return res(
+      mapValues(listToMap(response), ({ hasOSMData }) => ({ hasOSMData: !!hasOSMData }))
+    ).type('application/json');
   })
   .catch(function(err) {
     console.error('Error GET /properties/roads', err);
