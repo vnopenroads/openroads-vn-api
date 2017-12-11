@@ -9,6 +9,7 @@ function validateId (id) {
 
 
 function getHandler (req, res) {
+  const PAGE_SIZE = 20;
   const sort = req.query.sort || 'asc';
   const page = parseInt(req.query.page) || 1;
   const province = req.query.province;
@@ -24,7 +25,7 @@ function getHandler (req, res) {
 
 
   knex('road_properties')
-    .select('id')
+    .select('road_properties.id', 'osm_tag.v as hasOSMData')
     .modify(function(queryBuilder) {
       if (province && district) {
         queryBuilder.whereRaw(`id LIKE '${province}_${district}%'`);
@@ -32,9 +33,10 @@ function getHandler (req, res) {
         queryBuilder.whereRaw(`id LIKE '${province}%'`);
       }
     })
+    .leftJoin(knex.raw(`(SELECT DISTINCT v FROM current_way_tags WHERE k = 'or_vpromms') as osm_tag`), 'road_properties.id', 'osm_tag.v')
     .orderBy('id', sort)
-    .limit(20)
-    .offset((page - 1) * 20)
+    .limit(PAGE_SIZE)
+    .offset((page - 1) * PAGE_SIZE)
   .then(function(response) {
     return res(response).type('application/json');
   })
