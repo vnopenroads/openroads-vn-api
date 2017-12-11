@@ -63,7 +63,7 @@ function moveHandler(req, res) {
     })
   .then(function(response) {
     if (response === 0) {
-      // no road_properties rows were updated, meaning no road_properties row w/ id exists
+      // no road_properties rows were updated, meaning id does not exist
       // return a 404 Not Found
       throw new Error('404');
     }
@@ -83,6 +83,10 @@ function moveHandler(req, res) {
     return res({ id: req.payload.id }).type('application/json');
   })
   .catch(function(err) {
+    if (err.constraint === 'road_properties_pkey') {
+      return res(Boom.conflict());
+    }
+
     console.error('Error /properties/roads/{road_id}/move', err);
     if (err.message === '404') {
       return res(Boom.notFound());
@@ -203,6 +207,12 @@ module.exports = [
    *
    * @apiParam {String} id new road id
    *
+   * @apiErrorExample {json} Error-Response
+   *     Road already exists
+   *     HTTP/1.1 409 Conflict
+   *     {
+   *       error: "Conflict",
+   *     }
    * @apiErrorExample {json} Error-Response
    *     Road id is invalid
    *     HTTP/1.1 422 Unprocessable Entity
