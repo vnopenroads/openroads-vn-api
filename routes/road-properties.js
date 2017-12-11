@@ -1,33 +1,49 @@
 'use strict';
-
-const _ = require('lodash');
 const Boom = require('boom');
 const knex = require('../connection.js');
+
 
 function validateId (id) {
   return /^\d{3}([A-ZĐ]{2}|00)\d{5}$/.test(id);
 }
 
-function getHandler (req, res) {
-  knex('road_properties')
-    .select('*')
-    .then(result => res(result.reduce(
-      (all, one) => {
-        const properties = req.query.keys ?
-          _.pick(one.properties, req.query.keys.split(',')) :
-          one.properties;
-        all[one.id] = properties;
-        return all;
-      }, {}
-    )));
-}
 
-function getIdsHandler(req, res) {
+function getHandler (req, res) {
+  const sort = req.query.sort || 'asc';
+  const page = parseInt(req.query.page) || 1;
+  const province = req.query.province;
+  const district = req.query.district;
+
+  if (sort !== 'asc' && sort !== 'desc') {
+    return res(Boom.badData(`Expected 'sort' query param to be either 'asc', 'desc', or not included.  Got ${req.query.sort}`));
+  }
+
+  if (isNaN(page)) {
+    return res(Boom.badData(`Expected 'page' query param to be a number, or not included.  Got ${req.query.page}`));
+  }
+
+
   knex('road_properties')
     .select('id')
-    .map(entry => entry.id)
-  .then(res);
+    .modify(function(queryBuilder) {
+      if (province && district) {
+        queryBuilder.whereRaw(`id LIKE '${province}_${district}%'`);
+      } else if (province) {
+        queryBuilder.whereRaw(`id LIKE '${province}%'`);
+      }
+    })
+    .orderBy('id', sort)
+    .limit(20)
+    .offset((page - 1) * 20)
+  .then(function(response) {
+    return res(response).type('application/json');
+  })
+  .catch(function(err) {
+    console.error('Error GET /properties/roads', err);
+    return res(Boom.badImplementation());
+  });
 }
+
 
 function createHandler(req, res) {
   if (!validateId(req.params.road_id)) {
@@ -47,6 +63,7 @@ function createHandler(req, res) {
       return res(Boom.conflict());
     }
 
+    console.error('Error PUT /properties/roads/{road_id}', err);
     return res(Boom.badImplementation());
   });
 }
@@ -87,10 +104,11 @@ function moveHandler(req, res) {
       return res(Boom.conflict());
     }
 
-    console.error('Error /properties/roads/{road_id}/move', err);
     if (err.message === '404') {
       return res(Boom.notFound());
     }
+
+    console.error('Error POST /properties/roads/{road_id}/move', err);
     return res(Boom.badImplementation());
   });
 }
@@ -121,6 +139,7 @@ function deleteHandler(req, res) {
     res();
   })
   .catch(function(err) {
+    console.error('Error: DELETE /properties/roads/{road_id}', err);
     return res(Boom.badImplementation());
   });
 }
@@ -148,27 +167,6 @@ module.exports = [
     method: 'GET',
     path: '/properties/roads',
     handler: getHandler
-  },
-  /**
-   * @api {get} /properties/roads/ids All road IDs
-   * @apiGroup Properties
-   *
-   * @apiSuccess {Array} ids IDs
-   *
-   * @apiExample {curl} Example Usage:
-   *    curl http://localhost:4000/properties/roads/ids
-   *
-   * @apiSuccessExample {json} Success-Response:
-   *  [
-   *    "001ZZ33333",
-   *    "123AB87654",
-   *    "987NA00001"
-   *  ]
-   */
-  {
-    method: 'GET',
-    path: '/properties/roads/ids',
-    handler: getIdsHandler
   },
   /**
    * @api {PUT} /properties/roads/:id Create road
