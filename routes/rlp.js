@@ -6,38 +6,19 @@ const knex = require('../connection.js');
 const knexPostgis = require('knex-postgis');
 const libxml = require('libxmljs');
 const unzip = require('unzip2');
-const parseGeometries = require('../services/rlp-geometries');
-const parseProperties = require('../services/rlp-properties');
+const { parseGeometries } = require('../services/rlp-geometries');
+const { parseProperties } = require('../services/rlp-properties');
 const uploadChangeset = require('./osc-upload').handler;
 const {
   getPossibleRoadIdFromPath,
   NO_ID
 } = require('../util/road-id-utils');
+const { geometriesEqualAtPrecision } = require('../util/geometry-utils');
 const errors = require('../util/errors');
 
 const st = knexPostgis(knex);
 
 const POSTGIS_SIGNIFICANT_DECIMAL_PLACES = 7;
-const geometriesEqualAtPrecision = (x, y, decimalPrecision) => {
-  // Geometries are slightly simplified when added to PostGIS,
-  // so truncate before comparison to accommodate accordingly
-  const isCoordinatePair = c =>
-    c.length === 2 &&
-    typeof c[0] === 'number' &&
-    typeof c[1] === 'number';
-  const truncateValue = (val, prec) => Math.trunc(val * Math.pow(10, prec));
-  const compareCoordinatePair = (a, b) =>
-    truncateValue(a[0], decimalPrecision) === truncateValue(b[0], decimalPrecision) &&
-    truncateValue(a[1], decimalPrecision) === truncateValue(b[1], decimalPrecision);
-  const compareArray = (a, b) =>
-    a.length === b.length &&
-    isCoordinatePair(a)
-      ? compareCoordinatePair(a, b)
-      : a.every((aArr, index) => compareArray(aArr, b[index]));
-
-  return x.type === y.type &&
-    compareArray(x.coordinates, y.coordinates);
-};
 
 async function geometriesHandler (req, res) {
   const filenamePattern = /^.*\/RoadPath.*\.csv$/;

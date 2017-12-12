@@ -23,7 +23,7 @@ function parseRow (csvRow) {
   };
 };
 
-module.exports = async function (path, contentsStream, existingRoadIds) {
+async function parseProperties (path, contentsStream, existingRoadIds) {
   const roadId = getRoadIdFromPath(path, existingRoadIds);
 
   let rows = [];
@@ -42,3 +42,5 @@ module.exports = async function (path, contentsStream, existingRoadIds) {
     )
   );
 };
+
+module.exports = { parseRow, parseProperties };
