@@ -9,7 +9,7 @@ const PAGE_SIZE = 20;
 
 function getHandler (req, res) {
   const sortOrder = req.query.sortOrder || 'asc';
-  const page = parseInt(req.query.page) || 1;
+  const page = req.query.page === undefined ? 1 : parseInt(req.query.page);
   const province = req.query.province;
   const district = req.query.district;
 
@@ -17,8 +17,8 @@ function getHandler (req, res) {
     return res(Boom.badData(`Expected 'sortOrder' query param to be either 'asc', 'desc', or not included.  Got ${req.query.sortOrder}`));
   }
 
-  if (isNaN(page)) {
-    return res(Boom.badData(`Expected 'page' query param to be a number, or not included.  Got ${req.query.page}`));
+  if (page === 0 || isNaN(page)) {
+    return res(Boom.badData(`Expected 'page' query param to be a number >= 1, or not included.  Got ${req.query.page}`));
   }
 
 
