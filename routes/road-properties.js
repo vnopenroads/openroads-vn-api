@@ -37,7 +37,9 @@ function getHandler (req, res) {
     .offset((page - 1) * PAGE_SIZE)
   .then(function(response) {
     return res(
-      response
+      response.map((road) => ({
+        ...road, hasOSMData: !!road.hasOSMData
+      }))
     ).type('application/json');
   })
   .catch(function(err) {
