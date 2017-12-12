@@ -1,29 +1,20 @@
 'use strict';
 const Boom = require('boom');
-const {
-  mapValues
-} = require('lodash');
 const knex = require('../connection.js');
 
 
 const validateId = (id) => /^\d{3}([A-ZĐ]{2}|00)\d{5}$/.test(id);
 
-const listToMap = (list, select = ({ id }) => id) =>
-  list.reduce((hashMap, item) => {
-    hashMap[select(item)] = item;
-    return hashMap;
-  }, {});
-
 
 function getHandler (req, res) {
   const PAGE_SIZE = 20;
-  const sort = req.query.sort || 'asc';
+  const sortOrder = req.query.sortOrder || 'asc';
   const page = parseInt(req.query.page) || 1;
   const province = req.query.province;
   const district = req.query.district;
 
-  if (sort !== 'asc' && sort !== 'desc') {
-    return res(Boom.badData(`Expected 'sort' query param to be either 'asc', 'desc', or not included.  Got ${req.query.sort}`));
+  if (sortOrder !== 'asc' && sortOrder !== 'desc') {
+    return res(Boom.badData(`Expected 'sortOrder' query param to be either 'asc', 'desc', or not included.  Got ${req.query.sortOrder}`));
   }
 
   if (isNaN(page)) {
@@ -41,12 +32,12 @@ function getHandler (req, res) {
       }
     })
     .leftJoin(knex.raw(`(SELECT DISTINCT v FROM current_way_tags WHERE k = 'or_vpromms') as osm_tag`), 'road_properties.id', 'osm_tag.v')
-    .orderBy('id', sort)
+    .orderBy('id', sortOrder)
     .limit(PAGE_SIZE)
     .offset((page - 1) * PAGE_SIZE)
   .then(function(response) {
     return res(
-      mapValues(listToMap(response), ({ hasOSMData }) => ({ hasOSMData: !!hasOSMData }))
+      response
     ).type('application/json');
   })
   .catch(function(err) {
