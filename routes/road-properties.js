@@ -4,10 +4,10 @@ const knex = require('../connection.js');
 
 
 const validateId = (id) => /^\d{3}([A-ZĐ]{2}|00)\d{5}$/.test(id);
+const PAGE_SIZE = 20;
 
 
 function getHandler (req, res) {
-  const PAGE_SIZE = 20;
   const sortOrder = req.query.sortOrder || 'asc';
   const page = parseInt(req.query.page) || 1;
   const province = req.query.province;
@@ -44,6 +44,34 @@ function getHandler (req, res) {
   })
   .catch(function(err) {
     console.error('Error GET /properties/roads', err);
+    return res(Boom.badImplementation());
+  });
+}
+
+
+function getCountHandler (req, res) {
+  const province = req.query.province;
+  const district = req.query.district;
+
+  knex('road_properties')
+    .modify(function(queryBuilder) {
+      if (province && district) {
+        queryBuilder.whereRaw(`id LIKE '${province}_${district}%'`);
+      } else if (province) {
+        queryBuilder.whereRaw(`id LIKE '${province}%'`);
+      }
+    })
+    .count()
+  .then(function([{ count }]) {
+    const countInt = parseInt(count);
+    res({
+      count: countInt,
+      pageCount: Math.ceil(count / PAGE_SIZE),
+      pageSize: PAGE_SIZE
+    }).type('application/json');
+  })
+  .catch(function(err) {
+    console.error('Error GET /properties/roads/count', err);
     return res(Boom.badImplementation());
   });
 }
@@ -150,27 +178,22 @@ function deleteHandler(req, res) {
 
 module.exports = [
   /**
-   * @api {get} /properties/roads Properties by road ID
+   * @api {get} /properties/roads Get Roads
    * @apiGroup Properties
-   *
-   * @apiSuccess {Object} with nested objects for each of the keys in the query string. If no query string is passed, nested objects are blank
-   *
-   * @apiExample {curl} Example Usage:
-   *    curl http://localhost:4000/properties/roads?key=source,iri_mean
-   *
-   * @apiSuccessExample {json} Success-Response:
-   *  {
-   *    '123AB87654': {
-   *      'source': 'RoadLab',
-   *      'iri_mean': 3.42
-   *     }
-   *  },
-   *  ...
    */
   {
     method: 'GET',
     path: '/properties/roads',
     handler: getHandler
+  },
+  /**
+   * @api {get} /properties/roads Get Road Counts
+   * @apiGroup Properties
+   */
+  {
+    method: 'GET',
+    path: '/properties/roads/count',
+    handler: getCountHandler
   },
   /**
    * @api {PUT} /properties/roads/:id Create road
