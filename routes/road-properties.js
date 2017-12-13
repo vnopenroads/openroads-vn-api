@@ -23,7 +23,7 @@ function getHandler (req, res) {
 
 
   knex('road_properties')
-    .select('road_properties.id', 'osm_tag.v as hasOSMData')
+    .select('road_properties.id', 'road_properties.properties', 'osm_tag.v as hasOSMData')
     .modify(function(queryBuilder) {
       if (province && district) {
         queryBuilder.whereRaw(`id LIKE '${province}_${district}%'`);
