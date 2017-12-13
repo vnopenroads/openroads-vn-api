@@ -51,14 +51,21 @@ function getHandler (req, res) {
 
 function getByIdHandler (req, res) {
   knex('road_properties')
-    .select('id', 'properties')
+    .select('road_properties.id', 'road_properties.properties', 'osm_tag.v as hasOSMData')
     .where({ id: req.params.road_id })
+    .leftJoin(knex.raw(`(SELECT DISTINCT v FROM current_way_tags WHERE k = 'or_vpromms') as osm_tag`), 'road_properties.id', 'osm_tag.v')
   .then(function([response]) {
+    console.log(response);
     if (response === undefined) {
       return res(Boom.notFound());
     }
 
-    return res(response).type('application/json');
+
+    return res({
+      id: response.id,
+      properties: response.properties,
+      hasOSMData: !!response.hasOSMData
+    }).type('application/json');
   })
   .catch(function(err) {
     console.error('Error GET /properties/roads/{road_id}', err);
@@ -201,8 +208,33 @@ function deleteHandler(req, res) {
 
 module.exports = [
   /**
-   * @api {get} /properties/roads Get Roads
+   * @api {get} /properties/roads?province=XX&district=YY&page=ZZ&sortOrder=asc Get Roads
    * @apiGroup Properties
+   * @apiName Get Roads
+   * @apiVersion 0.3.0
+   *
+   * @apiParam {String} province filter by province
+   * @apiParam {String} district filter by district
+   * @apiParam {Number} page request page number
+   * @apiParam {Number} sortOrder sort on id [asc|desc]
+   *
+   * @apiSuccessExample {JSON} Success-Response
+   * [
+   *   {
+   *     "id": "212TH00002",
+   *     "hasOSMData": true,
+   *     "properties": { ... }
+   *   },
+   *   {
+   *     "id": "212TH00004",
+   *     "hasOSMData": false,
+   *     "properties": { ... }
+   *   },
+   *   ...
+   * ]
+   *
+   * @apiExample {curl} Example Usage:
+   *  curl -X GET localhost:4000/properties/roads?page=1&sortOrder=asc&province=21&district=TH
    */
   {
     method: 'GET',
@@ -212,6 +244,18 @@ module.exports = [
   /**
    * @api {get} /properties/roads/:id Get Road by ID
    * @apiGroup Properties
+   * @apiName Get Road by ID
+   * @apiVersion 0.3.0
+   *
+   * @apiSuccessExample {JSON} Success-Response
+   * {
+   *   "id": "212TH00030",
+   *   "hasOSMData": true,
+   *   "properties": { ... }
+   * }
+   *
+   * @apiExample {curl} Example Usage:
+   *  curl -X GET localhost:4000/properties/roads/212TH00030
    */
   {
     method: 'GET',
@@ -219,8 +263,21 @@ module.exports = [
     handler: getByIdHandler
   },
   /**
-   * @api {get} /properties/roads/count Get Road Counts
+   * @api {get} /properties/roads/count?province=XX&district=YY Get Road Counts
    * @apiGroup Properties
+   * @apiName Get Road Count
+   * @apiVersion 0.3.0
+   *
+   * @apiSuccessExample {JSON} Success-Response
+   * {
+   *   "count": 2805,
+   *   "osmCount": 252,
+   *   "pageCount": 141,
+   *   "pageSize": 20
+   * }
+   *
+   * @apiExample {curl} Example Usage:
+   *  curl -X GET localhost:4000/properties/roads/count?province=21
    */
   {
     method: 'GET',
