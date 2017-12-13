@@ -219,7 +219,8 @@ module.exports = [
    * @apiParam {String} province filter by province
    * @apiParam {String} district filter by district
    * @apiParam {Number} page request page number
-   * @apiParam {Number} sortOrder sort on id [asc|desc]
+   * @apiParam {String} sortField [id|hasOSMData]
+   * @apiParam {String} sortOrder [asc|desc]
    *
    * @apiSuccessExample {JSON} Success-Response
    * [
@@ -237,7 +238,7 @@ module.exports = [
    * ]
    *
    * @apiExample {curl} Example Usage:
-   *  curl -X GET localhost:4000/properties/roads?page=1&sortOrder=asc&province=21&district=TH
+   *  curl -X GET localhost:4000/properties/roads?page=1&sortField=id&sortOrder=asc&province=21&district=TH
    */
   {
     method: 'GET',
