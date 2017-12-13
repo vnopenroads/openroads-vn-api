@@ -5,6 +5,7 @@ const path_ = require('path');
 // These are often specific to the country and road ID schema of use
 
 const NO_ID = 'NO_ID';
+const ONLY_PROPERTIES = 'ONLY_PROPERTIES';
 
 const getRoadIdFromPath = (path, existingRoadIds) => {
   // Check each ancestor directory name for a valid road ID
@@ -33,6 +34,7 @@ const getPossibleRoadIdFromPath = path => {
 
 module.exports = {
   NO_ID,
+  ONLY_PROPERTIES,
   getRoadIdFromPath,
   getPossibleRoadIdFromPath
 };

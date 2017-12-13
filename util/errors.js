@@ -1,7 +1,10 @@
 'use strict';
 
 const Boom = require('boom');
-const { NO_ID } = require('./road-id-utils');
+const {
+  NO_ID,
+  ONLY_PROPERTIES
+} = require('./road-id-utils');
 
 module.exports = {
   nullRoadIds: Boom.badRequest(
@@ -9,7 +12,9 @@ module.exports = {
     'cannot ingest invalid or missing road IDs. ' +
     'Please assign IDs to all roads, in the standard form ' +
     'of ###ZZ#####, and try uploading again. ' +
-    `If a road truly has no ID, then assign an ID of '${NO_ID}'.`
+    `If a road truly has no ID, then assign an ID of '${NO_ID}'. ` +
+    'If this is a run to collect IRI for many roads at a time, ' +
+    `then assign an ID of '${ONLY_PROPERTIES}'.`
   ),
   unknownRoadIds: ids => Boom.badRequest(
     'Failed to ingest data; ' +
@@ -18,6 +23,8 @@ module.exports = {
     'or standardize IDs to the standard form of ###ZZ#####, ' +
     'or remove these roads from your data and upload again. ' +
     `If a road truly has no ID, then assign an ID of '${NO_ID}'. ` +
+    'If this is a run to collect IRI for many roads at a time, ' +
+    `then assign an ID of '${ONLY_PROPERTIES}'. ` +
     ids.join(', ')
   ),
   alreadyIngested: Boom.badRequest(
@@ -25,7 +32,11 @@ module.exports = {
     'No further action is required.'
   ),
   cannotUseNoId: Boom.badRequest(
-    `Cannot use '${NO_ID}'' as a road ID value in this type of upload. ` +
+    `Cannot use '${NO_ID}' as a road ID value in this type of upload. ` +
+    'Please remove that data, or label it with a standard road ID.'
+  ),
+  cannotUseOnlyProperties: Boom.badRequest(
+    `Cannot use '${ONLY_PROPERTIES}' as a road ID value in this type of upload. ` +
     'Please remove that data, or label it with a standard road ID.'
   ),
 

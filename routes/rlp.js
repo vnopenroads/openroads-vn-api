@@ -11,7 +11,8 @@ const { parseProperties } = require('../services/rlp-properties');
 const uploadChangeset = require('./osc-upload').handler;
 const {
   getPossibleRoadIdFromPath,
-  NO_ID
+  NO_ID,
+  ONLY_PROPERTIES
 } = require('../util/road-id-utils');
 const { geometriesEqualAtPrecision } = require('../util/geometry-utils');
 const errors = require('../util/errors');
@@ -44,6 +45,7 @@ async function geometriesHandler (req, res) {
       // Prevent ingest of bad data
       const fieldDataRoadIds = [...new Set(fileReads.map(r => r.road_id))];
       if (fieldDataRoadIds.includes(null)) { return res(errors.nullRoadIds); }
+      if (fieldDataRoadIds.includes(ONLY_PROPERTIES)) { return res(errors.cannotUseOnlyProperties); }
 
       if (idsNewToDB.length) { return res(errors.unknownRoadIds(idsNewToDB)); }
 
@@ -132,9 +134,10 @@ async function propertiesHandler (req, res) {
 
       if (idsNewToDB.length) { return res(errors.unknownRoadIds(idsNewToDB)); }
 
-      // Strip the `NO_ID` so that it doesn't appear in the database
+      // Strip the `NO_ID` and `ONLY_PROPERTIES` so that they
+      // don't appear in the database
       rows = rows.map(r => {
-        if (r.road_id === NO_ID) { r.road_id = null; }
+        if (r.road_id === NO_ID || r.road_id === ONLY_PROPERTIES) { r.road_id = null; }
         return r;
       });
 
