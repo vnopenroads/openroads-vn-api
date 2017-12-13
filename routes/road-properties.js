@@ -49,6 +49,24 @@ function getHandler (req, res) {
 }
 
 
+function getByIdHandler (req, res) {
+  knex('road_properties')
+    .select('id', 'properties')
+    .where({ id: req.params.road_id })
+  .then(function([response]) {
+    if (response === undefined) {
+      return res(Boom.notFound());
+    }
+
+    return res(response).type('application/json');
+  })
+  .catch(function(err) {
+    console.error('Error GET /properties/roads/{road_id}', err);
+    return res(Boom.badImplementation());
+  });
+}
+
+
 function getCountHandler (req, res) {
   const province = req.query.province;
   const district = req.query.district;
@@ -185,6 +203,15 @@ module.exports = [
     method: 'GET',
     path: '/properties/roads',
     handler: getHandler
+  },
+  /**
+   * @api {get} /properties/roads/:id Get Road by ID
+   * @apiGroup Properties
+   */
+  {
+    method: 'GET',
+    path: '/properties/roads/{road_id}',
+    handler: getByIdHandler
   },
   /**
    * @api {get} /properties/roads Get Road Counts
