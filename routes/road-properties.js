@@ -8,11 +8,15 @@ const PAGE_SIZE = 20;
 
 
 function getHandler (req, res) {
+  const sortField = req.query.sortField || 'id';
   const sortOrder = req.query.sortOrder || 'asc';
   const page = req.query.page === undefined ? 1 : parseInt(req.query.page);
   const province = req.query.province;
   const district = req.query.district;
 
+  if (sortField !== 'id' && sortField !== 'hasOSMData') {
+    return res(Boom.badData(`Expected 'sortField' query param to be either 'id', 'hasOSMData', or not included.  Got ${req.query.sortField}`));
+  }
   if (sortOrder !== 'asc' && sortOrder !== 'desc') {
     return res(Boom.badData(`Expected 'sortOrder' query param to be either 'asc', 'desc', or not included.  Got ${req.query.sortOrder}`));
   }
@@ -23,7 +27,7 @@ function getHandler (req, res) {
 
 
   knex('road_properties')
-    .select('road_properties.id', 'road_properties.properties', 'osm_tag.v as hasOSMData')
+    .select('road_properties.id AS id', 'road_properties.properties AS properties', 'osm_tag.v AS hasOSMData')
     .modify(function(queryBuilder) {
       if (province && district) {
         queryBuilder.whereRaw(`id LIKE '${province}_${district}%'`);
@@ -32,7 +36,7 @@ function getHandler (req, res) {
       }
     })
     .leftJoin(knex.raw(`(SELECT DISTINCT v FROM current_way_tags WHERE k = 'or_vpromms') as osm_tag`), 'road_properties.id', 'osm_tag.v')
-    .orderBy('id', sortOrder)
+    .orderBy(sortField, sortOrder)
     .limit(PAGE_SIZE)
     .offset((page - 1) * PAGE_SIZE)
   .then(function(response) {
