@@ -53,7 +53,7 @@
     "hapi": "^16.6.0",
     "hapi-router": "^3.5.0",
     "inert": "^4.2.1",
-    "knex": "0.8",
+    "knex": "^0.9.0",
     "knex-postgis": "^0.5.0",
     "libxmljs": "^0.18.7",
     "lodash": "^4.17.4",
