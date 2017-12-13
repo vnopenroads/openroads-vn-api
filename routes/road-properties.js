@@ -55,7 +55,6 @@ function getByIdHandler (req, res) {
     .where({ id: req.params.road_id })
     .leftJoin(knex.raw(`(SELECT DISTINCT v FROM current_way_tags WHERE k = 'or_vpromms') as osm_tag`), 'road_properties.id', 'osm_tag.v')
   .then(function([response]) {
-    console.log(response);
     if (response === undefined) {
       return res(Boom.notFound());
     }
