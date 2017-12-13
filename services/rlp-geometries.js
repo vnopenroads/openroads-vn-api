@@ -7,9 +7,9 @@ const moment = require('moment');
 const distance = require('@turf/distance');
 const getRoadIdFromPath = require('../util/road-id-utils').getRoadIdFromPath;
 
-moment.locale('en');
-
 function cleanGeometry (points) {
+  moment.locale('en');
+
   // If a sensor has not made a measurement for a while, then
   // assume that the shorter part of the road is erroneous data
   const TIME_DIFF_THRESHOLD = 2 * 60 * 1000;
@@ -58,7 +58,7 @@ function cleanGeometry (points) {
   return geom;
 }
 
-module.exports = async function (path, contentsStream, existingRoadIds) {
+async function parseGeometries (path, contentsStream, existingRoadIds) {
   const roadId = getRoadIdFromPath(path, existingRoadIds);
 
   let points = [];
@@ -76,3 +76,5 @@ module.exports = async function (path, contentsStream, existingRoadIds) {
     )
   );
 };
+
+module.exports = { cleanGeometry, parseGeometries };
