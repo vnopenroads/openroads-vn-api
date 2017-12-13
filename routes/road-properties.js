@@ -72,6 +72,10 @@ function getCountHandler (req, res) {
   const district = req.query.district;
 
   knex('road_properties')
+    .select(knex.raw(`
+      SUM((road_properties.id IS NOT NULL)::int) AS totalcount,
+      SUM((osm_tag.v IS NOT NULL)::int) AS osmcount
+    `))
     .modify(function(queryBuilder) {
       if (province && district) {
         queryBuilder.whereRaw(`id LIKE '${province}_${district}%'`);
@@ -79,12 +83,13 @@ function getCountHandler (req, res) {
         queryBuilder.whereRaw(`id LIKE '${province}%'`);
       }
     })
-    .count()
-  .then(function([{ count }]) {
-    const countInt = parseInt(count);
+    .leftJoin(knex.raw(`(SELECT DISTINCT v FROM current_way_tags WHERE k = 'or_vpromms') AS osm_tag`), 'road_properties.id', 'osm_tag.v')
+  .then(function([{ totalcount, osmcount }]) {
+    const totalCountInt = parseInt(totalcount);
     res({
-      count: countInt,
-      pageCount: Math.ceil(count / PAGE_SIZE),
+      count: totalCountInt,
+      osmCount: parseInt(osmcount),
+      pageCount: Math.ceil(totalCountInt / PAGE_SIZE),
       pageSize: PAGE_SIZE
     }).type('application/json');
   })
@@ -214,7 +219,7 @@ module.exports = [
     handler: getByIdHandler
   },
   /**
-   * @api {get} /properties/roads Get Road Counts
+   * @api {get} /properties/roads/count Get Road Counts
    * @apiGroup Properties
    */
   {
