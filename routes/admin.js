@@ -255,50 +255,111 @@ module.exports = [
       });
     }
   },
+  // {
+  //   /**
+  //    * @api {get} /admin/roads/total
+  //    * @apiGroup Admin
+  //    * @apiName List Admin Road Count
+  //    * @apiDescription Returns list of admin road counts at province and district level
+  //    * @apiVersion 0.1.0
+  //    *
+  //    * @apiParam {string} level the admin level being queried
+  //    *
+  //    * @apiSuccess {array} array of objects with vpromms identifier and road count
+  //    *
+  //    * @apiSuccessExample {JSON} Example Usage:
+  //    *  curl http://localhost:4000/admin/roads?level=district
+  //    *
+  //    * @apiSuccessExample {JSON} Success-Response
+  //    * [{
+  //    *    "total_roads": "288",
+  //    *    "admin": "21TS"
+  //    *  },
+  //    *  {
+  //    *    "total_roads": "123",
+  //    *    "admin": "21CT"
+  //    *  },
+  //    *  {
+  //    *    "total_roads": "117",
+  //    *    "admin": "21NT"
+  //    *  },
+  //    *  ...
+  //    * ]
+  //    *
+  //   */
+  //   method: 'GET',
+  //   path: '/admin/roads/total',
+  //   handler: function (req, res) {
+  //     const districtQuery = req.query.level === 'district' ? ', SUBSTRING(id, 4, 2)' : '';
+  //     knex.raw(`
+  //       SELECT COUNT(id) as total_roads, CONCAT(SUBSTRING(id, 0, 3)${districtQuery}) as admin
+  //       FROM road_properties
+  //       GROUP BY admin;
+  //     `)
+  //     .then(adminRoadNum => res(adminRoadNum.rows));
+  //   }
+  // },
   {
     /**
      * @api {get} /admin/roads/total
      * @apiGroup Admin
-     * @apiName List Admin Road Count
-     * @apiDescription Returns list of admin road counts at province and district level
-     * @apiVersion 0.1.0
+     * @apiName Province Road Count
+     * @apiDescription list road count for all provinces
+     * @apiVersion 0.3.0
      *
-     * @apiParam {string} level the admin level being queried
-     *
-     * @apiSuccess {array} array of objects with vpromms identifier and road count
-     *
-     * @apiSuccessExample {JSON} Example Usage:
-     *  curl http://localhost:4000/admin/roads?level=district
-     *
-     * @apiSuccessExample {JSON} Success-Response
-     * [{
-     *    "total_roads": "288",
-     *    "admin": "21TS"
-     *  },
-     *  {
-     *    "total_roads": "123",
-     *    "admin": "21CT"
-     *  },
-     *  {
-     *    "total_roads": "117",
-     *    "admin": "21NT"
-     *  },
-     *  ...
-     * ]
-     *
-    */
+     * @apiExample {curl} Example Usage:
+     *  curl -X GET http://localhost:4000/admin/roads/total
+     */
     method: 'GET',
     path: '/admin/roads/total',
     handler: function (req, res) {
-      // the query does a regex match against the first 2 (if province) or first 2 and 4th & 5th
-      // characters in vpromms ids
-      const districtQuery = req.query.level === 'district' ? ', SUBSTRING(id, 4, 2)' : '';
-      knex.raw(`
-        SELECT COUNT(id) as total_roads, CONCAT(SUBSTRING(id, 0, 3)${districtQuery}) as admin
-        FROM road_properties
-        GROUP BY admin;
-      `)
-      .then(adminRoadNum => res(adminRoadNum.rows));
+      knex('road_properties')
+        .select(knex.raw(`
+          SUBSTRING(road_properties.id, 0, 3) AS province_id,
+          SUM((road_properties.id IS NOT NULL)::int) AS count,
+          SUM((osm_tag.v IS NOT NULL)::int) AS osmcount
+        `))
+        .leftJoin(knex.raw(`(SELECT DISTINCT v FROM current_way_tags WHERE k = 'or_vpromms') as osm_tag`), 'road_properties.id', 'osm_tag.v')
+        .groupBy('province_id')
+      .then(function(response) {
+        return res(response.map(({ province_id, count, osmcount}) => ({
+          id: province_id,
+          count: parseInt(count),
+          osmCount: parseInt(osmcount)
+        }))).type('application/json');
+      })
+      .catch(function(err) {
+        console.error('Error GET /admin/roads/total', err);
+        return res(Boom.badImplementation(err));
+      });
+    }
+  },
+  {
+    method: 'GET',
+    path: '/admin/roads/province/{id}/total',
+    handler: function (req, res) {
+      const province = req.params.id;
+
+      knex('road_properties')
+        .select(knex.raw(`
+          SUBSTRING(road_properties.id, 4, 2) AS district_id,
+          SUM((road_properties.id IS NOT NULL)::int) AS count,
+          SUM((osm_tag.v IS NOT NULL)::int) AS osmcount
+        `))
+        .whereRaw(`id LIKE '${province}%'`)
+        .leftJoin(knex.raw(`(SELECT DISTINCT v FROM current_way_tags WHERE k = 'or_vpromms') as osm_tag`), 'road_properties.id', 'osm_tag.v')
+        .groupBy('district_id')
+      .then(function(response) {
+        return res(response.map(({ district_id, count, osmcount}) => ({
+          id: district_id,
+          count: parseInt(count),
+          osmCount: parseInt(osmcount)
+        }))).type('application/json');
+      })
+      .catch(function(err) {
+        console.error('Error GET /admin/roads/total', err);
+        return res(Boom.badImplementation(err));
+      });
     }
   }
 ];
