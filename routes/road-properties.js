@@ -139,27 +139,28 @@ function getByIdGeoJSONHandler (req, res) {
 
 function getCountHandler (req, res) {
   const province = req.query.province;
-  const district = req.query.district;
+  const district = req.query.district || '';
 
-  knex('road_properties')
-    .select(knex.raw(`
-      SUM((road_properties.id IS NOT NULL)::int) AS totalcount,
-      SUM((osm_tag.v IS NOT NULL)::int) AS osmcount
-    `))
+
+  knex('road_properties as roads')
+    .select('roads.id', 'ways.visible AS hasOSMData')
+    .distinct('roads.id')
+    .leftJoin(knex.raw(`(SELECT way_id, v FROM current_way_tags WHERE k = 'or_vpromms') AS tags`), 'roads.id', 'tags.v')
+    .leftJoin(knex.raw(`(SELECT id AS way_id, visible FROM current_ways WHERE visible = true) AS ways`), 'tags.way_id', 'ways.way_id')
     .modify(function(queryBuilder) {
       if (province && district) {
         queryBuilder.whereRaw(`id LIKE '${province}_${district}%'`);
       } else if (province) {
         queryBuilder.whereRaw(`id LIKE '${province}%'`);
       }
+
+      queryBuilder.distinct('id');
     })
-    .leftJoin(knex.raw(`(SELECT DISTINCT v FROM current_way_tags WHERE k = 'or_vpromms') AS osm_tag`), 'road_properties.id', 'osm_tag.v')
-  .then(function([{ totalcount, osmcount }]) {
-    const totalCountInt = parseInt(totalcount);
+  .then(function(rows) {
     res({
-      count: totalCountInt,
-      osmCount: parseInt(osmcount),
-      pageCount: Math.ceil(totalCountInt / PAGE_SIZE),
+      count: rows.length,
+      osmCount: rows.filter(({ hasOSMData }) => hasOSMData).length,
+      pageCount: Math.ceil(rows.length / PAGE_SIZE),
       pageSize: PAGE_SIZE
     }).type('application/json');
   })
