@@ -1,6 +1,11 @@
 'use strict';
 const Boom = require('boom');
 const knex = require('../connection.js');
+const {
+  groupBy,
+  get,
+  map
+} = require('lodash');
 
 
 const validateId = (id) => /^\d{3}([A-ZĐ]{2}|00)\d{5}$/.test(id);
@@ -75,6 +80,57 @@ function getByIdHandler (req, res) {
     return res(Boom.badImplementation());
   });
 }
+
+
+function getByIdGeoJSONHandler (req, res) {
+  const id = req.params.road_id;
+
+  knex.raw(`
+    SELECT
+        cw.id AS way_id,
+        ST_ASTEXT(ST_MAKEPOINT(
+            cn.longitude::FLOAT / 10000000,
+            cn.latitude::FLOAT / 10000000
+        )) AS point
+    FROM current_way_tags AS cwt
+    LEFT JOIN current_ways AS cw
+        ON cwt.way_id = cw.id
+    LEFT JOIN current_way_nodes AS cwn
+        ON cw.id = cwn.way_id
+    LEFT JOIN current_nodes AS cn
+        ON cwn.node_id = cn.id
+    WHERE cwt.k = 'or_vpromms' AND
+        cw.visible AND
+        cwt.v = '${id}'
+    ORDER BY cw.id,
+        cwn.sequence_id
+  `)
+    .then(function({ rows }) {
+      const features = map(
+        groupBy(rows, row => get(row, 'way_id')),
+        wayPoints => ({
+          type: 'Feature',
+          properties: { id },
+          geometry: {
+            type: 'LineString',
+            coordinates: map(wayPoints, ({ point }) => ([
+              parseFloat(/[0-9\.]+/.exec(point)[0]),
+              parseFloat(/ [0-9\.]+/.exec(point)[0])
+            ]))
+          }
+        })
+      );
+
+      return res({
+        type: 'FeatureCollection',
+        features
+      }).type('application/json');
+    })
+    .catch(function(err) {
+      console.error('Error GET /field/geometries/{id}', err);
+      return res(Boom.badImplementation());
+    });
+};
 
 
 function getCountHandler (req, res) {
@@ -246,9 +302,9 @@ module.exports = [
     handler: getHandler
   },
   /**
-   * @api {get} /properties/roads/:id Get Road by ID
+   * @api {get} /properties/roads/:id Get Road
    * @apiGroup Properties
-   * @apiName Get Road by ID
+   * @apiName Get Road
    * @apiVersion 0.3.0
    *
    * @apiSuccessExample {JSON} Success-Response
@@ -265,6 +321,35 @@ module.exports = [
     method: 'GET',
     path: '/properties/roads/{road_id}',
     handler: getByIdHandler
+  },
+  /**
+   * @api {get} /properties/roads/:id.geojson Get Road GeoJSON
+   * @apiGroup Properties
+   * @apiName Get Road As GeoJSON
+   * @apiVersion 0.3.0
+   *
+   * @apiSuccessExample {JSON} Success-Response
+   * {
+   *     "type": "FeatureCollection",
+   *     "features": [
+   *         {
+   *             "type": "Feature",
+   *             "properties": { "id": "212TH00030" },
+   *             "geometry": {
+   *                 "type": "LineString",
+   *                 "coordinates": [...]
+   *             }
+   *        }
+   *     ]
+   * }
+   *
+   * @apiExample {curl} Example Usage:
+   *  curl -X GET localhost:4000/properties/roads/212TH00030.geojson
+   */
+  {
+    method: 'GET',
+    path: '/properties/roads/{road_id}.geojson',
+    handler: getByIdGeoJSONHandler
   },
   /**
    * @api {get} /properties/roads/count?province=XX&district=YY Get Road Counts
