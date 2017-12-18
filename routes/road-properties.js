@@ -32,8 +32,9 @@ function getHandler (req, res) {
   }
 
 
-  knex('road_properties')
-    .select('road_properties.id AS id', 'road_properties.properties AS properties', 'osm_tag.v AS hasOSMData')
+  knex('road_properties as roads')
+    .select('roads.id', 'roads.properties', 'ways.visible AS hasOSMData')
+    .distinct('roads.id')
     .modify(function(queryBuilder) {
       if (province && district) {
         queryBuilder.whereRaw(`id LIKE '${province}_${district}%'`);
@@ -41,14 +42,15 @@ function getHandler (req, res) {
         queryBuilder.whereRaw(`id LIKE '${province}%'`);
       }
     })
-    .leftJoin(knex.raw(`(SELECT DISTINCT v FROM current_way_tags WHERE k = 'or_vpromms') as osm_tag`), 'road_properties.id', 'osm_tag.v')
+    .leftJoin(knex.raw(`(SELECT way_id, v FROM current_way_tags WHERE k = 'or_vpromms') AS tags`), 'roads.id', 'tags.v')
+    .leftJoin(knex.raw(`(SELECT id AS way_id, visible FROM current_ways WHERE visible = true) AS ways`), 'tags.way_id', 'ways.way_id')
     .orderBy(sortField, sortOrder)
     .limit(PAGE_SIZE)
     .offset((page - 1) * PAGE_SIZE)
   .then(function(response) {
     return res(
-      response.map((road) => ({
-        ...road, hasOSMData: !!road.hasOSMData
+      response.map(({ id, properties, hasOSMData }) => ({
+        id, properties, hasOSMData: !!hasOSMData
       }))
     ).type('application/json');
   })
