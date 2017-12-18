@@ -4,6 +4,7 @@ const knex = require('../connection.js');
 const {
   groupBy,
   get,
+  every,
   map
 } = require('lodash');
 
@@ -59,20 +60,21 @@ function getHandler (req, res) {
 
 
 function getByIdHandler (req, res) {
-  knex('road_properties')
-    .select('road_properties.id', 'road_properties.properties', 'osm_tag.v as hasOSMData')
+  knex('road_properties AS roads')
+    .select('roads.id', 'roads.properties', 'tags.v', 'ways.visible')
+    .distinct('roads.id')
+    .leftJoin(knex.raw(`(SELECT way_id, v FROM current_way_tags WHERE k = 'or_vpromms') AS tags`), 'roads.id', 'tags.v')
+    .leftJoin(knex.raw(`(SELECT id AS way_id, visible FROM current_ways WHERE visible = true) AS ways`), 'tags.way_id', 'ways.way_id')
     .where({ id: req.params.road_id })
-    .leftJoin(knex.raw(`(SELECT DISTINCT v FROM current_way_tags WHERE k = 'or_vpromms') as osm_tag`), 'road_properties.id', 'osm_tag.v')
-  .then(function([response]) {
-    if (response === undefined) {
+  .then(function([row]) {
+    if (row === undefined) {
       return res(Boom.notFound());
     }
 
-
     return res({
-      id: response.id,
-      properties: response.properties,
-      hasOSMData: !!response.hasOSMData
+      id: row.id,
+      properties: row.properties,
+      hasOSMData: !!row.visible
     }).type('application/json');
   })
   .catch(function(err) {
