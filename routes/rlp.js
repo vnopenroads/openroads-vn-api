@@ -10,7 +10,6 @@ const { parseGeometries } = require('../services/rlp-geometries');
 const { parseProperties } = require('../services/rlp-properties');
 const uploadChangeset = require('./osc-upload').handler;
 const {
-  getPossibleRoadIdFromPath,
   NO_ID,
   ONLY_PROPERTIES
 } = require('../util/road-id-utils');
@@ -26,14 +25,14 @@ async function geometriesHandler (req, res) {
   const existingRoadIds = await knex.select('id').from('road_properties').map(r => r.id);
 
   let fileReads = [];
-  let idsNewToDB = [];
+  let badPaths = [];
   req.payload[Object.keys(req.payload)[0]]
     .pipe(unzip.Parse())
     .on('entry', async e => {
       if (e.type === 'File' && filenamePattern.test(e.path)) {
         const read = await parseGeometries(e.path, e, existingRoadIds);
         if (!read.road_id) {
-          idsNewToDB = idsNewToDB.concat(getPossibleRoadIdFromPath(e.path));
+          badPaths = badPaths.concat(e.path);
         }
         fileReads = fileReads.concat(read);
       } else {
@@ -44,10 +43,8 @@ async function geometriesHandler (req, res) {
     .on('close', async () => {
       // Prevent ingest of bad data
       const fieldDataRoadIds = [...new Set(fileReads.map(r => r.road_id))];
-      if (fieldDataRoadIds.includes(null)) { return res(errors.nullRoadIds); }
       if (fieldDataRoadIds.includes(ONLY_PROPERTIES)) { return res(errors.cannotUseOnlyProperties); }
-
-      if (idsNewToDB.length) { return res(errors.unknownRoadIds(idsNewToDB)); }
+      if (badPaths.length) { return res(errors.badPaths(badPaths)); }
 
       // Ignore any duplicate input road geometries
       fileReads = fileReads.reduce((all, fr) => {
@@ -112,14 +109,14 @@ async function propertiesHandler (req, res) {
   const existingRoadIds = await knex.select('id').from('road_properties').map(r => r.id);
 
   let rows = [];
-  let idsNewToDB = [];
+  let badPaths = [];
   req.payload[Object.keys(req.payload)[0]]
     .pipe(unzip.Parse())
     .on('entry', async e => {
       if (e.type === 'File' && filenamePattern.test(e.path)) {
         const read = await parseProperties(e.path, e, existingRoadIds);
         if (!read[0].road_id) {
-          idsNewToDB = idsNewToDB.concat(getPossibleRoadIdFromPath(e.path));
+          badPaths = badPaths.concat(e.path);
         }
         rows = rows.concat(read);
       } else {
@@ -130,9 +127,7 @@ async function propertiesHandler (req, res) {
     .on('close', async () => {
       // Prevent ingest of bad data
       const fieldDataRoadIds = [...new Set(rows.map(r => r.road_id))];
-      if (fieldDataRoadIds.includes(null)) { return res(errors.nullRoadIds); }
-
-      if (idsNewToDB.length) { return res(errors.unknownRoadIds(idsNewToDB)); }
+      if (badPaths.length) { return res(errors.badPaths(badPaths)); }
 
       // Strip the `NO_ID` and `ONLY_PROPERTIES` so that they
       // don't appear in the database
