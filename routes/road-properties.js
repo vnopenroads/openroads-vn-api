@@ -7,6 +7,7 @@ const {
 const knex = require('../connection.js');
 const {
   groupBy,
+  some,
   get,
   map
 } = require('lodash');
@@ -275,7 +276,10 @@ function deleteHandler(req, res) {
 
 
 function patchPropertyHandler(req, res) {
-  if (validate(req.payload) !== undefined) {
+  if (
+    validate(req.payload) !== undefined ||
+    some(req.payload, ({ path }) => path.match(/\//g).length > 1)
+  ) {
     return res(Boom.badData());
   }
 
