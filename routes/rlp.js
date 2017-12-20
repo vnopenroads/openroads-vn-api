@@ -183,9 +183,11 @@ module.exports = [
    *
    * Uploaded ZIP should not include ZIPs within. Furthermore, it is
    * expected that the road ID will be within the parent, grandparent,
-   * or great-granparent's directory name. For compatibility reasons,
-   * the ZIP must be uploaded in multi-part form data, not with a standard
-   * file POST; see the example below.
+   * or great-granparent's directory name. If a road truly has no ID,
+   * then assign an ID of `NO_ID`.
+   *
+   * For compatibility reasons, the ZIP must be uploaded in multi-part
+   * form data, not with a standard file POST; see the example below.
    *
    * @apiParam {Object} geometries ZIP of RoadLabPro field data
    *
@@ -246,10 +248,14 @@ module.exports = [
    *
    * Uploaded ZIP should not include ZIPs within. Furthermore, it is
    * expected that the road ID will be within the parent, grandparent,
-   * or great-granparent's directory name. For compatibility reasons,
-   * the ZIP must be uploaded in multi-part form data, not with a standard
-   * file POST; see the example below. All properties will be ingested
-   * as string data, regardless of whether they're boolean, numeric, or string.
+   * or great-granparent's directory name. If a road truly has no ID,
+   * then assign an ID of `NO_ID`. If this is a run to collect IRI for
+   * many roads at a time, then assign an ID of `ONLY_PROPERTIES`.
+   *
+   * For compatibility reasons, the ZIP must be uploaded in multi-part
+   * form data, not with a standard file POST; see the example below.
+   * All properties will be ingested as string data, regardless of
+   * whether they're boolean, numeric, or string.
    *
    * @apiExample {curl} Example Usage:
    *  curl --form file=@rlp.zip http://localhost:4000/fielddata/properties/rlp
