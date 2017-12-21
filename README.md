@@ -7,6 +7,21 @@ API documentation is built from the docstrings in `routes/*.js`, and deployed wi
 
 This repo also includes the database schema and other related components, in the `db` directory.
 
+## Database schema
+
+The core of the database is in the OSM schema. Specifically in this case, roads are stored in `current_ways`, and nodes of those roads are stored in `current_nodes`. `changesets` and `users` core tables are also used, to a lesser extent.
+
+In addition to these OSM tables, there are a few non-OSM tables that help handle project needs:
+
+- `road_properties` tracks key-value properties about roads, _whether a road exists 0, 1, or several times in the geometries_
+  - This gives us a list of all roads that exist in the VPRoMMS road ID system, so we can have a "denominator" when showing data in the Assets table
+  - This also stores key-value information about the road, which exists and is know _separately_ from the road geometries, which may be created or deleted without altering fundamentals about the road
+- `point_properties` holds field data on roughness ([IRI](https://en.wikipedia.org/wiki/International_Roughness_Index)) and other metrics
+  - This data is collected at particular points during a drive, and doesn't pertain to a full road
+  - This data is conflated onto by background workers (`orma/openroads-vn-workers` repo), to produce vector tiles so that the point properties can be visualized on their related line segments
+- `tasks` contains cases of machine-suspected geometry issues, such as duplicate roads or possible intersections, that are awaiting human approval in the Tasks front-end interface
+- `admin_boundaries` stores the boundaries of administrative areas for the country, at different levels
+
 ## Running locally
 
 ### Quickstart without Docker
