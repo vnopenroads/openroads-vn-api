@@ -9,7 +9,9 @@ const {
   groupBy,
   some,
   get,
-  map
+  map,
+  reject,
+  each
 } = require('lodash');
 
 
@@ -52,8 +54,18 @@ function getHandler (req, res) {
     .limit(PAGE_SIZE)
     .offset((page - 1) * PAGE_SIZE)
   .then(function(response) {
+    const groups = groupBy(response, response => get(response, 'id'));
+    let results = [];
+
+    // for roads with more than 2 ways, return only the ones that are visible.
+    each(groups, (group) => {
+      if (group.length > 1) {
+        group = reject(group, (g) => !g.hasOSMData);
+      }
+      Array.prototype.push.apply(results, group);
+    });
     return res(
-      response.map(({ id, properties, hasOSMData }) => ({
+      results.map(({ id, properties, hasOSMData }) => ({
         id, properties, hasOSMData: !!hasOSMData
       }))
     ).type('application/json');
@@ -163,9 +175,7 @@ function getCountHandler (req, res) {
   .then(function(rows) {
     res({
       count: rows.length,
-      osmCount: rows.filter(({ hasOSMData }) => hasOSMData).length,
-      pageCount: Math.ceil(rows.length / PAGE_SIZE),
-      pageSize: PAGE_SIZE
+      osmCount: rows.filter(({ hasOSMData }) => hasOSMData).length
     }).type('application/json');
   })
   .catch(function(err) {
