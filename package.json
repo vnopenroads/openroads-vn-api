@@ -1,6 +1,6 @@
 {
   "name": "openroads-vn-api",
-  "version": "0.3.1",
+  "version": "0.3.3",
   "description": "An OSM-centric API for the Open Roads Vietnam platform",
   "main": "index.js",
   "engines": {
