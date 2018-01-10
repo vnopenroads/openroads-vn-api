@@ -63,3 +63,4 @@ jobs:
               docker push $IMGNAME
               docker run --env-file .env $IMGNAME:latest node_modules/.bin/kes cf update -k aws/app
             fi
+          no_output_timeout: "30m"
