@@ -15,7 +15,7 @@ rds:
   password: {{RDS_PASS}}
 
 ecs:
-  amiid: ami-9d1f7efe
+  amiid: ami-e782f29b
   instanceType: m4.xlarge
   ecsInstanceProfileArn: arn:aws:iam::552819999234:instance-profile/orma-ecs
   volumeSize: 50
