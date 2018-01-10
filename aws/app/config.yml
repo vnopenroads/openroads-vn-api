@@ -22,8 +22,8 @@ ecs:
   vpcId: vpc-1dda3b78
   keyPairName: orma
   availabilityZone: '!Sub ${AWS::Region}a'
-  maxInstances: 1
-  desiredInstances: 1
+  maxInstances: 2
+  desiredInstances: 2
   services:
     - count: 1
       name: vn
