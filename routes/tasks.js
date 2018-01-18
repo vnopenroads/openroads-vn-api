@@ -5,14 +5,20 @@ const knex = require('../connection');
 const queryWays = require('../services/query-ways');
 const toGeoJSON = require('../services/osm-data-to-geojson');
 
-const properties = ['id', 'way_id', 'neighbors'];
+const properties = ['id', 'way_id', 'neighbors', 'provinces'];
 
 async function getNextTask (req, res) {
   const skip = req.query.skip ? req.query.skip.split(',') : [];
+  const province = req.query.province;
   const task = await knex.select(properties)
   .from('tasks')
   .where('pending', false)
   .whereNotIn('id', skip)
+  .modify(function(queryBuilder) {
+    if (province) {
+      queryBuilder.whereRaw(`provinces @> '{${province}}'`);
+    }
+  })
   .orderByRaw('random()')
   .limit(1);
   if (!task.length) return res(Boom.notFound('There are no pending tasks'));
@@ -44,8 +50,14 @@ async function getTask (req, res) {
 }
 
 async function getTaskCount (req, res) {
+  const province = req.query.province;
   const [{ count }] = await knex('tasks')
   .where('pending', false)
+  .modify(function(queryBuilder) {
+    if (province) {
+      queryBuilder.whereRaw(`provinces @> '{${province}}'`);
+    }
+  })
   .count();
 
   res({ count: Number(count) }).type('application/json');
