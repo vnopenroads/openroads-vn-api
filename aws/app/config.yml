@@ -29,7 +29,7 @@ ecs:
       name: vn
       containers:
         - name: webapp
-          image: developmentseed/openroads-vn-api:0.4.0
+          image: developmentseed/openroads-vn-api:0.5.0
           cpu: 1024
           memory: 5200
           ports:
@@ -53,7 +53,7 @@ ecs:
             S3_TEMPLATE: s3://openroads-vn-tiles-prod/tiles/{z}/{x}/{y}.vector.pbf
             S3_DUMP_BUCKET: openroads-vn-dumps-prod
         - name: tilemap
-          image: developmentseed/openroads-tilemap:0.1.1
+          image: developmentseed/openroads-tilemap:0.2.0
           cpu: 2048
           memory: 5200
           ports:
