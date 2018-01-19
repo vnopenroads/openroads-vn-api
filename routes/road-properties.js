@@ -79,7 +79,7 @@ function getHandler (req, res) {
 
 function getByIdHandler (req, res) {
   knex('road_properties AS roads')
-    .select('roads.id', 'roads.properties', 'tags.v', 'ways.visible')
+    .select('roads.id', 'roads.properties', 'tags.v', 'ways.visible', 'ways.way_id')
     .distinct('roads.id')
     .leftJoin(knex.raw(`(SELECT way_id, v FROM current_way_tags WHERE k = 'or_vpromms') AS tags`), 'roads.id', 'tags.v')
     .leftJoin(knex.raw(`(SELECT id AS way_id, visible FROM current_ways WHERE visible = true) AS ways`), 'tags.way_id', 'ways.way_id')
@@ -88,11 +88,11 @@ function getByIdHandler (req, res) {
     if (row === undefined) {
       return res(Boom.notFound());
     }
-
     return res({
       id: row.id,
       properties: row.properties,
-      hasOSMData: !!row.visible
+      hasOSMData: !!row.visible,
+      way_id: row.way_id
     }).type('application/json');
   })
   .catch(function(err) {
