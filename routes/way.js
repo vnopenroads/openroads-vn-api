@@ -204,7 +204,7 @@ module.exports = [
    *     }
    *
    * @apiExample {curl} Example Usage:
-   *  curl -X PATCH- H "Content-Type: application/json-patch+json" -d '214TT00039' http://localhost:4000/way/tags/vprommid/123
+   *  curl -X PATCH- H "Content-Type: application/json-patch+json" -d '{vprommid: 214TT00039}' http://localhost:4000/way/tags/vprommid/123
    */
   {
     method: 'PATCH',
