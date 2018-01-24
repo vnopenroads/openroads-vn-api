@@ -91,7 +91,6 @@ function patchVprommIdHandler(req, res) {
       v: req.payload.vprommid
     })
   .then(function(response) {
-    console.log(response);
     if (response === 0) {
       throw new Error('404');
       return response;
