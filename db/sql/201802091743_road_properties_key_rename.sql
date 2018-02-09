@@ -4,5 +4,5 @@
 --
 
 
-UPDATE road_properties_copy SET properties = properties - 'Start Longtitude' || jsonb_build_object('Start Longitude', properties->'Start Longtitude');
-UPDATE road_properties_copy SET properties = properties - 'End Longtitude' || jsonb_build_object('End Longitude', properties->'End Longtitude');
+UPDATE road_properties SET properties = properties - 'Start Longtitude' || jsonb_build_object('Start Longitude', properties->'Start Longtitude');
+UPDATE road_properties SET properties = properties - 'End Longtitude' || jsonb_build_object('End Longitude', properties->'End Longtitude');
