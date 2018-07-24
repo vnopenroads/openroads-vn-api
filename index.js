@@ -12,7 +12,10 @@ var debug = _debug(util.format('%s:http', meta.name));
 var server = new Hapi.Server({
   connections: {
     routes: {
-      cors: true
+      cors: true,
+      payload: {
+        maxBytes: 1e+7
+      }
     }
   },
   debug: process.env.MACROCOSM_DEBUG ? {
