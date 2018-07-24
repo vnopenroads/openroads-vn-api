@@ -134,3 +134,4 @@ tmp
 **/*.swp
 cloudformation.yml
 package-lock.json
+*.pyc
