@@ -78,6 +78,9 @@ function getHandler (req, res) {
 
 
 function getByIdHandler (req, res) {
+  const provinceCode = req.params.road_id.substring(0,2);
+  const districtCode = req.params.road_id.substring(3,5);
+
   knex('road_properties AS roads')
     .select('roads.id', 'roads.properties', 'tags.v', 'ways.visible', 'ways.way_id')
     .distinct('roads.id')
@@ -85,6 +88,24 @@ function getByIdHandler (req, res) {
     .leftJoin(knex.raw(`(SELECT id AS way_id, visible FROM current_ways WHERE visible = true) AS ways`), 'tags.way_id', 'ways.way_id')
     .where({ id: req.params.road_id })
   .then(function([row]) {
+    return knex('admin_boundaries AS admin')
+    .select('name_en')
+    .where({type: 'province', code: provinceCode})
+    .then(function([province]) {
+      row['province'] = province.name_en;
+      return row;
+    });
+  })
+  .then(function(row) {
+    return knex('admin_boundaries AS admin')
+    .select('name_en')
+    .where({type: 'district', code: districtCode})
+    .then(function([district]) {
+      row['district'] = district.name_en;
+      return row;
+    });
+  })
+  .then(function(row) {
     if (row === undefined) {
       return res(Boom.notFound());
     }
@@ -92,7 +113,9 @@ function getByIdHandler (req, res) {
       id: row.id,
       properties: row.properties,
       hasOSMData: !!row.visible,
-      way_id: row.way_id
+      way_id: row.way_id,
+      province: row.province,
+      district: row.district
     }).type('application/json');
   })
   .catch(function(err) {
