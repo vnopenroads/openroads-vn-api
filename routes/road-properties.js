@@ -39,7 +39,7 @@ function getHandler (req, res) {
 
 
   knex('road_properties as roads')
-    .select('roads.id', 'roads.properties', 'ways.visible AS hasOSMData')
+    .select('roads.id', 'roads.properties', 'roads.status', 'ways.visible AS hasOSMData')
     .distinct('roads.id')
     .modify(function(queryBuilder) {
       if (province && district) {
@@ -65,8 +65,8 @@ function getHandler (req, res) {
       Array.prototype.push.apply(results, group);
     });
     return res(
-      results.map(({ id, properties, hasOSMData }) => ({
-        id, properties, hasOSMData: !!hasOSMData
+      results.map(({ id, properties, hasOSMData, status }) => ({
+        id, properties, hasOSMData: !!hasOSMData, status
       }))
     ).type('application/json');
   })
@@ -82,7 +82,7 @@ function getByIdHandler (req, res) {
   const districtCode = req.params.road_id.substring(3,5);
 
   knex('road_properties AS roads')
-    .select('roads.id', 'roads.properties', 'tags.v', 'ways.visible', 'ways.way_id')
+    .select('roads.id', 'roads.properties', 'roads.status', 'tags.v', 'ways.visible', 'ways.way_id')
     .distinct('roads.id')
     .leftJoin(knex.raw(`(SELECT way_id, v FROM current_way_tags WHERE k = 'or_vpromms') AS tags`), 'roads.id', 'tags.v')
     .leftJoin(knex.raw(`(SELECT id AS way_id, visible FROM current_ways WHERE visible = true) AS ways`), 'tags.way_id', 'ways.way_id')
@@ -119,6 +119,7 @@ function getByIdHandler (req, res) {
       id: row.id,
       properties: row.properties,
       hasOSMData: !!row.visible,
+      status: row.status,
       way_id: row.way_id,
       province: row.province,
       district: row.district
