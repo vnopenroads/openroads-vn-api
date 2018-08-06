@@ -25,6 +25,7 @@ function getHandler (req, res) {
   const page = req.query.page === undefined ? 1 : parseInt(req.query.page);
   const province = req.query.province;
   const district = req.query.district;
+  const status = req.query.status;
 
   if (sortField !== 'id' && sortField !== 'hasOSMData') {
     return res(Boom.badData(`Expected 'sortField' query param to be either 'id', 'hasOSMData', or not included.  Got ${req.query.sortField}`));
@@ -42,6 +43,9 @@ function getHandler (req, res) {
     .select('roads.id', 'roads.properties', 'roads.status', 'ways.visible AS hasOSMData')
     .distinct('roads.id')
     .modify(function(queryBuilder) {
+      if (status) {
+        queryBuilder.andWhere('status', status);
+      }
       if (province && district) {
         queryBuilder.whereRaw(`id LIKE '${province}_${district}%'`);
       } else if (province) {
@@ -407,7 +411,7 @@ module.exports = [
    * ]
    *
    * @apiExample {curl} Example Usage:
-   *  curl -X GET localhost:4000/properties/roads?page=1&sortField=id&sortOrder=asc&province=21&district=TH
+   *  curl -X GET localhost:4000/properties/roads?page=1&sortField=id&sortOrder=asc&province=21&district=TH&status=pending|reviewed
    */
   {
     method: 'GET',
