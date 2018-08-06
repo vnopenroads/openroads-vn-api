@@ -102,7 +102,7 @@ function getByIdHandler (req, res) {
   .then(function(row) {
     return knex('admin_boundaries AS admin')
     .select('name_en', 'id')
-    .where({type: 'district', code: districtCode})
+    .where({type: 'district', code: districtCode, parent_id: row.province.id})
     .then(function([district]) {
       row['district'] = {
         id: district.id,
