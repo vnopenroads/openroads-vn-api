@@ -343,6 +343,39 @@ function patchPropertyHandler(req, res) {
   });
 }
 
+function statusHandler(req, res) {
+
+  const possibleStatus = ['pending', 'reviewed'];
+  if (possibleStatus.indexOf(req.payload.status) === -1) {
+    console.error('Error POST /properties/roads/{road_id}/status', 'status should be pending or reviewed');
+    return res(Boom.badData('status should be pending or reviewed'));
+  }
+
+  return knex('road_properties')
+    .where({ id: req.params.road_id })
+    .update({
+      status: req.payload.status
+    })
+  .then(function(response) {
+    if (response === 0) {
+      // no road_properties rows were updated, meaning id does not exist
+      // return a 404 Not Found
+      throw new Error('404');
+    }
+    return response;
+  })
+  .then(function(response) {
+    return res({ id: req.params.road_id }).type('application/json');
+  })
+  .catch(function(err) {
+    if (err.message === '404') {
+      return res(Boom.notFound());
+    }
+
+    console.error('Error POST /properties/roads/{road_id}/status', err);
+    return res(Boom.badImplementation());
+  });
+}
 
 module.exports = [
   /**
@@ -549,5 +582,28 @@ module.exports = [
     method: 'DELETE',
     path: '/properties/roads/{road_id}',
     handler: deleteHandler
+  },
+  /**
+   * @api {POST} /properties/roads/:id/status Change status of a road
+   * @apiGroup Properties
+   * @apiName Change status of a road
+   * @apiVersion 0.3.0
+   *
+   * @apiParam {String} status
+   *
+   * @apiErrorExample {json} Error-Response
+   *     Road id is invalid
+   *     HTTP/1.1 422 Unprocessable Entity
+   *     {
+   *       error: "Unprocessable Entity"
+   *     }
+   *
+   * @apiExample {curl} Example Usage:
+   *  curl -X POST -H "Content-Type: application/json" -d '{"status": "reviewed"}' http://localhost:4000/properties/roads/123/status
+   */
+  {
+    method: 'POST',
+    path: '/properties/roads/{road_id}/status',
+    handler: statusHandler
   }
 ];
