@@ -89,19 +89,25 @@ function getByIdHandler (req, res) {
     .where({ id: req.params.road_id })
   .then(function([row]) {
     return knex('admin_boundaries AS admin')
-    .select('name_en')
+    .select('name_en', 'id')
     .where({type: 'province', code: provinceCode})
     .then(function([province]) {
-      row['province'] = province.name_en;
+      row['province'] = {
+        id: province.id,
+        name: province.name_en
+      };
       return row;
     });
   })
   .then(function(row) {
     return knex('admin_boundaries AS admin')
-    .select('name_en')
+    .select('name_en', 'id')
     .where({type: 'district', code: districtCode})
     .then(function([district]) {
-      row['district'] = district.name_en;
+      row['district'] = {
+        id: district.id,
+        name: district.name_en
+      };
       return row;
     });
   })
