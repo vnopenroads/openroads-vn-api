@@ -42,6 +42,18 @@ This repo comes with Docker configuration to spin up the API and a database in a
 
 To set up your environment, make sure `docker` and `docker-compose` are installed. Then, run `yarn docker-start` to bring up the `db` and `api` services.
 
+*Note*
+
+If you are facing 👇 errors running `yarn docker-start`:
+
+```
+ERROR: Couldn't find env file: /Users/<user>/apps/openroads-vn-api/.env
+error An unexpected error occurred: "Command failed.
+```
+
+To solve the error, you just need to create an empty `.env` file in the repository.
+
+
 ### Running tests
 The following command creates an empty postgres db, and runs the tests against it.
 
