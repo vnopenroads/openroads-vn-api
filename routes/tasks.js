@@ -5,7 +5,7 @@ const knex = require('../connection');
 const queryWays = require('../services/query-ways');
 const toGeoJSON = require('../services/osm-data-to-geojson');
 
-const properties = ['id', 'way_id', 'neighbors', 'provinces', 'updated_at'];
+const properties = ['id', 'way_id', 'neighbors', 'provinces', 'updated_at', 'districts'];
 
 async function getNextTask (req, res) {
   const skip = req.query.skip ? req.query.skip.split(',') : [];
