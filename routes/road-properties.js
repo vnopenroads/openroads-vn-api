@@ -25,6 +25,7 @@ function getHandler (req, res) {
   const page = req.query.page === undefined ? 1 : parseInt(req.query.page);
   const province = req.query.province;
   const district = req.query.district;
+  const status = req.query.status;
 
   if (sortField !== 'id' && sortField !== 'hasOSMData') {
     return res(Boom.badData(`Expected 'sortField' query param to be either 'id', 'hasOSMData', or not included.  Got ${req.query.sortField}`));
@@ -39,9 +40,12 @@ function getHandler (req, res) {
 
 
   knex('road_properties as roads')
-    .select('roads.id', 'roads.properties', 'ways.visible AS hasOSMData')
+    .select('roads.id', 'roads.properties', 'roads.status', 'ways.visible AS hasOSMData')
     .distinct('roads.id')
     .modify(function(queryBuilder) {
+      if (status) {
+        queryBuilder.andWhere('status', status);
+      }
       if (province && district) {
         queryBuilder.whereRaw(`id LIKE '${province}_${district}%'`);
       } else if (province) {
@@ -65,8 +69,8 @@ function getHandler (req, res) {
       Array.prototype.push.apply(results, group);
     });
     return res(
-      results.map(({ id, properties, hasOSMData }) => ({
-        id, properties, hasOSMData: !!hasOSMData
+      results.map(({ id, properties, hasOSMData, status }) => ({
+        id, properties, hasOSMData: !!hasOSMData, status
       }))
     ).type('application/json');
   })
@@ -82,7 +86,7 @@ function getByIdHandler (req, res) {
   const districtCode = req.params.road_id.substring(3,5);
 
   knex('road_properties AS roads')
-    .select('roads.id', 'roads.properties', 'tags.v', 'ways.visible', 'ways.way_id')
+    .select('roads.id', 'roads.properties', 'roads.status', 'tags.v', 'ways.visible', 'ways.way_id')
     .distinct('roads.id')
     .leftJoin(knex.raw(`(SELECT way_id, v FROM current_way_tags WHERE k = 'or_vpromms') AS tags`), 'roads.id', 'tags.v')
     .leftJoin(knex.raw(`(SELECT id AS way_id, visible FROM current_ways WHERE visible = true) AS ways`), 'tags.way_id', 'ways.way_id')
@@ -119,6 +123,7 @@ function getByIdHandler (req, res) {
       id: row.id,
       properties: row.properties,
       hasOSMData: !!row.visible,
+      status: row.status,
       way_id: row.way_id,
       province: row.province,
       district: row.district
@@ -352,6 +357,39 @@ function patchPropertyHandler(req, res) {
   });
 }
 
+function statusHandler(req, res) {
+
+  const possibleStatus = ['pending', 'reviewed'];
+  if (possibleStatus.indexOf(req.payload.status) === -1) {
+    console.error('Error POST /properties/roads/{road_id}/status', 'status should be pending or reviewed');
+    return res(Boom.badData('status should be pending or reviewed'));
+  }
+
+  return knex('road_properties')
+    .where({ id: req.params.road_id })
+    .update({
+      status: req.payload.status
+    })
+  .then(function(response) {
+    if (response === 0) {
+      // no road_properties rows were updated, meaning id does not exist
+      // return a 404 Not Found
+      throw new Error('404');
+    }
+    return response;
+  })
+  .then(function(response) {
+    return res({ id: req.params.road_id }).type('application/json');
+  })
+  .catch(function(err) {
+    if (err.message === '404') {
+      return res(Boom.notFound());
+    }
+
+    console.error('Error POST /properties/roads/{road_id}/status', err);
+    return res(Boom.badImplementation());
+  });
+}
 
 module.exports = [
   /**
@@ -382,7 +420,7 @@ module.exports = [
    * ]
    *
    * @apiExample {curl} Example Usage:
-   *  curl -X GET localhost:4000/properties/roads?page=1&sortField=id&sortOrder=asc&province=21&district=TH
+   *  curl -X GET localhost:4000/properties/roads?page=1&sortField=id&sortOrder=asc&province=21&district=TH&status=pending|reviewed
    */
   {
     method: 'GET',
@@ -558,5 +596,28 @@ module.exports = [
     method: 'DELETE',
     path: '/properties/roads/{road_id}',
     handler: deleteHandler
+  },
+  /**
+   * @api {POST} /properties/roads/:id/status Change status of a road
+   * @apiGroup Properties
+   * @apiName Change status of a road
+   * @apiVersion 0.3.0
+   *
+   * @apiParam {String} status
+   *
+   * @apiErrorExample {json} Error-Response
+   *     Road id is invalid
+   *     HTTP/1.1 422 Unprocessable Entity
+   *     {
+   *       error: "Unprocessable Entity"
+   *     }
+   *
+   * @apiExample {curl} Example Usage:
+   *  curl -X POST -H "Content-Type: application/json" -d '{"status": "reviewed"}' http://localhost:4000/properties/roads/123/status
+   */
+  {
+    method: 'POST',
+    path: '/properties/roads/{road_id}/status',
+    handler: statusHandler
   }
 ];
