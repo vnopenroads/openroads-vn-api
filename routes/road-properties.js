@@ -134,6 +134,8 @@ function getByIdHandler (req, res) {
 function getByIdGeoJSONHandler (req, res) {
   const id = req.params.road_id;
 
+  const shouldDownload = typeof req.query.download != 'undefined';
+
   knex.raw(`
     SELECT
         cw.id AS way_id,
@@ -170,10 +172,17 @@ function getByIdGeoJSONHandler (req, res) {
         })
       );
 
-      return res({
+      let response = res({
         type: 'FeatureCollection',
         features
       }).type('application/json');
+
+      if (shouldDownload) {
+        return response
+          .header('Content-Disposition', `attachment; filename=${id}.geojson`);
+      }
+
+      return response;
     })
     .catch(function(err) {
       console.error('Error GET /field/geometries/{id}', err);
