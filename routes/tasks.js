@@ -39,7 +39,6 @@ async function getNextTask (req, res) {
   .select('name_en', 'id')
   .where({type: bounduaryType, id: taskProviceOrDistrict })
   .then(function(bounduary) {
-    console.log(JSON.stringify(bounduary))
     task[0].bounduary = bounduary[0];
     task[0].bounduary.type = bounduaryType;
     queryWays(knex, ids, true).then(function (ways) {
