@@ -10,6 +10,7 @@ const properties = ['id', 'way_id', 'neighbors', 'provinces', 'updated_at', 'dis
 async function getNextTask (req, res) {
   const skip = req.query.skip ? req.query.skip.split(',') : [];
   const province = req.query.province;
+  const district = req.query.district;
   const task = await knex.select(properties)
   .from('tasks')
   .where('pending', false)
@@ -17,6 +18,8 @@ async function getNextTask (req, res) {
   .modify(function(queryBuilder) {
     if (province) {
       queryBuilder.whereRaw(`provinces @> '{${province}}'`);
+    }else if (district) {
+      queryBuilder.whereRaw(`districts @> '{${district}}'`);
     }
   })
   .orderByRaw('random()')
@@ -24,18 +27,27 @@ async function getNextTask (req, res) {
 
   if (!task.length) return res(Boom.notFound('There are no pending tasks'));
   const ids = [task[0].way_id].concat(task[0].neighbors);
-  const taskProvince = task[0].provinces[0];
+  const bounduaryType = 'province';
+  const taskProviceOrDistrict = task[0].provinces[0];
+  // In case the district required
+  if (district) {
+    bounduaryType = 'district';
+    taskProviceOrDistrict = task[0].districts[0];
+  }
 
   knex('admin_boundaries AS admin')
   .select('name_en', 'id')
-  .where({type: 'province', id: taskProvince })
-  .then(function(province) {
-    task[0].province = province[0];
+  .where({type: bounduaryType, id: taskProviceOrDistrict })
+  .then(function(bounduary) {
+    console.log(JSON.stringify(bounduary))
+    task[0].bounduary = bounduary[0];
+    task[0].bounduary.type = bounduaryType;
     queryWays(knex, ids, true).then(function (ways) {
       return res({
         id: task[0].id,
         updated_at: task[0].updated_at,
         province: task[0].province,
+        bounduary: task[0].bounduary,
         data: toGeoJSON(ways)
       }).type('application/json');
     }).catch(function () {
