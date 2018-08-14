@@ -5,7 +5,7 @@ const knex = require('../connection');
 const queryWays = require('../services/query-ways');
 const toGeoJSON = require('../services/osm-data-to-geojson');
 
-const properties = ['id', 'way_id', 'neighbors', 'provinces'];
+const properties = ['id', 'way_id', 'neighbors', 'provinces', 'updated_at'];
 
 async function getNextTask (req, res) {
   const skip = req.query.skip ? req.query.skip.split(',') : [];
@@ -34,6 +34,7 @@ async function getNextTask (req, res) {
     queryWays(knex, ids, true).then(function (ways) {
       return res({
         id: task[0].id,
+        updated_at: task[0].updated_at,
         province: task[0].province,
         data: toGeoJSON(ways)
       }).type('application/json');
@@ -52,6 +53,7 @@ async function getTask (req, res) {
   queryWays(knex, ids, true).then(function (ways) {
     return res({
       id: task[0].id,
+      updated_at: task[0].updated_at,
       data: toGeoJSON(ways)
     }).type('application/json');
   }).catch(function () {
