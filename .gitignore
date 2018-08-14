@@ -128,9 +128,11 @@ doc/api_project.json
 .netbeans
 nbproject
 .idea
+.resources
 .node_history
 temp
 tmp
 **/*.swp
 cloudformation.yml
 package-lock.json
+*.pyc

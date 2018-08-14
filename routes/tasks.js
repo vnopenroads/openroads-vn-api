@@ -5,7 +5,7 @@ const knex = require('../connection');
 const queryWays = require('../services/query-ways');
 const toGeoJSON = require('../services/osm-data-to-geojson');
 
-const properties = ['id', 'way_id', 'neighbors', 'provinces'];
+const properties = ['id', 'way_id', 'neighbors', 'provinces', 'updated_at'];
 
 async function getNextTask (req, res) {
   const skip = req.query.skip ? req.query.skip.split(',') : [];
@@ -21,15 +21,26 @@ async function getNextTask (req, res) {
   })
   .orderByRaw('random()')
   .limit(1);
+
   if (!task.length) return res(Boom.notFound('There are no pending tasks'));
   const ids = [task[0].way_id].concat(task[0].neighbors);
-  queryWays(knex, ids, true).then(function (ways) {
-    return res({
-      id: task[0].id,
-      data: toGeoJSON(ways)
-    }).type('application/json');
-  }).catch(function () {
-    return res(Boom.badImplementation('Could not retrieve task'));
+  const taskProvince = task[0].provinces[0];
+
+  knex('admin_boundaries AS admin')
+  .select('name_en', 'id')
+  .where({type: 'province', id: taskProvince })
+  .then(function(province) {
+    task[0].province = province[0];
+    queryWays(knex, ids, true).then(function (ways) {
+      return res({
+        id: task[0].id,
+        updated_at: task[0].updated_at,
+        province: task[0].province,
+        data: toGeoJSON(ways)
+      }).type('application/json');
+    }).catch(function () {
+      return res(Boom.badImplementation('Could not retrieve task'));
+    });
   });
 }
 
@@ -42,6 +53,7 @@ async function getTask (req, res) {
   queryWays(knex, ids, true).then(function (ways) {
     return res({
       id: task[0].id,
+      updated_at: task[0].updated_at,
       data: toGeoJSON(ways)
     }).type('application/json');
   }).catch(function () {
