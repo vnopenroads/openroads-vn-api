@@ -18,7 +18,7 @@ module.exports = function toGeoJSON(data, geometryType) {
 
   var wayFeatures = data.ways.map(function (way) {
     var nodeCoordinates = way.nodes.map(function (waynode) {
-      var node = idToNode[waynode.node_id];
+      var node = idToNode[waynode.node_id || waynode.id];
       return [node.longitude / ratio, node.latitude / ratio];
     });
 

@@ -10,6 +10,10 @@ const Queue = require('bull');
 const pFilter = require('p-filter');
 const { parseGeometries } = require('../services/rlp-geometries');
 const { parseProperties } = require('../services/rlp-properties');
+const toGeojson = require('../services/osm-data-to-geojson');
+const queryBbox = require('../services/query-bbox');
+const turfPointsWithinPolygon = require('@turf/points-within-polygon').default;
+const turfHelpers = require('@turf/helpers');
 const uploadChangeset = require('./osc-upload').handler;
 const {
   NO_ID,
@@ -17,7 +21,8 @@ const {
 } = require('../util/road-id-utils');
 const { geometriesEqualAtPrecision } = require('../util/geometry-utils');
 const errors = require('../util/errors');
-
+const turfBuffer = require('@turf/buffer').default;
+const turfBbox = require('@turf/bbox');
 const st = knexPostgis(knex);
 
 const POSTGIS_SIGNIFICANT_DECIMAL_PLACES = 7;
@@ -53,10 +58,13 @@ rlpGeomQueue.process(async function (job) {
       geom: st.geomFromGeoJSON(JSON.stringify(fr.geom.geometry))
     }).into('field_data_geometries')
   ))
-  .then(() => {
+  .then(async () => {
     // Filter out geometries that already exist in macrocosm
     fileReads = await pFilter(fileReads, existingGeomFilter);
-
+    if (fileReads.length === 0) {
+      // FIXME: not propagating.
+      return Promise.resolve('no features to import');
+    }
     // Add roads to the production geometries tables, OSM format
     const features = fileReads.map(fr => {
       // All geometries should be tagged with a `highway` value
@@ -86,8 +94,32 @@ rlpGeomQueue.process(async function (job) {
 */
 async function existingGeomFilter(fr) {
   const geom = fr.geom;
-  const points = geom.coordinates;
-  const nearbyNodes = await knex.select('id').from('current_nodes');
+  // get a buffer of the RLP geom, and find bbox.
+  const geomBuffer = turfBuffer(geom, 0.03, {units: 'kilometers'});
+  const geomBbox = turfBbox(geomBuffer);
+  const bbox = {
+    minLat: geomBbox[1],
+    minLon: geomBbox[0],
+    maxLat: geomBbox[3],
+    maxLon: geomBbox[2]
+  };
+
+  // find all near features as geojson
+  const nearFeatures = await queryBbox(knex, bbox);
+  const geojson = toGeojson(nearFeatures);
+  let hasMatch = false;
+  // for each near ways, find the way with at least 40% of the nodes are overlapping.
+  if (geojson.features.length) {
+    geojson.features.forEach(way => {
+      const nodes = turfHelpers.featureCollection(way.geometry.coordinates);
+      const pointsWithinGeom = turfPointsWithinPolygon(nodes, geomBuffer);
+      const matchRate = (pointsWithinGeom.features.length / way.geometry.coordinates.length) * 100;
+      if (matchRate > 40) {
+        hasMatch = true;
+      }
+    });
+  }
+  return !hasMatch;
 }
 
 async function geometriesHandler(req, res) {
