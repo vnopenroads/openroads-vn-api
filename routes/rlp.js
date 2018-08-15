@@ -7,6 +7,7 @@ const knexPostgis = require('knex-postgis');
 const libxml = require('libxmljs');
 const unzip = require('unzip2');
 const Queue = require('bull');
+const pFilter = require('p-filter');
 const { parseGeometries } = require('../services/rlp-geometries');
 const { parseProperties } = require('../services/rlp-properties');
 const uploadChangeset = require('./osc-upload').handler;
@@ -53,6 +54,9 @@ rlpGeomQueue.process(async function (job) {
     }).into('field_data_geometries')
   ))
   .then(() => {
+    // Filter out geometries that already exist in macrocosm
+    fileReads = await pFilter(fileReads, existingGeomFilter);
+
     // Add roads to the production geometries tables, OSM format
     const features = fileReads.map(fr => {
       // All geometries should be tagged with a `highway` value
@@ -61,6 +65,8 @@ rlpGeomQueue.process(async function (job) {
       if (fr.road_id) { properties.or_vpromms = fr.road_id; }
       return Object.assign(fr.geom, {properties: properties});
     });
+
+
     // Need to replace the `<osm>` top-level tag with `<osmChange><create>`
     const osm = libxml.parseXmlString(geojsontoosm(features))
       .root().childNodes().map(n => n.toString()).join('');
@@ -69,6 +75,20 @@ rlpGeomQueue.process(async function (job) {
     return Promise.resolve(uploadChangeset({payload: changeset}, function() {}));
   });
 });
+
+/*
+  This function accepts a `fileRead` object, with a `.geom` property.
+  It needs to return a promise that resolves to either `true` or `false`.
+
+  `true` indicates that the rlp geometry should be added to the changeset,
+  and `false` if it is a duplicate of an existing geometry and needs to be
+  filtered out.
+*/
+async function existingGeomFilter(fr) {
+  const geom = fr.geom;
+  const points = geom.coordinates;
+  const nearbyNodes = await knex.select('id').from('current_nodes');
+}
 
 async function geometriesHandler(req, res) {
   const payload = req.payload;

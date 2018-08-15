@@ -60,6 +60,7 @@
     "libxmljs": "^0.18.7",
     "lodash": "^4.17.4",
     "moment": "^2.18.1",
+    "p-filter": "^1.0.0",
     "pg": "^4.3.0",
     "turf-linestring": "^1.0.2",
     "turf-midpoint": "^3.0.12",
