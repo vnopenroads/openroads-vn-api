@@ -14,7 +14,8 @@ var server = new Hapi.Server({
     routes: {
       cors: true,
       payload: {
-        maxBytes: 5e+7
+        maxBytes: 5e+7,
+        timeout: 100000
       }
     }
   },
