@@ -171,6 +171,9 @@ var Way = {
         entity.id = ids[i];
         // Take the node ID from the attached nd, unless it's less than zero;
         // In which case, use the value saved in map#node
+        if (!Array.isArray(entity.nd)) {
+          entity.nd = [entity.nd];
+        }
         wayNodes.push(entity.nd.map(function(wayNode, i) {
           var id = parseInt(wayNode.ref, 10) > 0 ? wayNode.ref : q.map.node[wayNode.ref];
           return {

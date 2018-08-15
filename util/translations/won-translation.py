@@ -13,20 +13,24 @@ def filterTags(attrs):
 
     tags = {}
 
+    keys = attrs.keys()
     # Add the road name
-    if attrs['RoadName']:
+    if 'RoadName' in keys and attrs['RoadName']:
         tags.update({'name':attrs['RoadName'].strip(' ').title()})
 
+    if 'NAME' in keys and attrs['NAME']:
+        tags.update({'name':attrs['NAME'].strip(' ').title()})
+
     # Map the road type to the OSM highway classification
-    if attrs['RoadClass'] and attrs['RoadClass'].lower() == "provincial":
+    if 'RoadClass' in keys and attrs['RoadClass'] and attrs['RoadClass'].lower() == "provincial":
         tags.update({'or_responsibility':'provincial', 'highway':'motorway'})
 
     # Add the road width
-    if attrs['RoadWidth'] and attrs['RoadWidth'] > 0:
+    if 'RoadWidth' in keys and attrs['RoadWidth'] and attrs['RoadWidth'] > 0:
         tags.update({'or_width': attrs['RoadWidth']})
 
     # Add bridge tag if possible
-    if attrs['RoadType'] and attrs['RoadType'].lower() == 'bridge':
+    if 'RoadType' in keys and attrs['RoadType'] and attrs['RoadType'].lower() == 'bridge':
         tags.update({'bridge': 'yes'})
 
     tags.update({'highway':'road'})
