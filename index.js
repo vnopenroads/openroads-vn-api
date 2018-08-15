@@ -14,7 +14,7 @@ var server = new Hapi.Server({
     routes: {
       cors: true,
       payload: {
-        maxBytes: 1e+7
+        maxBytes: 5e+7
       }
     }
   },
@@ -45,7 +45,8 @@ server.register({
 });
 
 server.ext('onPostAuth', function(req, res) {
-  if (req.mime === 'text/xml' && Object.keys(req.payload || {}).length > 0) {
+
+  if (req.mime === 'text/xml' && req.payload.length > 0) {
     debug(req.payload);
     req.payload = xml2json.toJson(req.payload, {
       object: true

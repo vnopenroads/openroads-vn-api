@@ -26,7 +26,7 @@ In addition to these OSM tables, there are a few non-OSM tables that help handle
 
 Whole of Network import is an administrative task at the beginning of setting up an instance of ORMA. This imports road network in it's complete form with minimum or no asset information. The utility `utils/won-import.sh` supports importing a shapefile on road network. The script creates a changeset from all the geometries, and uploads to the ORMA instance. For example:
 
-`cd utils; ./won-import.sh data.shp http://orma-api.url`
+`cd utils; ./won-import.sh data.shp uid username http://orma-api.url`
 
 To translate properties of the shapefile into ORMA attributes, see the `translations` directory.
 ## Running locally
