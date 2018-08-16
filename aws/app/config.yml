@@ -40,7 +40,7 @@ ecs:
             AWS_DEFAULT_REGION: '!Sub ${AWS::Region}'
             AWS_REGION: '!Sub ${AWS::Region}'
         - name: vn-tiler
-          image: developmentseed/openroads-vn-tiler:1.0.0
+          image: developmentseed/openroads-vn-tiler:1.1.0
           cpu: 2048
           memory: 5200
           commands:
