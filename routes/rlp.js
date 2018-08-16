@@ -30,57 +30,59 @@ const POSTGIS_SIGNIFICANT_DECIMAL_PLACES = 7;
 const rlpGeomQueue = new Queue('RLP geometries'); //FIXME: get redis url from config
 
 rlpGeomQueue.process(async function (job) {
-  let fileReads = job.data.fileReads;
-  const fieldDataRoadIds = job.data.fieldDataRoadIds;
-    // Ignore any roads that were ingested earlier
-  const existingFieldData = await knex
-    .select(st.asGeoJSON('geom').as('geom'), 'road_id', 'type')
-    .from('field_data_geometries')
-    .whereIn('road_id', fieldDataRoadIds)
-    .orWhereNull('road_id')
-    .map(efd => Object.assign(efd, { geom: JSON.parse(efd.geom) }));
-  fileReads = fileReads.reduce((all, fr) => {
-    const match = existingFieldData.find(efd =>
-      geometriesEqualAtPrecision(efd.geom, fr.geom.geometry, POSTGIS_SIGNIFICANT_DECIMAL_PLACES) &&
-      _.isEqual(efd.datetime, fr.datetime) &&
-      efd.road_id === fr.road_id
-    );
-    if (!match) { all = all.concat(fr); }
-    return all;
-  }, []);
-  if (!fileReads.length) { return Promise.resolve('error: data already ingested') }
+  return new Promise(async (resolve, reject) => {
+    let fileReads = job.data.fileReads;
+    const fieldDataRoadIds = job.data.fieldDataRoadIds;
+      // Ignore any roads that were ingested earlier
+    const existingFieldData = await knex
+      .select(st.asGeoJSON('geom').as('geom'), 'road_id', 'type')
+      .from('field_data_geometries')
+      .whereIn('road_id', fieldDataRoadIds)
+      .orWhereNull('road_id')
+      .map(efd => Object.assign(efd, { geom: JSON.parse(efd.geom) }));
+    fileReads = fileReads.reduce((all, fr) => {
+      const match = existingFieldData.find(efd =>
+        geometriesEqualAtPrecision(efd.geom, fr.geom.geometry, POSTGIS_SIGNIFICANT_DECIMAL_PLACES) &&
+        _.isEqual(efd.datetime, fr.datetime) &&
+        efd.road_id === fr.road_id
+      );
+      if (!match) { all = all.concat(fr); }
+      return all;
+    }, []);
+    if (!fileReads.length) { return resolve('error: data already ingested') }
 
-  Promise.all(fileReads.map(fr =>
-    // Add roads to the `field_data_geometries` table
-    knex.insert({
-      road_id: fr.road_id,
-      type: fr.type,
-      geom: st.geomFromGeoJSON(JSON.stringify(fr.geom.geometry))
-    }).into('field_data_geometries')
-  ))
-  .then(async () => {
-    // Filter out geometries that already exist in macrocosm
-    fileReads = await pFilter(fileReads, existingGeomFilter);
-    if (fileReads.length === 0) {
-      // FIXME: not propagating.
-      return Promise.resolve('no features to import');
-    }
-    // Add roads to the production geometries tables, OSM format
-    const features = fileReads.map(fr => {
-      // All geometries should be tagged with a `highway` value
-      // `road` is temporary until we can do better classification here
-      const properties = {highway: 'road'};
-      if (fr.road_id) { properties.or_vpromms = fr.road_id; }
-      return Object.assign(fr.geom, {properties: properties});
+    return Promise.all(fileReads.map(fr =>
+      // Add roads to the `field_data_geometries` table
+      knex.insert({
+        road_id: fr.road_id,
+        type: fr.type,
+        geom: st.geomFromGeoJSON(JSON.stringify(fr.geom.geometry))
+      }).into('field_data_geometries')
+    ))
+    .then(async () => {
+      // Filter out geometries that already exist in macrocosm
+      fileReads = await pFilter(fileReads, existingGeomFilter);
+      if (fileReads.length === 0) {
+        // FIXME: not propagating.
+        return resolve('no features to import');
+      }
+      // Add roads to the production geometries tables, OSM format
+      const features = fileReads.map(fr => {
+        // All geometries should be tagged with a `highway` value
+        // `road` is temporary until we can do better classification here
+        const properties = {highway: 'road'};
+        if (fr.road_id) { properties.or_vpromms = fr.road_id; }
+        return Object.assign(fr.geom, {properties: properties});
+      });
+
+
+      // Need to replace the `<osm>` top-level tag with `<osmChange><create>`
+      const osm = libxml.parseXmlString(geojsontoosm(features))
+        .root().childNodes().map(n => n.toString()).join('');
+      const changeset = `<osmChange version="0.6" generator="OpenRoads">\n<create>\n${osm}\n</create>\n</osmChange>`;
+
+      uploadChangeset({payload: changeset}, resolve);
     });
-
-
-    // Need to replace the `<osm>` top-level tag with `<osmChange><create>`
-    const osm = libxml.parseXmlString(geojsontoosm(features))
-      .root().childNodes().map(n => n.toString()).join('');
-    const changeset = `<osmChange version="0.6" generator="OpenRoads">\n<create>\n${osm}\n</create>\n</osmChange>`;
-
-    return Promise.resolve(uploadChangeset({payload: changeset}, function() {}));
   });
 });
 
