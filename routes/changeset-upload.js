@@ -13,6 +13,7 @@ var models = {
 };
 
 function upload(req, res) {
+  console.log('upload changeset handler', req.params.changesetID);
   var changesetID = req.params.changesetID;
   if (!changesetID || isNaN(changesetID)) {
     return res(Boom.badRequest('Changeset ID must be a non-zero number'));
