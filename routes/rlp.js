@@ -6,8 +6,14 @@ const knex = require('../connection.js');
 const knexPostgis = require('knex-postgis');
 const libxml = require('libxmljs');
 const unzip = require('unzip2');
+const Queue = require('bull');
+const pFilter = require('p-filter');
 const { parseGeometries } = require('../services/rlp-geometries');
 const { parseProperties } = require('../services/rlp-properties');
+const toGeojson = require('../services/osm-data-to-geojson');
+const queryBbox = require('../services/query-bbox');
+const turfPointsWithinPolygon = require('@turf/points-within-polygon').default;
+const turfHelpers = require('@turf/helpers');
 const uploadChangeset = require('./osc-upload').handler;
 const {
   NO_ID,
@@ -15,18 +21,118 @@ const {
 } = require('../util/road-id-utils');
 const { geometriesEqualAtPrecision } = require('../util/geometry-utils');
 const errors = require('../util/errors');
-
+const turfBuffer = require('@turf/buffer').default;
+const turfBbox = require('@turf/bbox');
 const st = knexPostgis(knex);
 
 const POSTGIS_SIGNIFICANT_DECIMAL_PLACES = 7;
 
-async function geometriesHandler (req, res) {
+const rlpGeomQueue = new Queue('RLP geometries'); //FIXME: get redis url from config
+
+rlpGeomQueue.process(async function (job) {
+  return new Promise(async (resolve, reject) => {
+    let fileReads = job.data.fileReads;
+    const fieldDataRoadIds = job.data.fieldDataRoadIds;
+      // Ignore any roads that were ingested earlier
+    const existingFieldData = await knex
+      .select(st.asGeoJSON('geom').as('geom'), 'road_id', 'type')
+      .from('field_data_geometries')
+      .whereIn('road_id', fieldDataRoadIds)
+      .orWhereNull('road_id')
+      .map(efd => Object.assign(efd, { geom: JSON.parse(efd.geom) }));
+    fileReads = fileReads.reduce((all, fr) => {
+      const match = existingFieldData.find(efd =>
+        geometriesEqualAtPrecision(efd.geom, fr.geom.geometry, POSTGIS_SIGNIFICANT_DECIMAL_PLACES) &&
+        _.isEqual(efd.datetime, fr.datetime) &&
+        efd.road_id === fr.road_id
+      );
+      if (!match) { all = all.concat(fr); }
+      return all;
+    }, []);
+    if (!fileReads.length) { return resolve('error: data already ingested') }
+
+    return Promise.all(fileReads.map(fr =>
+      // Add roads to the `field_data_geometries` table
+      knex.insert({
+        road_id: fr.road_id,
+        type: fr.type,
+        geom: st.geomFromGeoJSON(JSON.stringify(fr.geom.geometry))
+      }).into('field_data_geometries')
+    ))
+    .then(async () => {
+      // Filter out geometries that already exist in macrocosm
+      fileReads = await pFilter(fileReads, existingGeomFilter);
+      if (fileReads.length === 0) {
+        // FIXME: not propagating.
+        return resolve('no features to import');
+      }
+      // Add roads to the production geometries tables, OSM format
+      const features = fileReads.map(fr => {
+        // All geometries should be tagged with a `highway` value
+        // `road` is temporary until we can do better classification here
+        const properties = {highway: 'road'};
+        if (fr.road_id) { properties.or_vpromms = fr.road_id; }
+        return Object.assign(fr.geom, {properties: properties});
+      });
+
+
+      // Need to replace the `<osm>` top-level tag with `<osmChange><create>`
+      const osm = libxml.parseXmlString(geojsontoosm(features))
+        .root().childNodes().map(n => n.toString()).join('');
+      const changeset = `<osmChange version="0.6" generator="OpenRoads">\n<create>\n${osm}\n</create>\n</osmChange>`;
+
+      uploadChangeset({payload: changeset}, resolve);
+    });
+  });
+});
+
+/*
+  This function accepts a `fileRead` object, with a `.geom` property.
+  It needs to return a promise that resolves to either `true` or `false`.
+
+  `true` indicates that the rlp geometry should be added to the changeset,
+  and `false` if it is a duplicate of an existing geometry and needs to be
+  filtered out.
+*/
+async function existingGeomFilter(fr) {
+  const geom = fr.geom;
+  // get a buffer of the RLP geom, and find bbox.
+  const geomBuffer = turfBuffer(geom, 0.03, {units: 'kilometers'});
+  const geomBbox = turfBbox(geomBuffer);
+  const bbox = {
+    minLat: geomBbox[1],
+    minLon: geomBbox[0],
+    maxLat: geomBbox[3],
+    maxLon: geomBbox[2]
+  };
+
+  // find all near features as geojson
+  const nearFeatures = await queryBbox(knex, bbox);
+  const geojson = toGeojson(nearFeatures);
+  let hasMatch = false;
+  // for each near ways, find the way with at least 40% of the nodes are overlapping.
+  if (geojson.features.length) {
+    geojson.features.forEach(way => {
+      const nodes = turfHelpers.featureCollection(way.geometry.coordinates);
+      const pointsWithinGeom = turfPointsWithinPolygon(nodes, geomBuffer);
+      const matchRate = (pointsWithinGeom.features.length / way.geometry.coordinates.length) * 100;
+      if (matchRate > 40) {
+        hasMatch = true;
+      }
+    });
+  }
+  return !hasMatch;
+}
+
+async function geometriesHandler(req, res) {
+  const payload = req.payload;
   const filenamePattern = /^.*\/RoadPath.*\.csv$/;
   const existingRoadIds = await knex.select('id').from('road_properties').map(r => r.id);
 
   let fileReads = [];
   let badPaths = [];
-  req.payload[Object.keys(req.payload)[0]]
+  // console.log('file', payload['file']);
+  payload[Object.keys(req.payload)[0]]
     .pipe(unzip.Parse())
     .on('entry', async e => {
       if (e.type === 'File' && filenamePattern.test(e.path)) {
@@ -58,47 +164,13 @@ async function geometriesHandler (req, res) {
         return fr;
       });
 
-      // Ignore any roads that were ingested earlier
-      const existingFieldData = await knex
-        .select(st.asGeoJSON('geom').as('geom'), 'road_id', 'type')
-        .from('field_data_geometries')
-        .whereIn('road_id', fieldDataRoadIds)
-        .orWhereNull('road_id')
-        .map(efd => Object.assign(efd, { geom: JSON.parse(efd.geom) }));
-      fileReads = fileReads.reduce((all, fr) => {
-        const match = existingFieldData.find(efd =>
-          geometriesEqualAtPrecision(efd.geom, fr.geom.geometry, POSTGIS_SIGNIFICANT_DECIMAL_PLACES) &&
-          _.isEqual(efd.datetime, fr.datetime) &&
-          efd.road_id === fr.road_id
-        );
-        if (!match) { all = all.concat(fr); }
-        return all;
-      }, []);
-      if (!fileReads.length) { return res(errors.alreadyIngested); }
-
-      Promise.all(fileReads.map(fr =>
-        // Add roads to the `field_data_geometries` table
-        knex.insert({
-          road_id: fr.road_id,
-          type: fr.type,
-          geom: st.geomFromGeoJSON(JSON.stringify(fr.geom.geometry))
-        }).into('field_data_geometries')
-      ))
-      .then(() => {
-        // Add roads to the production geometries tables, OSM format
-        const features = fileReads.map(fr => {
-          // All geometries should be tagged with a `highway` value
-          // `road` is temporary until we can do better classification here
-          const properties = {highway: 'road'};
-          if (fr.road_id) { properties.or_vpromms = fr.road_id; }
-          return Object.assign(fr.geom, {properties: properties});
+      const job = rlpGeomQueue.add({
+        fileReads,
+        fieldDataRoadIds
+      }).then(job => {
+        res({
+          job: job.id
         });
-        // Need to replace the `<osm>` top-level tag with `<osmChange><create>`
-        const osm = libxml.parseXmlString(geojsontoosm(features))
-          .root().childNodes().map(n => n.toString()).join('');
-        const changeset = `<osmChange version="0.6" generator="OpenRoads">\n<create>\n${osm}\n</create>\n</osmChange>`;
-
-        return Promise.resolve(uploadChangeset({payload: changeset}, res));
       });
     });
 }
