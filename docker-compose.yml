@@ -19,6 +19,7 @@ services:
       - "80:4000"
     environment:
       - DATABASE_URL=postgres://postgres@db:5432/openroads
+      - REDIS_URL=redis://redis:6379
 
   vn-tiler:
     image: developmentseed/openroads-vn-tiler:latest
@@ -36,6 +37,9 @@ services:
       - "3000:3000"
     environment:
       - BUCKET_URL=http://openroads-vn-tiles.s3-website-us-east-1.amazonaws.com/tiles
+
+  redis:
+    image: redis
 
   deploy:
     image: developmentseed/openroads-vn-api:latest
