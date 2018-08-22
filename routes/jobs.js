@@ -1,5 +1,5 @@
 const Queue = require('bull');
-const rlpGeomQueue = new Queue('RLP geometries');
+const rlpGeomQueue = require('../queue');
 var Boom = require('boom');
 
 function jobHandler(req, res) {
@@ -9,6 +9,7 @@ function jobHandler(req, res) {
       res(data);
     })
     .catch(e => {
+      console.error(e);
       res(Boom.notFound('Job ID not found'));
     });
 }

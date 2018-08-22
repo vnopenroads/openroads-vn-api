@@ -6,7 +6,6 @@ const knex = require('../connection.js');
 const knexPostgis = require('knex-postgis');
 const libxml = require('libxmljs');
 const unzip = require('unzip2');
-const Queue = require('bull');
 const pFilter = require('p-filter');
 const { parseGeometries } = require('../services/rlp-geometries');
 const { parseProperties } = require('../services/rlp-properties');
@@ -24,10 +23,10 @@ const errors = require('../util/errors');
 const turfBuffer = require('@turf/buffer').default;
 const turfBbox = require('@turf/bbox');
 const st = knexPostgis(knex);
+const rlpGeomQueue = require('../queue');
 
 const POSTGIS_SIGNIFICANT_DECIMAL_PLACES = 7;
 
-const rlpGeomQueue = new Queue('RLP geometries'); //FIXME: get redis url from config
 
 rlpGeomQueue.process(async function (job) {
   return new Promise(async (resolve, reject) => {
