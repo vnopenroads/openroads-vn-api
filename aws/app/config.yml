@@ -69,6 +69,8 @@ ecs:
           image: redis
           cpu: 1024
           memory: 2048
+          commands:
+            - redis-server
 
 
 # used as custom resource for cloudformation manipulation
