@@ -124,6 +124,8 @@ async function existingGeomFilter(fr) {
 }
 
 async function geometriesHandler(req, res) {
+  console.error('upload received');
+  const frontendUrl = process.env.FRONTEND_URL || 'http://openroads-vn.com/';
   const payload = req.payload;
   const filenamePattern = /^.*\/RoadPath.*\.csv$/;
   const existingRoadIds = await knex.select('id').from('road_properties').map(r => r.id);
@@ -167,9 +169,8 @@ async function geometriesHandler(req, res) {
         fileReads,
         fieldDataRoadIds
       }).then(job => {
-        res({
-          job: job.id
-        });
+        // res({job: job.id});
+        res.redirect(`${frontendUrl}#/en/jobs/${job.id}`);
       });
     });
 }
