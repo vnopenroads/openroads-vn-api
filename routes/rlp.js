@@ -48,7 +48,13 @@ rlpGeomQueue.process(async function (job) {
       if (!match) { all = all.concat(fr); }
       return all;
     }, []);
-    if (!fileReads.length) { return resolve('error: data already ingested') }
+    
+    if (!fileReads.length) { 
+      return resolve({
+        message: 'No roads imported. Data for this VProMM + Timestamp already ingested'),
+        type: 'error'
+      });
+    }
 
     return Promise.all(fileReads.map(fr =>
       // Add roads to the `field_data_geometries` table
@@ -62,8 +68,10 @@ rlpGeomQueue.process(async function (job) {
       // Filter out geometries that already exist in macrocosm
       fileReads = await pFilter(fileReads, existingGeomFilter);
       if (fileReads.length === 0) {
-        // FIXME: not propagating.
-        return resolve('no features to import');
+        return resolve({
+          message: 'No roads imported. Overlapping geometries exist in system.'
+          type: 'error'
+        });
       }
       // Add roads to the production geometries tables, OSM format
       const features = fileReads.map(fr => {
@@ -124,6 +132,8 @@ async function existingGeomFilter(fr) {
 }
 
 async function geometriesHandler(req, res) {
+  console.error('upload received');
+  const frontendUrl = process.env.FRONTEND_URL || 'http://openroads-vn.com/';
   const payload = req.payload;
   const filenamePattern = /^.*\/RoadPath.*\.csv$/;
   const existingRoadIds = await knex.select('id').from('road_properties').map(r => r.id);
@@ -167,9 +177,8 @@ async function geometriesHandler(req, res) {
         fileReads,
         fieldDataRoadIds
       }).then(job => {
-        res({
-          job: job.id
-        });
+        // res({job: job.id});
+        res.redirect(`${frontendUrl}#/en/jobs/${job.id}`);
       });
     });
 }
