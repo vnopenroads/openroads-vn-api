@@ -49,7 +49,12 @@ rlpGeomQueue.process(async function (job) {
       return all;
     }, []);
     
-    if (!fileReads.length) { return resolve('No roads imported. Data for this VProMM + Timestamp already ingested') }
+    if (!fileReads.length) { 
+      return resolve({
+        message: 'No roads imported. Data for this VProMM + Timestamp already ingested'),
+        type: 'error'
+      });
+    }
 
     return Promise.all(fileReads.map(fr =>
       // Add roads to the `field_data_geometries` table
@@ -64,7 +69,10 @@ rlpGeomQueue.process(async function (job) {
       fileReads = await pFilter(fileReads, existingGeomFilter);
       if (fileReads.length === 0) {
         // FIXME: not propagating.
-        return resolve('No roads imported. Overlapping geometries exist in system.');
+        return resolve({
+          message: 'No roads imported. Overlapping geometries exist in system.'
+          type: 'error'
+        });
       }
       // Add roads to the production geometries tables, OSM format
       const features = fileReads.map(fr => {
