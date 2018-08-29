@@ -68,7 +68,6 @@ rlpGeomQueue.process(async function (job) {
       // Filter out geometries that already exist in macrocosm
       fileReads = await pFilter(fileReads, existingGeomFilter);
       if (fileReads.length === 0) {
-        // FIXME: not propagating.
         return resolve({
           message: 'No roads imported. Overlapping geometries exist in system.'
           type: 'error'
