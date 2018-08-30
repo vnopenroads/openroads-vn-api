@@ -51,7 +51,7 @@ rlpGeomQueue.process(async function (job) {
     
     if (!fileReads.length) { 
       return resolve({
-        message: 'No roads imported. Data for this VProMM + Timestamp already ingested'),
+        message: 'No roads imported. Data for this VProMM + Timestamp already ingested',
         type: 'error'
       });
     }
@@ -69,7 +69,7 @@ rlpGeomQueue.process(async function (job) {
       fileReads = await pFilter(fileReads, existingGeomFilter);
       if (fileReads.length === 0) {
         return resolve({
-          message: 'No roads imported. Overlapping geometries exist in system.'
+          message: 'No roads imported. Overlapping geometries exist in system.',
           type: 'error'
         });
       }
