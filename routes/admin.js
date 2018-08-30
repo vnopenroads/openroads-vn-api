@@ -3,6 +3,7 @@
 var Boom = require('boom');
 var knex = require('../connection');
 var formatBox = require('../services/admin').formatBOX;
+var _ = require('lodash');
 
 module.exports = [
   {
@@ -290,6 +291,49 @@ module.exports = [
 
           return provinces;
         }, {})).type('application/json');
+      })
+      .catch(function(err) {
+        console.error('Error GET /admin/roads/total', err);
+        return res(Boom.badImplementation(err));
+      });
+    }
+  },
+  {
+    /**
+     * @api {get} /admin/stats
+     * @apiGroup Admin
+     * @apiName Province and District Stats
+     * @apiDescription list road count for all provinces and districts
+     * @apiVersion 0.3.0
+     *
+     * @apiExample {curl} Example Usage:
+     *  curl -X GET http://localhost:4000/admin/stats
+     */
+    method: 'GET',
+    path: '/admin/stats',
+    handler: function (req, res) {
+      // query
+      knex('admin_boundaries')
+      .select('id', 'code', 'parent_id', 'name_en', 'name_vn', 'type')
+      .where('type', 'province')
+      .orWhere('type', 'district')
+      .sum('total_length as total')
+      .sum('vpromm_length as vpromm')
+      .groupBy('id', 'code', 'parent_id', 'type', 'name_en', 'name_vn')
+      .then((rows) => {
+        var admins = {};
+        // get all the provinces
+        admins['provinces'] = _.filter(rows, (r) => {
+          return r.type === 'province';
+        });
+
+        // group district per province
+        _.forEach(admins.provinces, (p) => {
+          p['districts'] = _.filter(rows, (r) => {
+            return r.parent_id === p.id;
+          });
+        });
+        return res(admins).type('application/json');
       })
       .catch(function(err) {
         console.error('Error GET /admin/roads/total', err);
