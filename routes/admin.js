@@ -312,7 +312,7 @@ module.exports = [
     method: 'GET',
     path: '/admin/stats',
     handler: function (req, res) {
-      // query
+      var stats = {};
       knex('admin_boundaries')
       .select('id', 'code', 'parent_id', 'name_en', 'name_vn', 'type')
       .where('type', 'province')
@@ -321,15 +321,52 @@ module.exports = [
       .sum('vpromm_length as vpromm')
       .groupBy('id', 'code', 'parent_id', 'type', 'name_en', 'name_vn')
       .then((rows) => {
+        stats.lengths = rows;
+        return knex('road_properties')
+        .select(knex.raw('id, status, SUBSTRING(id, 0, 3) AS province, SUBSTRING(id, 4, 2) AS district'))
+        .groupBy('id', 'province', 'district')
+        .then((roads) => {
+          var adminStatus = {
+            province: {},
+            district: {}
+          };
+          _.forEach(roads, (r) => {
+            if (!adminStatus.province.hasOwnProperty(r.province)) {
+              adminStatus.province[r.province] = {'pending': 0, 'reviewed': 0};
+            }
+            if (!adminStatus.district.hasOwnProperty(r.district)) {
+              adminStatus.district[r.district] = {'pending': 0, 'reviewed': 0};
+            }
+            if (r.status === 'reviewed') {
+              adminStatus.province[r.province].reviewed = adminStatus.province[r.province].reviewed + 1;
+              adminStatus.district[r.district].reviewed = adminStatus.district[r.district].reviewed + 1;
+            } else {
+              adminStatus.province[r.province].pending = adminStatus.province[r.province].pending + 1;
+              adminStatus.district[r.district].pending = adminStatus.district[r.district].pending + 1;
+            }
+          });
+          stats.status = adminStatus;
+          return stats;
+        });
+      })
+      .then((stats) => {
         var admins = {};
         // get all the provinces
-        admins['provinces'] = _.filter(rows, (r) => {
+        admins['provinces'] = _.filter(stats.lengths, (r) => {
+          r.status = null;
+          if (r.code) {
+            r.status = stats.status.province[r.code];
+          }
           return r.type === 'province';
         });
 
         // group district per province
         _.forEach(admins.provinces, (p) => {
-          p['districts'] = _.filter(rows, (r) => {
+          p['districts'] = _.filter(stats.lengths, (r) => {
+            r.status = null;
+            if (r.code) {
+              r.status = stats.status.district[r.code];
+            }
             return r.parent_id === p.id;
           });
         });
