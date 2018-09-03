@@ -308,25 +308,36 @@ module.exports = [
      *
      * @apiExample {curl} Example Usage:
      *  curl -X GET http://localhost:4000/admin/stats
+     *  curl -X GET http://localhost:4000/admin/stats&province=401
+     *  curl -X GET http://localhost:4000/admin/stats&province=401&district=40101
      */
     method: 'GET',
     path: '/admin/stats',
     handler: function (req, res) {
-      var stats = {};
+      const province = req.query.province || null;
+      const district = req.query.district || null;
+      const stats = {};
       knex('admin_boundaries')
       .select('id', 'code', 'parent_id', 'name_en', 'name_vn', 'type')
-      .where('type', 'province')
-      .orWhere('type', 'district')
+      .modify(queryBuilder => {
+        if (province && district) {
+          queryBuilder.andWhere('id', province)
+          .orWhere('id', district);
+        } else if (province) {
+          queryBuilder.andWhere('id', province)
+          .orWhere('parent_id', province);
+        }
+      })
       .sum('total_length as total')
       .sum('vpromm_length as vpromm')
-      .groupBy('id', 'code', 'parent_id', 'type', 'name_en', 'name_vn')
+      .groupBy('id', 'code', 'parent_id', 'name_en', 'name_vn')
       .then((rows) => {
         stats.lengths = rows;
         return knex('road_properties')
         .select(knex.raw('id, status, SUBSTRING(id, 0, 3) AS province, SUBSTRING(id, 4, 2) AS district'))
         .groupBy('id', 'province', 'district')
         .then((roads) => {
-          var adminStatus = {
+          const adminStatus = {
             province: {},
             district: {}
           };
@@ -350,7 +361,7 @@ module.exports = [
         });
       })
       .then((stats) => {
-        var admins = {};
+        const admins = {};
         // get all the provinces
         admins['provinces'] = _.filter(stats.lengths, (r) => {
           r.status = null;
