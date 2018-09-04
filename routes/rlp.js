@@ -71,11 +71,7 @@ rlpGeomQueue.process(async function (job) {
       // fileReads = await pFilter(fileReads, existingGeomFilter);
 
       const osmChanges = await getOSMChanges(fileReads);
-      console.error('osm changes', osmChanges);
-
       const creates = osmChanges.map(c => c.create).filter(c => !!c);
-      console.log('creates', creates);
-
 
       const modifications = osmChanges.map(c => c.modify).reduce((memo, modification) => {
         return memo.concat(modification);
@@ -147,7 +143,7 @@ async function getOSMChanges(fileReads) {
   return pMap(fileReads, async (fr) => {
     const geom = fr.geom;
     // get a buffer of the RLP geom, and find bbox.
-    const geomBuffer = turfBuffer(geom, 0.03, {units: 'kilometers'});
+    const geomBuffer = turfBuffer(geom, 0.01, {units: 'kilometers'});
     const geomBbox = turfBbox(geomBuffer);
     const bbox = {
       minLat: geomBbox[1],
