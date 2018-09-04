@@ -139,6 +139,7 @@ async function patchVpromm(way) {
 }
 
 
+
 async function getOSMChanges(fileReads) {
   return pMap(fileReads, async (fr) => {
     const geom = fr.geom;
@@ -165,7 +166,7 @@ async function getOSMChanges(fileReads) {
       const nodes = turfHelpers.featureCollection(way.geometry.coordinates);
       const pointsWithinGeom = turfPointsWithinPolygon(nodes, geomBuffer);
       const matchRate = (pointsWithinGeom.features.length / way.geometry.coordinates.length) * 100;
-      if (matchRate > 40) {
+      if (matchRate > 60) {
         ret.create = false;
         const modification = getVprommModification(way, fr.road_id);
         if (modification) {
@@ -190,7 +191,6 @@ function getVprommModification(way, roadId) {
 
 
 async function geometriesHandler(req, res) {
-  console.error('upload received');
   const frontendUrl = process.env.FRONTEND_URL || 'http://openroads-vn.com/';
   const payload = req.payload;
   const filenamePattern = /^.*\/RoadPath.*\.csv$/;
