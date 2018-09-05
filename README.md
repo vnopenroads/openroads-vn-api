@@ -35,6 +35,8 @@ To translate properties of the shapefile into ORMA attributes, see the `translat
 
 `yarn install` should cover all Node dependencies. Use the Node version currently listed in the `package.json`.
 
+Ensure you have `redis` running, and set the `REDIS_URL` environment variable accordingly (to `redis://localhost:66379`).
+
 Run the database with `yarn docker-start-db`, set the `DATABASE_URL` environment variable accordingly (to `postgres://postgres:postgres@localhost:5433/openroads`), and run the API using `yarn start`.
 
 ### Quickstart using Docker
