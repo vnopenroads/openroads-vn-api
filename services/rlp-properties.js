@@ -9,7 +9,7 @@ const getRoadIdFromPath = require('../util/road-id-utils').getRoadIdFromPath;
 
 function parseRowV1 (csvRow) {
   const DATE_STRING_FORMAT = 'HH:mm:ss YYYY-MMMM-DD';
-  const USED_PROERTIES_V1 = ['time', 'start_lat', 'start_lon', 'end_lat', 'end_lon'];
+  const USED_PROERTIES = ['time', 'start_lat', 'start_lon', 'end_lat', 'end_lon'];
 
   const coord = midpoint(
     point([Number(csvRow.start_lon), Number(csvRow.start_lat)]),
@@ -26,8 +26,8 @@ function parseRowV1 (csvRow) {
 function parseRowV2(csvRow) {
   const DATE_STRING_FORMAT = 'HH:mm:ss YYYY-MMMM-DD';
   const coord = midpoint(
-    point([Number(csvRow['Interval_Start_Latidude']), Number(csvRow['Interval_End_Longitude'])]),
-    point([Number(csvRow['Interval_End_Latitude']), Number(csvRow['Interval_End_Longitude'])])
+    point([Number(csvRow['Interval_Start_Longitude']), Number(csvRow['Interval_Start_Latidude'])]),
+    point([Number(csvRow['Interval_End_Longitude']), Number(csvRow['Interval_End_Latitude'])])
   );
 
   const props = {
@@ -71,4 +71,4 @@ async function parseProperties (path, contentsStream, existingRoadIds, version) 
   );
 };
 
-module.exports = { parseRow, parseProperties };
+module.exports = { parseRowV1, parseRowV2, parseProperties };

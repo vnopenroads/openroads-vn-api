@@ -89,6 +89,9 @@ rlpGeomQueue.process(async function (job) {
             if (fr.road_id) { properties.or_vpromms = fr.road_id; }
             return Object.assign(fr.geom, {properties: properties});
           });
+
+          const osmCreate = libxml.parseXmlString(geojsontoosm(featuresToAdd))
+            .root().childNodes().map(n => n.toString()).join('');
           // FIXME: convert `ways` in `modifications` array into `osmChange` XML
 
           // if (fileReads.length === 0) {
@@ -322,6 +325,7 @@ async function propertiesHandler (req, res) {
           _.isEqual(p.datetime, r.datetime) &&
           p.road_id === r.road_id
         );
+
         return match
           ? Promise.resolve()
           : knex.insert({

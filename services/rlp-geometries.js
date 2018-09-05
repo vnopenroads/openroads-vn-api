@@ -63,7 +63,7 @@ function getPoint(row, version) {
   if (version === 'v2') {
     return {
       'time': row['Time'],
-      'latitude': row['Point_Latitude'],
+      'latitude': row['Point_Latidude'],
       'longitude': row['Point_Longitude']
     }
   }
@@ -78,7 +78,8 @@ async function parseGeometries (path, contentsStream, existingRoadIds, version) 
     contentsStream.pipe(fastCSV
       .parse({headers: true})
       .on('data', d => {
-        const point = getPoint(d, version); 
+        const point = getPoint(d, version);
+        console.error('point', point, version);
         points = points.concat(point);
       })
       .on('end', async () => {
