@@ -190,6 +190,16 @@ function getVprommModification(way, roadId) {
 }
 
 
+function getGeometriesRLPVersion(fileObject) {
+  const filenamePatternV1 = /^.*\/RoadPath.*\.csv$/;
+  const filenamePatternV2 = /^.*\/.*_Link_.*_Path_.*\.csv$/;
+
+  if (filenamePatternV1.test(fileObject.path)) return 'v1';
+  if (filenamePatternV2.test(fileObject.path)) return 'v2';
+
+  return false;
+}
+
 async function geometriesHandler(req, res) {
   const frontendUrl = process.env.FRONTEND_URL || 'http://openroads-vn.com/';
   const payload = req.payload;
@@ -202,8 +212,9 @@ async function geometriesHandler(req, res) {
   payload[Object.keys(req.payload)[0]]
     .pipe(unzip.Parse())
     .on('entry', async e => {
-      if (e.type === 'File' && filenamePattern.test(e.path)) {
-        const read = await parseGeometries(e.path, e, existingRoadIds);
+      const version = getGeometriesRLPVersion(e);
+      if (version) {
+        const read = await parseGeometries(e.path, e, existingRoadIds, version);
         if (!read.road_id) {
           badPaths = badPaths.concat(e.path);
         }
@@ -241,18 +252,36 @@ async function geometriesHandler(req, res) {
     });
 }
 
-async function propertiesHandler (req, res) {
+
+/*
+  Returns false if this is not an RLP properties file.
+  If it is a properties file, returns `v1` or `v2` for version
+*/
+function getPropertiesRLPVersion(fileObject) {
+  if (!fileObject.type === 'File') return false;
+
   // Some CSV filenames start with "RoadIntervals", others with just "Intervals"
-  const filenamePattern = /^.*\/(Road)?Intervals.*\.csv$/;
-  const existingRoadIds = await knex.select('id').from('road_properties').map(r => r.id);
+  const filenamePatternV1 = /^.*\/(Road)?Intervals.*\.csv$/;
+  const filenamePatternV2 = /^.*\/.*_Link_.*_Roughness_.*\.csv$/;
+
+  if (filenamePatternV1.test(fileObject.path)) return 'v1';
+  if (filenamePatternV2.test(fileObject.path)) return 'v2';
+
+  return false; 
+}
+
+async function propertiesHandler (req, res) {
+
+  const existingRoadIds = await knex.select('id').from('road_properties').map(r => r.id);  
 
   let rows = [];
   let badPaths = [];
   req.payload[Object.keys(req.payload)[0]]
     .pipe(unzip.Parse())
     .on('entry', async e => {
-      if (e.type === 'File' && filenamePattern.test(e.path)) {
-        const read = await parseProperties(e.path, e, existingRoadIds);
+      const version = getPropertiesRLPVersion(e);
+      if (version) {
+        const read = await parseProperties(e.path, e, existingRoadIds, version);
         if (!read[0].road_id) {
           badPaths = badPaths.concat(e.path);
         }
