@@ -79,7 +79,6 @@ async function parseGeometries (path, contentsStream, existingRoadIds, version) 
       .parse({headers: true})
       .on('data', d => {
         const point = getPoint(d, version);
-        console.error('point', point, version);
         points = points.concat(point);
       })
       .on('end', async () => {

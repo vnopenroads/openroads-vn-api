@@ -123,7 +123,6 @@ rlpGeomQueue.process(async function (job) {
 async function patchVpromm(way) {
   const wayId = parseInt(way.meta.id, 10);
   const vpromm = way.properties.or_vpromms;
-  console.error('patch vpromm', wayId, vpromm);
   return knex('current_way_tags')
     .insert({
       way_id: wayId,
@@ -211,7 +210,6 @@ async function geometriesHandler(req, res) {
 
   let fileReads = [];
   let badPaths = [];
-  // console.log('file', payload['file']);
   payload[Object.keys(req.payload)[0]]
     .pipe(unzip.Parse())
     .on('entry', async e => {
