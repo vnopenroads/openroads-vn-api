@@ -58,14 +58,29 @@ function cleanGeometry (points) {
   return geom;
 }
 
-async function parseGeometries (path, contentsStream, existingRoadIds) {
+function getPoint(row, version) {
+  if (version === 'v1') return row;
+  if (version === 'v2') {
+    return {
+      'time': row['Time'],
+      'latitude': row['Point_Latidude'],
+      'longitude': row['Point_Longitude']
+    }
+  }
+  throw new Error('Invalid Version format for geometries');
+}
+
+async function parseGeometries (path, contentsStream, existingRoadIds, version) {
   const roadId = getRoadIdFromPath(path, existingRoadIds);
 
   let points = [];
   return new Promise(resolve =>
     contentsStream.pipe(fastCSV
       .parse({headers: true})
-      .on('data', d => { points = points.concat(d); })
+      .on('data', d => {
+        const point = getPoint(d, version);
+        points = points.concat(point);
+      })
       .on('end', async () => {
         resolve({
           road_id: roadId,

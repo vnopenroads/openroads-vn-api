@@ -6,7 +6,8 @@ const knex = require('../connection.js');
 const knexPostgis = require('knex-postgis');
 const libxml = require('libxmljs');
 const unzip = require('unzip2');
-const pFilter = require('p-filter');
+// const pFilter = require('p-filter');
+const pMap = require('p-map');
 const { parseGeometries } = require('../services/rlp-geometries');
 const { parseProperties } = require('../services/rlp-properties');
 const toGeojson = require('../services/osm-data-to-geojson');
@@ -65,74 +66,143 @@ rlpGeomQueue.process(async function (job) {
       }).into('field_data_geometries')
     ))
     .then(async () => {
+
       // Filter out geometries that already exist in macrocosm
-      fileReads = await pFilter(fileReads, existingGeomFilter);
-      if (fileReads.length === 0) {
-        return resolve({
-          message: 'No roads imported. Overlapping geometries exist in system.',
-          type: 'error'
-        });
-      }
-      // Add roads to the production geometries tables, OSM format
-      const features = fileReads.map(fr => {
-        // All geometries should be tagged with a `highway` value
-        // `road` is temporary until we can do better classification here
-        const properties = {highway: 'road'};
-        if (fr.road_id) { properties.or_vpromms = fr.road_id; }
-        return Object.assign(fr.geom, {properties: properties});
+      // fileReads = await pFilter(fileReads, existingGeomFilter);
+
+      const osmChanges = await getOSMChanges(fileReads);
+      const creates = osmChanges.map(c => c.create).filter(c => !!c);
+
+      const modifications = osmChanges.map(c => c.modify).reduce((memo, modification) => {
+        return memo.concat(modification);
+      }, []);
+
+      return pMap(modifications, patchVpromm, { concurrency: 4 })        
+      .then(() => {
+
+        if (creates.length > 0) {
+          // Get osmChange XML for create actions
+          const featuresToAdd = creates.map(fr => {
+            // All geometries should be tagged with a `highway` value
+            // `road` is temporary until we can do better classification here
+            const properties = {highway: 'road'};
+            if (fr.road_id) { properties.or_vpromms = fr.road_id; }
+            return Object.assign(fr.geom, {properties: properties});
+          });
+
+          const osmCreate = libxml.parseXmlString(geojsontoosm(featuresToAdd))
+            .root().childNodes().map(n => n.toString()).join('');
+          // FIXME: convert `ways` in `modifications` array into `osmChange` XML
+
+          // if (fileReads.length === 0) {
+          //   return resolve({
+          //     message: 'No roads imported. Overlapping geometries exist in system.',
+          //     type: 'error'
+          //   });
+          // }
+          
+          // Add roads to the production geometries tables, OSM format
+          const changeset = `<osmChange version="0.6" generator="OpenRoads">\n<create>\n${osmCreate}\n</create>\n</osmChange>`;
+
+          uploadChangeset({payload: changeset}, function(apiResponse) { resolve(apiResponse) });
+        } else {
+          return resolve({
+            'type': 'success',
+            'message': `Vpromm added to ${modifications.length} ways`
+          });
+        }
+      })
+      .catch(e => {
+        console.error('error', e);
       });
-
-
-      // Need to replace the `<osm>` top-level tag with `<osmChange><create>`
-      const osm = libxml.parseXmlString(geojsontoosm(features))
-        .root().childNodes().map(n => n.toString()).join('');
-      const changeset = `<osmChange version="0.6" generator="OpenRoads">\n<create>\n${osm}\n</create>\n</osmChange>`;
-
-      uploadChangeset({payload: changeset}, resolve);
     });
   });
 });
 
-/*
-  This function accepts a `fileRead` object, with a `.geom` property.
-  It needs to return a promise that resolves to either `true` or `false`.
 
-  `true` indicates that the rlp geometry should be added to the changeset,
-  and `false` if it is a duplicate of an existing geometry and needs to be
-  filtered out.
-*/
-async function existingGeomFilter(fr) {
-  const geom = fr.geom;
-  // get a buffer of the RLP geom, and find bbox.
-  const geomBuffer = turfBuffer(geom, 0.03, {units: 'kilometers'});
-  const geomBbox = turfBbox(geomBuffer);
-  const bbox = {
-    minLat: geomBbox[1],
-    minLon: geomBbox[0],
-    maxLat: geomBbox[3],
-    maxLon: geomBbox[2]
-  };
+async function patchVpromm(way) {
+  const wayId = parseInt(way.meta.id, 10);
+  const vpromm = way.properties.or_vpromms;
+  return knex('current_way_tags')
+    .insert({
+      way_id: wayId,
+      k: 'or_vpromms',
+      v: vpromm
+    })
+  .then(function(response) {
+    if (response === 0) {
+      throw new Error('404');
+    }
+    return true;
+  })
+  .catch(e => {
+    console.error('error', e);
+  });
+}
 
-  // find all near features as geojson
-  const nearFeatures = await queryBbox(knex, bbox);
-  const geojson = toGeojson(nearFeatures);
-  let hasMatch = false;
-  // for each near ways, find the way with at least 40% of the nodes are overlapping.
-  if (geojson.features.length) {
+
+
+async function getOSMChanges(fileReads) {
+  return pMap(fileReads, async (fr) => {
+    const geom = fr.geom;
+    // get a buffer of the RLP geom, and find bbox.
+    const geomBuffer = turfBuffer(geom, 0.01, {units: 'kilometers'});
+    const geomBbox = turfBbox(geomBuffer);
+    const bbox = {
+      minLat: geomBbox[1],
+      minLon: geomBbox[0],
+      maxLat: geomBbox[3],
+      maxLon: geomBbox[2]
+    };
+
+    // find all near features as geojson
+    const nearFeatures = await queryBbox(knex, bbox);
+    const geojson = toGeojson(nearFeatures);
+
+    let ret = {
+      create: fr,
+      modify: []
+    };
+
     geojson.features.forEach(way => {
       const nodes = turfHelpers.featureCollection(way.geometry.coordinates);
       const pointsWithinGeom = turfPointsWithinPolygon(nodes, geomBuffer);
       const matchRate = (pointsWithinGeom.features.length / way.geometry.coordinates.length) * 100;
-      if (matchRate > 40) {
-        hasMatch = true;
-      }
+      if (matchRate > 60) {
+        ret.create = false;
+        const modification = getVprommModification(way, fr.road_id);
+        if (modification) {
+          ret.modify.push(modification);
+        }
+      }      
     });
+
+    return ret;
+
+  });
+}
+
+function getVprommModification(way, roadId) {
+  // if the way already has a vpromm, or if roadId is null, don't do anything
+  if (way.properties.or_vpromms || !roadId) {
+    return false;
   }
-  return !hasMatch;
+  way.properties.or_vpromms = roadId;
+  return way;
+}
+
+
+function getGeometriesRLPVersion(fileObject) {
+  const filenamePatternV1 = /^.*\/RoadPath.*\.csv$/;
+  const filenamePatternV2 = /^.*\/.*_Link_.*_Path_.*\.csv$/;
+
+  if (filenamePatternV1.test(fileObject.path)) return 'v1';
+  if (filenamePatternV2.test(fileObject.path)) return 'v2';
+
+  return false;
 }
 
 async function geometriesHandler(req, res) {
-  console.error('upload received');
   const frontendUrl = process.env.FRONTEND_URL || 'http://openroads-vn.com/';
   const payload = req.payload;
   const filenamePattern = /^.*\/RoadPath.*\.csv$/;
@@ -140,12 +210,12 @@ async function geometriesHandler(req, res) {
 
   let fileReads = [];
   let badPaths = [];
-  // console.log('file', payload['file']);
   payload[Object.keys(req.payload)[0]]
     .pipe(unzip.Parse())
     .on('entry', async e => {
-      if (e.type === 'File' && filenamePattern.test(e.path)) {
-        const read = await parseGeometries(e.path, e, existingRoadIds);
+      const version = getGeometriesRLPVersion(e);
+      if (version) {
+        const read = await parseGeometries(e.path, e, existingRoadIds, version);
         if (!read.road_id) {
           badPaths = badPaths.concat(e.path);
         }
@@ -183,18 +253,36 @@ async function geometriesHandler(req, res) {
     });
 }
 
-async function propertiesHandler (req, res) {
+
+/*
+  Returns false if this is not an RLP properties file.
+  If it is a properties file, returns `v1` or `v2` for version
+*/
+function getPropertiesRLPVersion(fileObject) {
+  if (!fileObject.type === 'File') return false;
+
   // Some CSV filenames start with "RoadIntervals", others with just "Intervals"
-  const filenamePattern = /^.*\/(Road)?Intervals.*\.csv$/;
-  const existingRoadIds = await knex.select('id').from('road_properties').map(r => r.id);
+  const filenamePatternV1 = /^.*\/(Road)?Intervals.*\.csv$/;
+  const filenamePatternV2 = /^.*\/.*_Link_.*_Roughness_.*\.csv$/;
+
+  if (filenamePatternV1.test(fileObject.path)) return 'v1';
+  if (filenamePatternV2.test(fileObject.path)) return 'v2';
+
+  return false; 
+}
+
+async function propertiesHandler (req, res) {
+
+  const existingRoadIds = await knex.select('id').from('road_properties').map(r => r.id);  
 
   let rows = [];
   let badPaths = [];
   req.payload[Object.keys(req.payload)[0]]
     .pipe(unzip.Parse())
     .on('entry', async e => {
-      if (e.type === 'File' && filenamePattern.test(e.path)) {
-        const read = await parseProperties(e.path, e, existingRoadIds);
+      const version = getPropertiesRLPVersion(e);
+      if (version) {
+        const read = await parseProperties(e.path, e, existingRoadIds, version);
         if (!read[0].road_id) {
           badPaths = badPaths.concat(e.path);
         }
@@ -235,6 +323,7 @@ async function propertiesHandler (req, res) {
           _.isEqual(p.datetime, r.datetime) &&
           p.road_id === r.road_id
         );
+
         return match
           ? Promise.resolve()
           : knex.insert({

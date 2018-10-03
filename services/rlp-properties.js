@@ -7,7 +7,7 @@ const moment = require('moment');
 const point = require('turf-point');
 const getRoadIdFromPath = require('../util/road-id-utils').getRoadIdFromPath;
 
-function parseRow (csvRow) {
+function parseRowV1 (csvRow) {
   const DATE_STRING_FORMAT = 'HH:mm:ss YYYY-MMMM-DD';
   const USED_PROERTIES = ['time', 'start_lat', 'start_lon', 'end_lat', 'end_lon'];
 
@@ -23,7 +23,28 @@ function parseRow (csvRow) {
   };
 };
 
-async function parseProperties (path, contentsStream, existingRoadIds) {
+function parseRowV2(csvRow) {
+  const DATE_STRING_FORMAT = 'HH:mm:ss YYYY-MMMM-DD';
+  const coord = midpoint(
+    point([Number(csvRow['Interval_Start_Longitude']), Number(csvRow['Interval_Start_Latidude'])]),
+    point([Number(csvRow['Interval_End_Longitude']), Number(csvRow['Interval_End_Latitude'])])
+  );
+
+  const props = {
+    'iri': csvRow['Roughness'],
+    'distance': csvRow['Interval_Length'],
+    'suspension': csvRow['Suspension_Type']
+  };
+
+  return {
+    geom: coord.geometry,
+    datetime: moment(csvRow['Time'], DATE_STRING_FORMAT).toDate(),
+    properties: props
+  };
+
+}
+
+async function parseProperties (path, contentsStream, existingRoadIds, version) {
   const roadId = getRoadIdFromPath(path, existingRoadIds);
 
   let rows = [];
@@ -31,7 +52,14 @@ async function parseProperties (path, contentsStream, existingRoadIds) {
     contentsStream.pipe(fastCSV
       .parse({headers: true})
       .on('data', d => {
-        const row = parseRow(d);
+        let row;
+        if (version === 'v1') {
+          row = parseRowV1(d);
+        } else if (version === 'v2') {
+          row = parseRowV2(d);
+        } else {
+          throw new Error('Invalid version');
+        }
         row.road_id = roadId;
         row.source = 'RoadLabPro';
         rows = rows.concat(row);
@@ -43,4 +71,4 @@ async function parseProperties (path, contentsStream, existingRoadIds) {
   );
 };
 
-module.exports = { parseRow, parseProperties };
+module.exports = { parseRowV1, parseRowV2, parseProperties };
