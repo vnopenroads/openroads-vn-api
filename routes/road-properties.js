@@ -206,10 +206,36 @@ function getCountHandler (req, res) {
       queryBuilder.distinct('id');
     })
   .then(function(rows) {
-    res({
+    const total = {
       count: rows.length,
       osmCount: rows.filter(({ hasOSMData }) => hasOSMData).length
-    }).type('application/json');
+    };
+    const province = {};
+    const provinceRows = groupBy(rows, (r) => {
+      return r.id.substr(0,2);
+    });
+
+    each(provinceRows, (p, pcode) => {
+      province[pcode] = {};
+      province[pcode].count = provinceRows[pcode].length;
+      province[pcode].osmCount = provinceRows[pcode].filter((r) => {
+        return r.hasOSMData;
+      }).length;
+      province[pcode].district = {};
+
+      const districtRows = groupBy(p, (d) => {
+        return d.id.substr(3,2);
+      });
+      each(districtRows, (d, dcode) => {
+        province[pcode].district[dcode] = {};
+        province[pcode].district[dcode].count = districtRows[dcode].length;
+        province[pcode].district[dcode].osmCount = districtRows[dcode].filter((r) => {
+          return r.hasOSMData;
+        }).length;
+      });
+    });
+    total['province'] = province;
+    res(total).type('application/json');
   })
   .catch(function(err) {
     console.error('Error GET /properties/roads/count', err);
