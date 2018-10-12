@@ -3,6 +3,7 @@
 var Boom = require('boom');
 var knex = require('../connection');
 var formatBox = require('../services/admin').formatBOX;
+var _ = require('lodash');
 
 module.exports = [
   {
@@ -290,6 +291,97 @@ module.exports = [
 
           return provinces;
         }, {})).type('application/json');
+      })
+      .catch(function(err) {
+        console.error('Error GET /admin/roads/total', err);
+        return res(Boom.badImplementation(err));
+      });
+    }
+  },
+  {
+    /**
+     * @api {get} /admin/stats
+     * @apiGroup Admin
+     * @apiName Province and District Stats
+     * @apiDescription list road count for all provinces and districts
+     * @apiVersion 0.3.0
+     *
+     * @apiExample {curl} Example Usage:
+     *  curl -X GET http://localhost:4000/admin/stats
+     *  curl -X GET http://localhost:4000/admin/stats&province=401
+     *  curl -X GET http://localhost:4000/admin/stats&province=401&district=40101
+     */
+    method: 'GET',
+    path: '/admin/stats',
+    handler: function (req, res) {
+      const province = req.query.province || null;
+      const district = req.query.district || null;
+      const stats = {};
+      knex('admin_boundaries')
+      .select('id', 'code', 'parent_id', 'name_en', 'name_vn', 'type')
+      .modify(queryBuilder => {
+        if (province && district) {
+          queryBuilder.andWhere('id', province)
+          .orWhere('id', district);
+        } else if (province) {
+          queryBuilder.andWhere('id', province)
+          .orWhere('parent_id', province);
+        }
+      })
+      .sum('total_length as total')
+      .sum('vpromm_length as vpromm')
+      .groupBy('id', 'code', 'parent_id', 'name_en', 'name_vn')
+      .then((rows) => {
+        stats.lengths = rows;
+        return knex('road_properties')
+        .select(knex.raw('id, status, SUBSTRING(id, 0, 3) AS province, SUBSTRING(id, 4, 2) AS district'))
+        .groupBy('id', 'province', 'district')
+        .then((roads) => {
+          const adminStatus = {
+            province: {},
+            district: {}
+          };
+          _.forEach(roads, (r) => {
+            if (!adminStatus.province.hasOwnProperty(r.province)) {
+              adminStatus.province[r.province] = {'pending': 0, 'reviewed': 0};
+            }
+            if (!adminStatus.district.hasOwnProperty(r.district)) {
+              adminStatus.district[r.district] = {'pending': 0, 'reviewed': 0};
+            }
+            if (r.status === 'reviewed') {
+              adminStatus.province[r.province].reviewed = adminStatus.province[r.province].reviewed + 1;
+              adminStatus.district[r.district].reviewed = adminStatus.district[r.district].reviewed + 1;
+            } else {
+              adminStatus.province[r.province].pending = adminStatus.province[r.province].pending + 1;
+              adminStatus.district[r.district].pending = adminStatus.district[r.district].pending + 1;
+            }
+          });
+          stats.status = adminStatus;
+          return stats;
+        });
+      })
+      .then((stats) => {
+        const admins = {};
+        // get all the provinces
+        admins['provinces'] = _.filter(stats.lengths, (r) => {
+          r.status = null;
+          if (r.code) {
+            r.status = stats.status.province[r.code];
+          }
+          return r.type === 'province';
+        });
+
+        // group district per province
+        _.forEach(admins.provinces, (p) => {
+          p['districts'] = _.filter(stats.lengths, (r) => {
+            r.status = null;
+            if (r.code) {
+              r.status = stats.status.district[r.code];
+            }
+            return r.parent_id === p.id;
+          });
+        });
+        return res(admins).type('application/json');
       })
       .catch(function(err) {
         console.error('Error GET /admin/roads/total', err);

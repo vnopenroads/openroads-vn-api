@@ -28,6 +28,29 @@ module.exports = [
       .whereNotNull('road_id')
       .then(roads => res(roads.map(road => road.id)));
     }
+  },
+  {
+    /**
+    * @api {get} /field/ids/all List of all VPRoMM ids with and without field data
+    * @apiGroup Field
+    * @apiName All field ids
+    * @apiDescription Returns a list of all VPRomm ids in the system
+    * @apiVersion 0.1.0
+    *
+    * @apiExample {curl} Example Usage:
+    *   curl http://localhost:4000/field/ids/all
+    * @apiSuccessExample {array} Success-Response:
+    *   ["024BX00040","022BX00029", ...]
+    */
+    method: 'GET',
+    path: '/field/ids/all',
+    handler: function(req, res) {
+      knex('point_properties')
+      .distinct('road_id')
+      .select('road_id as id')
+      .whereNotNull('road_id')
+      .then(roads => res(roads.map(road => road.id)));
+    }    
   }
 ];
 
