@@ -332,8 +332,7 @@ module.exports = [
         // this query also needs to respect the province and/or district filter
         stats.lengths = rows;
         return knex('road_properties')
-        .select(knex.raw('id, status, SUBSTRING(id, 0, 3) AS province, SUBSTRING(id, 4, 2) AS district'))
-        // .groupBy('id', 'province', 'district')
+        .select(knex.raw('id, status'))
         .then((roads) => {
           const adminStatus = {
             province: {},
@@ -352,7 +351,7 @@ module.exports = [
               adminStatus.province[provinceCode].reviewed = adminStatus.province[provinceCode].reviewed + 1;
               adminStatus.district[districtCode].reviewed = adminStatus.district[districtCode].reviewed + 1;
             } else {
-              adminStatus.province[provinceCode].pending = adminStatus.province[r.province].pending + 1;
+              adminStatus.province[provinceCode].pending = adminStatus.province[provinceCode].pending + 1;
               adminStatus.district[districtCode].pending = adminStatus.district[districtCode].pending + 1;
             }
           });
@@ -373,12 +372,11 @@ module.exports = [
 
         // group district per province
         _.forEach(admins.provinces, (p) => {
-          p['districts'] = _.filter(stats.lengths, (r) => {
-            r.status = null;
-            if (r.code) {
-              r.status = stats.status.district[p.code + r.code];
+          p['districts'] = _.filter(_.cloneDeep(stats).lengths, (d) => {
+            if (d.code) {
+              d.status = stats.status.district[p.code + d.code];
             }
-            return r.parent_id === p.id;
+            return d.parent_id === p.id;
           });
         });
         return res(admins).type('application/json');
