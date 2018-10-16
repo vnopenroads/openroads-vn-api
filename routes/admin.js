@@ -318,7 +318,7 @@ module.exports = [
       const district = req.query.district || null;
       const stats = {};
       knex('admin_boundaries')
-      .select('id', 'code', 'parent_id', 'name_en', 'name_vn', 'type')
+      .select('id', 'code', 'parent_id', 'name_en', 'name_vn', 'type', 'total_length as total', 'vpromm_length as vpromm')
       .modify(queryBuilder => {
         if (province && district) {
           queryBuilder.andWhere('id', province)
@@ -328,32 +328,32 @@ module.exports = [
           .orWhere('parent_id', province);
         }
       })
-      .sum('total_length as total')
-      .sum('vpromm_length as vpromm')
-      .groupBy('id', 'code', 'parent_id', 'name_en', 'name_vn')
       .then((rows) => {
+        // this query also needs to respect the province and/or district filter
         stats.lengths = rows;
         return knex('road_properties')
         .select(knex.raw('id, status, SUBSTRING(id, 0, 3) AS province, SUBSTRING(id, 4, 2) AS district'))
-        .groupBy('id', 'province', 'district')
+        // .groupBy('id', 'province', 'district')
         .then((roads) => {
           const adminStatus = {
             province: {},
             district: {}
           };
           _.forEach(roads, (r) => {
-            if (!adminStatus.province.hasOwnProperty(r.province)) {
-              adminStatus.province[r.province] = {'pending': 0, 'reviewed': 0};
+            let provinceCode = r.id.substr(0, 2);
+            let districtCode = provinceCode + r.id.substr(3, 2);
+            if (!adminStatus.province.hasOwnProperty(provinceCode)) {
+              adminStatus.province[provinceCode] = {'pending': 0, 'reviewed': 0};
             }
-            if (!adminStatus.district.hasOwnProperty(r.district)) {
-              adminStatus.district[r.district] = {'pending': 0, 'reviewed': 0};
+            if (!adminStatus.district.hasOwnProperty(districtCode)) {
+              adminStatus.district[districtCode] = {'pending': 0, 'reviewed': 0};
             }
             if (r.status === 'reviewed') {
-              adminStatus.province[r.province].reviewed = adminStatus.province[r.province].reviewed + 1;
-              adminStatus.district[r.district].reviewed = adminStatus.district[r.district].reviewed + 1;
+              adminStatus.province[provinceCode].reviewed = adminStatus.province[provinceCode].reviewed + 1;
+              adminStatus.district[districtCode].reviewed = adminStatus.district[districtCode].reviewed + 1;
             } else {
-              adminStatus.province[r.province].pending = adminStatus.province[r.province].pending + 1;
-              adminStatus.district[r.district].pending = adminStatus.district[r.district].pending + 1;
+              adminStatus.province[provinceCode].pending = adminStatus.province[r.province].pending + 1;
+              adminStatus.district[districtCode].pending = adminStatus.district[districtCode].pending + 1;
             }
           });
           stats.status = adminStatus;
@@ -376,7 +376,7 @@ module.exports = [
           p['districts'] = _.filter(stats.lengths, (r) => {
             r.status = null;
             if (r.code) {
-              r.status = stats.status.district[r.code];
+              r.status = stats.status.district[p.code + r.code];
             }
             return r.parent_id === p.id;
           });
