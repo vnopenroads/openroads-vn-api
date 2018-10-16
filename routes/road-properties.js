@@ -10,7 +10,6 @@ const {
   some,
   get,
   map,
-  reject,
   each,
   flatMap,
   uniq
@@ -29,8 +28,8 @@ function getHandler (req, res) {
   const district = req.query.district;
   const status = req.query.status;
 
-  if (sortField !== 'id' && sortField !== 'hasOSMData') {
-    return res(Boom.badData(`Expected 'sortField' query param to be either 'id', 'hasOSMData', or not included.  Got ${req.query.sortField}`));
+  if (sortField !== 'id') {
+    return res(Boom.badData(`Expected 'sortField' query param to be either 'id' or not included.  Got ${req.query.sortField}`));
   }
   if (sortOrder !== 'asc' && sortOrder !== 'desc') {
     return res(Boom.badData(`Expected 'sortOrder' query param to be either 'asc', 'desc', or not included.  Got ${req.query.sortOrder}`));
@@ -71,14 +70,12 @@ function getHandler (req, res) {
         const vprommsWithOSM = uniq(flatMap(visibleVpromms, (v) => {
           return v.v;
         }));
-        // console.log(roads);
-        return res(
-          roads.map((r) => {
-            let hasOSMData = vprommsWithOSM.indexOf(r.id) > -1 ? true : false;
-            let status = r.status === null ? 'pending' : r.status;
-            return { 'id': r.id, 'properties': r.properties, 'hasOSMData': hasOSMData, 'status': status };
-          })
-        ).type('application/json');
+        let results = roads.map((r) => {
+          let hasOSMData = vprommsWithOSM.indexOf(r.id) > -1 ? true : false;
+          let status = r.status === null ? 'pending' : r.status;
+          return { 'id': r.id, 'properties': r.properties, 'hasOSMData': hasOSMData, 'status': status };
+        });
+        return res(results).type('application/json');
       });
   });
 }
