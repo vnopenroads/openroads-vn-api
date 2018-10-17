@@ -11,7 +11,8 @@ const {
   get,
   map,
   reject,
-  each
+  each,
+  uniqBy
 } = require('lodash');
 
 
@@ -196,6 +197,7 @@ function getCountHandler (req, res) {
     .distinct('roads.id')
     .leftJoin(knex.raw(`(SELECT way_id, v FROM current_way_tags WHERE k = 'or_vpromms') AS tags`), 'roads.id', 'tags.v')
     .leftJoin(knex.raw(`(SELECT id AS way_id, visible FROM current_ways WHERE visible = true) AS ways`), 'tags.way_id', 'ways.way_id')
+    .orderBy('roads.id', 'asc')
     .modify(function(queryBuilder) {
       if (province && district) {
         queryBuilder.whereRaw(`id LIKE '${province}_${district}%'`);
@@ -206,12 +208,14 @@ function getCountHandler (req, res) {
       queryBuilder.distinct('id');
     })
   .then(function(rows) {
+    let dedupeRows = uniqBy(rows, 'id')
+    console.log(rows.length, dedupeRows.length);
     const total = {
-      count: rows.length,
-      osmCount: rows.filter(({ hasOSMData }) => hasOSMData).length
+      count: dedupeRows.length,
+      osmCount: dedupeRows.filter(({ hasOSMData }) => hasOSMData).length
     };
     const province = {};
-    const provinceRows = groupBy(rows, (r) => {
+    const provinceRows = groupBy(dedupeRows, (r) => {
       return r.id.substr(0,2);
     });
 
