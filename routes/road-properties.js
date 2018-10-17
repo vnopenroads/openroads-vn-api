@@ -10,9 +10,9 @@ const {
   some,
   get,
   map,
-  reject,
   each,
-  uniqBy
+  flatMap,
+  uniq
 } = require('lodash');
 
 
@@ -28,8 +28,8 @@ function getHandler (req, res) {
   const district = req.query.district;
   const status = req.query.status;
 
-  if (sortField !== 'id' && sortField !== 'hasOSMData') {
-    return res(Boom.badData(`Expected 'sortField' query param to be either 'id', 'hasOSMData', or not included.  Got ${req.query.sortField}`));
+  if (sortField !== 'id') {
+    return res(Boom.badData(`Expected 'sortField' query param to be either 'id' or not included.  Got ${req.query.sortField}`));
   }
   if (sortOrder !== 'asc' && sortOrder !== 'desc') {
     return res(Boom.badData(`Expected 'sortOrder' query param to be either 'asc', 'desc', or not included.  Got ${req.query.sortOrder}`));
@@ -39,9 +39,8 @@ function getHandler (req, res) {
     return res(Boom.badData(`Expected 'page' query param to be a number >= 1, or not included.  Got ${req.query.page}`));
   }
 
-
   knex('road_properties as roads')
-    .select('roads.id', 'roads.properties', 'roads.status', 'ways.visible AS hasOSMData')
+    .select('roads.id', 'roads.properties', 'roads.status')
     .distinct('roads.id')
     .modify(function(queryBuilder) {
       if (status) {
@@ -53,21 +52,31 @@ function getHandler (req, res) {
         queryBuilder.whereRaw(`id LIKE '${province}%'`);
       }
     })
-    .rightJoin(knex.raw(`(SELECT way_id, v FROM current_way_tags WHERE k = 'or_vpromms') AS tags`), 'roads.id', 'tags.v')
-    .rightJoin(knex.raw(`(SELECT id AS way_id, visible FROM current_ways WHERE visible is true) AS ways`), 'tags.way_id', 'ways.way_id')
     .orderBy(sortField, sortOrder)
     .limit(PAGE_SIZE)
     .offset((page - 1) * PAGE_SIZE)
-  .then(function(response) {
-    return res(
-      response.map(({ id, properties, hasOSMData, status }) => ({
-        id, properties, hasOSMData: !!hasOSMData, status
-      }))
-    ).type('application/json');
-  })
-  .catch(function(err) {
-    console.error('Error GET /properties/roads', err);
-    return res(Boom.badImplementation());
+  .then((roads) => {
+    const ids = [];
+    roads.forEach(r => {
+      ids.push(r.id);
+    });
+    return knex('current_way_tags')
+      .select('v')
+      .whereIn('v', ids)
+      .andWhere('k', 'or_vpromms')
+      .leftJoin('current_ways', 'current_way_tags.way_id', 'current_ways.id')
+      .where('visible', true)
+      .then((visibleVpromms) => {
+        const vprommsWithOSM = uniq(flatMap(visibleVpromms, (v) => {
+          return v.v;
+        }));
+        let results = roads.map((r) => {
+          let hasOSMData = vprommsWithOSM.indexOf(r.id) > -1 ? true : false;
+          let status = r.status === null ? 'pending' : r.status;
+          return { 'id': r.id, 'properties': r.properties, 'hasOSMData': hasOSMData, 'status': status };
+        });
+        return res(results).type('application/json');
+      });
   });
 }
 
