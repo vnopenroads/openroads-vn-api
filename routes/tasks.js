@@ -27,26 +27,27 @@ async function getNextTask (req, res) {
 
   if (!task.length) return res(Boom.notFound('There are no pending tasks'));
   const ids = [task[0].way_id].concat(task[0].neighbors);
-  const bounduaryType = 'province';
-  const taskProviceOrDistrict = task[0].provinces[0];
+  let boundaryType = 'province';
+  let taskProviceOrDistrict = task[0].provinces[0];
+
   // In case the district required
   if (district) {
-    bounduaryType = 'district';
+    boundaryType = 'district';
     taskProviceOrDistrict = task[0].districts[0];
   }
 
   knex('admin_boundaries AS admin')
   .select('name_en', 'id')
-  .where({type: bounduaryType, id: taskProviceOrDistrict })
-  .then(function(bounduary) {
-    task[0].bounduary = bounduary[0];
-    task[0].bounduary.type = bounduaryType;
+  .where({type: boundaryType, id: taskProviceOrDistrict })
+  .then(function(boundary) {
+    task[0].boundary = boundary[0];
+    task[0].boundary.type = boundaryType;
     queryWays(knex, ids, true).then(function (ways) {
       return res({
         id: task[0].id,
         updated_at: task[0].updated_at,
         province: task[0].province,
-        bounduary: task[0].bounduary,
+        boundary: task[0].boundary,
         data: toGeoJSON(ways)
       }).type('application/json');
     }).catch(function () {
