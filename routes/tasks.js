@@ -5,11 +5,12 @@ const knex = require('../connection');
 const queryWays = require('../services/query-ways');
 const toGeoJSON = require('../services/osm-data-to-geojson');
 
-const properties = ['id', 'way_id', 'neighbors', 'provinces', 'updated_at'];
+const properties = ['id', 'way_id', 'neighbors', 'provinces', 'updated_at', 'districts'];
 
 async function getNextTask (req, res) {
   const skip = req.query.skip ? req.query.skip.split(',') : [];
   const province = req.query.province;
+  const district = req.query.district;
   const task = await knex.select(properties)
   .from('tasks')
   .where('pending', false)
@@ -17,6 +18,8 @@ async function getNextTask (req, res) {
   .modify(function(queryBuilder) {
     if (province) {
       queryBuilder.whereRaw(`provinces @> '{${province}}'`);
+    }else if (district) {
+      queryBuilder.whereRaw(`districts @> '{${district}}'`);
     }
   })
   .orderByRaw('random()')
@@ -24,18 +27,27 @@ async function getNextTask (req, res) {
 
   if (!task.length) return res(Boom.notFound('There are no pending tasks'));
   const ids = [task[0].way_id].concat(task[0].neighbors);
-  const taskProvince = task[0].provinces[0];
+  let boundaryType = 'province';
+  let taskProviceOrDistrict = task[0].provinces[0];
+
+  // In case the district required
+  if (district) {
+    boundaryType = 'district';
+    taskProviceOrDistrict = task[0].districts[0];
+  }
 
   knex('admin_boundaries AS admin')
   .select('name_en', 'id')
-  .where({type: 'province', id: taskProvince })
-  .then(function(province) {
-    task[0].province = province[0];
+  .where({type: boundaryType, id: taskProviceOrDistrict })
+  .then(function(boundary) {
+    task[0].boundary = boundary[0];
+    task[0].boundary.type = boundaryType;
     queryWays(knex, ids, true).then(function (ways) {
       return res({
         id: task[0].id,
         updated_at: task[0].updated_at,
         province: task[0].province,
+        boundary: task[0].boundary,
         data: toGeoJSON(ways)
       }).type('application/json');
     }).catch(function () {
@@ -63,11 +75,18 @@ async function getTask (req, res) {
 
 async function getTaskCount (req, res) {
   const province = req.query.province;
+  const district = req.query.district;
+  if (province && district) {
+    return res(Boom.badImplementation('Cannot query both district and province'));
+  }
   const [{ count }] = await knex('tasks')
   .where('pending', false)
   .modify(function(queryBuilder) {
     if (province) {
       queryBuilder.whereRaw(`provinces @> '{${province}}'`);
+    }
+    if (district) {
+      queryBuilder.whereRaw(`districts @> '{${district}}'`);
     }
   })
   .count();
