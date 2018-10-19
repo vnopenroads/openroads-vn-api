@@ -75,11 +75,18 @@ async function getTask (req, res) {
 
 async function getTaskCount (req, res) {
   const province = req.query.province;
+  const district = req.query.district;
+  if (province && district) {
+    return res(Boom.badImplementation('Cannot query both district and province'));
+  }
   const [{ count }] = await knex('tasks')
   .where('pending', false)
   .modify(function(queryBuilder) {
     if (province) {
       queryBuilder.whereRaw(`provinces @> '{${province}}'`);
+    }
+    if (district) {
+      queryBuilder.whereRaw(`districts @> '{${district}}'`);
     }
   })
   .count();
