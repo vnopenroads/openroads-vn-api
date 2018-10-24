@@ -142,58 +142,73 @@ function getByIdGeoJSONHandler (req, res) {
 
   const shouldDownload = typeof req.query.download != 'undefined';
 
-  knex.raw(`
-    SELECT
-        cw.id AS way_id,
-        ST_ASTEXT(ST_MAKEPOINT(
-            cn.longitude::FLOAT / 10000000,
-            cn.latitude::FLOAT / 10000000
-        )) AS point
-    FROM current_way_tags AS cwt
-    LEFT JOIN current_ways AS cw
-        ON cwt.way_id = cw.id
-    LEFT JOIN current_way_nodes AS cwn
-        ON cw.id = cwn.way_id
-    LEFT JOIN current_nodes AS cn
-        ON cwn.node_id = cn.id
-    WHERE cwt.k = 'or_vpromms' AND
-        cw.visible AND
-        cwt.v = '${id}'
-    ORDER BY cw.id,
-        cwn.sequence_id
-  `)
-    .then(function({ rows }) {
-      const features = map(
-        groupBy(rows, row => get(row, 'way_id')),
-        wayPoints => ({
-          type: 'Feature',
-          properties: { id },
-          geometry: {
-            type: 'LineString',
-            coordinates: map(wayPoints, ({ point }) => ([
-              parseFloat(/[0-9\.]+/.exec(point)[0]),
-              parseFloat(/ [0-9\.]+/.exec(point)[0])
-            ]))
-          }
-        })
-      );
+  knex('current_way_tags AS cwt')
+  .select('current_way_tags.way_id', 'current_way_tags.k', 'current_way_tags.v')
+  .where('cwt.v', id)
+  .leftJoin('current_way_tags', 'current_way_tags.way_id', 'cwt.way_id')
+  .then((rows) => {
+    const wayTags = groupBy(rows, row => get(row, 'way_id'));
+    const getWayTags = (wayId) => {
+      return wayTags[wayId].reduce((result, tag) => {
+        result[tag.k] = tag.v;
+        return result;
+      }, {'id': id});
+    };
 
-      let response = res({
-        type: 'FeatureCollection',
-        features
-      }).type('application/json');
+    return knex.raw(`
+      SELECT
+          cw.id AS way_id, cwt.k, cwt.v,
+          ST_ASTEXT(ST_MAKEPOINT(
+              cn.longitude::FLOAT / 10000000,
+              cn.latitude::FLOAT / 10000000
+          )) AS point
+      FROM current_way_tags AS cwt
+      LEFT JOIN current_ways AS cw
+          ON cwt.way_id = cw.id
+      LEFT JOIN current_way_nodes AS cwn
+          ON cw.id = cwn.way_id
+      LEFT JOIN current_nodes AS cn
+          ON cwn.node_id = cn.id
+      WHERE cwt.k = 'or_vpromms' AND
+          cw.visible AND
+          cwt.v = '${id}'
+      ORDER BY cw.id,
+          cwn.sequence_id
+    `)
+      .then(function({ rows }) {
+        const features = map(
+          groupBy(rows, row => get(row, 'way_id')),
+          (wayPoints, way_id) => ({
+            type: 'Feature',
+            properties: getWayTags(way_id),
+            geometry: {
+              type: 'LineString',
+              coordinates: map(wayPoints, ({ point }) => ([
+                parseFloat(/[0-9\.]+/.exec(point)[0]),
+                parseFloat(/ [0-9\.]+/.exec(point)[0])
+              ]))
+            }
+          })
+        );
+  
+        let response = res({
+          type: 'FeatureCollection',
+          features
+        }).type('application/json');
+  
+        if (shouldDownload) {
+          return response
+            .header('Content-Disposition', `attachment; filename=${id}.geojson`);
+        }
+  
+        return response;
+      })
+      .catch(function(err) {
+        console.error('Error GET /field/geometries/{id}', err);
+        return res(Boom.badImplementation());
+      });
+  });
 
-      if (shouldDownload) {
-        return response
-          .header('Content-Disposition', `attachment; filename=${id}.geojson`);
-      }
-
-      return response;
-    })
-    .catch(function(err) {
-      console.error('Error GET /field/geometries/{id}', err);
-      return res(Boom.badImplementation());
-    });
 };
 
 
