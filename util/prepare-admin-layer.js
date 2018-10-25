@@ -44,7 +44,7 @@ provinces.features.forEach(p => {
   districtMembers.forEach(d => {
     const district = feature(d.geometry, {
       'id': pid + 1,
-      'code': null,
+      'code': d.properties['ORMA_DisCo'],
       'parent_id': province.properties.id,
       'type': 'district',
       'name_en': d.properties['Dist_ENG'],
