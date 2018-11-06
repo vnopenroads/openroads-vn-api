@@ -105,9 +105,11 @@ module.exports = [
       // parse the query string and the limit setting
       const queryString = req.query.name.toLowerCase();
       const limit = (!Number.isNaN(req.query.limit) && Number(req.query.limit) > 0) ? Number(req.query.limit) : 100;
+      const lang = req.query.lang || 'en';
       // selects all admin boundaries ids and name_en fields where name_en field matches query string
       knex('admin_boundaries')
       .where('name_en', 'ILIKE', `${queryString}%`)
+      .orWhere('name_vn', 'ILIKE', `${queryString}%`)
       .select('id', 'name_en', 'name_vn', 'type as level')
       .orderBy('name_en', 'asc')
       .limit(limit)
