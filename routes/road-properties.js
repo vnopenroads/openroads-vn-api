@@ -152,7 +152,7 @@ function getByIdGeoJSONHandler (req, res) {
       return wayTags[wayId].reduce((result, tag) => {
         result[tag.k] = tag.v;
         return result;
-      }, {'id': id});
+      }, {'id': id, 'way_id': wayId});
     };
 
     return knex.raw(`
