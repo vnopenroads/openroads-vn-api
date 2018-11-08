@@ -29,7 +29,7 @@ ecs:
       name: vn
       containers:
         - name: webapp
-          image: developmentseed/openroads-vn-api:2.2.0
+          image: developmentseed/openroads-vn-api:2.3.0
           cpu: 1024
           memory: 5200
           ports:
@@ -43,7 +43,7 @@ ecs:
           links:
             - redis
         - name: vn-tiler
-          image: developmentseed/openroads-vn-tiler:2.1.1
+          image: developmentseed/openroads-vn-tiler:2.1.2
           cpu: 2048
           memory: 5200
           commands:
