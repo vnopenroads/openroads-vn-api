@@ -30,6 +30,11 @@ function parseRowV2(csvRow) {
     point([Number(csvRow['Interval_End_Longitude']), Number(csvRow['Interval_End_Latitude'])])
   );
 
+  // If row does not have roughness, return null
+  if (!csvRow.hasOwnProperty('Roughness') || csvRow['Roughness'] === '') {
+    return null;
+  }
+
   const props = {
     'iri': csvRow['Roughness'],
     'distance': csvRow['Interval_Length'],
@@ -60,9 +65,11 @@ async function parseProperties (path, contentsStream, existingRoadIds, version) 
         } else {
           throw new Error('Invalid version');
         }
-        row.road_id = roadId;
-        row.source = 'RoadLabPro';
-        rows = rows.concat(row);
+        if (row) {
+          row.road_id = roadId;
+          row.source = 'RoadLabPro';
+          rows = rows.concat(row);
+        }
       })
       .on('end', () => {
         resolve(rows);
