@@ -25,8 +25,14 @@ function parseRowV1 (csvRow) {
 
 function parseRowV2(csvRow) {
   const DATE_STRING_FORMAT = 'HH:mm:ss YYYY-MMMM-DD';
+
+  // Work-around for "Interval_Start_Latitude" key being sometimes misspelt
+  let startLatitudeKey = 'Interval_Start_Latitude';
+  if (csvRow.hasOwnProperty('Interval_Start_Latidude')) {
+    startLatitudeKey = 'Interval_Start_Latidude';
+  }
   const coord = midpoint(
-    point([Number(csvRow['Interval_Start_Longitude']), Number(csvRow['Interval_Start_Latidude'])]),
+    point([Number(csvRow['Interval_Start_Longitude']), Number(csvRow[startLatitudeKey])]),
     point([Number(csvRow['Interval_End_Longitude']), Number(csvRow['Interval_End_Latitude'])])
   );
 
