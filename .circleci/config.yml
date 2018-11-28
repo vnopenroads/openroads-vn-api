@@ -7,7 +7,6 @@ jobs:
       - image: docker:17.05.0-ce-git
         environment:
           IMGNAME=developmentseed/openroads-vn-api
-    working_dir: ~/project
     steps:
       - restore_cache:
           keys:
