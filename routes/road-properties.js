@@ -275,24 +275,35 @@ function getCountHandler (req, res) {
 
 function createHandler(req, res) {
   if (!validateId(req.params.road_id)) {
-    return res(Boom.badData());
+    return res(Boom.badData('Invalid VPROMM ID'));
   }
 
-  knex('road_properties')
-    .insert({
-      id: req.params.road_id,
-      properties: {}
+  // check if province exists
+  const provinceCode = req.params.road_id.substring(0,2);
+  return knex('admin_boundaries')
+    .select('id')
+    .where('type', 'province')
+    .andWhere('code', provinceCode)
+  .then(function(rows) {
+    if (rows.length) {
+      return knex('road_properties')
+      .insert({
+        id: req.params.road_id,
+        properties: {}
+      })
+    .then(function(response) {
+      return res({ id: req.params.road_id }).type('application/json');
     })
-  .then(function(response) {
-    return res({ id: req.params.road_id }).type('application/json');
-  })
-  .catch(function(err) {
-    if (err.constraint === 'road_properties_pkey') {
-      return res(Boom.conflict());
+    .catch(function(err) {
+      if (err.constraint === 'road_properties_pkey') {
+        return res(Boom.conflict('Road already exists'));
+      }
+      console.error('Error PUT /properties/roads/{road_id}', err);
+      return res(Boom.badImplementation('Unknown error'));
+    });
+    } else {
+      return res(Boom.notFound('Invalid province code'));
     }
-
-    console.error('Error PUT /properties/roads/{road_id}', err);
-    return res(Boom.badImplementation());
   });
 }
 
