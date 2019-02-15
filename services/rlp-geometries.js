@@ -61,9 +61,10 @@ function cleanGeometry (points) {
 function getPoint(row, version) {
   if (version === 'v1') return row;
   if (version === 'v2') {
+    let latitudeKey = row.hasOwnProperty('Point_Latidude') ? 'Point_Latidude' : 'Point_Latitude';
     return {
       'time': row['Time'],
-      'latitude': row['Point_Latidude'],
+      'latitude': row[latitudeKey],
       'longitude': row['Point_Longitude']
     }
   }

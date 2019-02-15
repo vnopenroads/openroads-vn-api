@@ -34,22 +34,30 @@ rlpGeomQueue.process(async function (job) {
     let fileReads = job.data.fileReads;
     const fieldDataRoadIds = job.data.fieldDataRoadIds;
       // Ignore any roads that were ingested earlier
-    const existingFieldData = await knex
-      .select(st.asGeoJSON('geom').as('geom'), 'road_id', 'type')
-      .from('field_data_geometries')
-      .whereIn('road_id', fieldDataRoadIds)
-      .orWhereNull('road_id')
-      .map(efd => Object.assign(efd, { geom: JSON.parse(efd.geom) }));
-    fileReads = fileReads.reduce((all, fr) => {
-      const match = existingFieldData.find(efd =>
-        geometriesEqualAtPrecision(efd.geom, fr.geom.geometry, POSTGIS_SIGNIFICANT_DECIMAL_PLACES) &&
-        _.isEqual(efd.datetime, fr.datetime) &&
-        efd.road_id === fr.road_id
-      );
-      if (!match) { all = all.concat(fr); }
-      return all;
-    }, []);
-    
+
+    try {
+      const existingFieldData = await knex
+        .select(st.asGeoJSON('geom').as('geom'), 'road_id', 'type')
+        .from('field_data_geometries')
+        .whereIn('road_id', fieldDataRoadIds)
+        .orWhereNull('road_id')
+        .map(efd => Object.assign(efd, { geom: JSON.parse(efd.geom) }));
+      fileReads = fileReads.reduce((all, fr) => {
+        const match = existingFieldData.find(efd =>
+          geometriesEqualAtPrecision(efd.geom, fr.geom.geometry, POSTGIS_SIGNIFICANT_DECIMAL_PLACES) &&
+          _.isEqual(efd.datetime, fr.datetime) &&
+          efd.road_id === fr.road_id
+        );
+        if (!match) { all = all.concat(fr); }
+        return all;
+      }, []);
+    } catch (err) {
+      return resolve({
+        type: 'error',
+        message: 'Error while processing uploaded file.'
+      })
+    }
+
     if (!fileReads.length) { 
       return resolve({
         message: 'No roads imported. Data for this VProMM + Timestamp already ingested',
@@ -69,7 +77,7 @@ rlpGeomQueue.process(async function (job) {
 
       // Filter out geometries that already exist in macrocosm
       // fileReads = await pFilter(fileReads, existingGeomFilter);
-
+      
       const osmChanges = await getOSMChanges(fileReads);
       const creates = osmChanges.map(c => c.create).filter(c => !!c);
 
@@ -113,7 +121,10 @@ rlpGeomQueue.process(async function (job) {
         }
       })
       .catch(e => {
-        console.error('error', e);
+        return resolve({
+          'type': 'error',
+          'message': 'Error while processing uploaded file.'
+        })
       });
     });
   });
