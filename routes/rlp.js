@@ -48,6 +48,9 @@ rlpGeomQueue.process(async function (job) {
         .whereIn('road_id', fieldDataRoadIds)
         .orWhereNull('road_id')
         .map(efd => Object.assign(efd, { geom: JSON.parse(efd.geom) }));
+      fileReads = fileReads.filter(fr => {
+        return fr.geom.geometry.coordinates && fr.geom.geometry.coordinates.length > 0;
+      });
       fileReads = fileReads.reduce((all, fr) => {
         const match = existingFieldData.find(efd =>
           geometriesEqualAtPrecision(efd.geom, fr.geom.geometry, POSTGIS_SIGNIFICANT_DECIMAL_PLACES) &&
@@ -71,14 +74,18 @@ rlpGeomQueue.process(async function (job) {
       });
     }
 
-    return Promise.all(fileReads.map(fr =>
+    return Promise.all(fileReads.map(fr => {
       // Add roads to the `field_data_geometries` table
-      knex.insert({
-        road_id: fr.road_id,
-        type: fr.type,
-        geom: st.geomFromGeoJSON(JSON.stringify(fr.geom.geometry))
-      }).into('field_data_geometries')
-    ))
+      if (fr.geom.geometry.coordinates && fr.geom.geometry.coordinates.length > 1) {
+        return knex.insert({
+          road_id: fr.road_id,
+          type: fr.type, 
+          geom: st.geomFromGeoJSON(JSON.stringify(fr.geom.geometry))
+        }).into('field_data_geometries')
+      } else {
+        return Promise.resolve();
+      }
+    }))
     .then(async () => {
 
       // Filter out geometries that already exist in macrocosm
@@ -132,7 +139,13 @@ rlpGeomQueue.process(async function (job) {
           'message': 'Error while processing uploaded file.'
         })
       });
-    });
+    })
+    .catch(e => {
+      return resolve({
+        'type': 'error',
+        'message': 'Error while processing geometry for uploaded file.'
+      })
+    })
   });
 });
 
