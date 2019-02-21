@@ -6,6 +6,7 @@ const knex = require('../connection.js');
 const knexPostgis = require('knex-postgis');
 const libxml = require('libxmljs');
 const unzip = require('unzip2');
+const GJV = require('geojson-validation');
 // const pFilter = require('p-filter');
 const pMap = require('p-map');
 const { parseGeometries } = require('../services/rlp-geometries');
@@ -51,6 +52,11 @@ rlpGeomQueue.process(async function (job) {
       fileReads = fileReads.filter(fr => {
         return fr.geom.geometry.coordinates && fr.geom.geometry.coordinates.length > 0;
       });
+      fileReads.map(fr => {
+        if (!GJV.valid(fr.geom.geometry)) {
+          throw new Error('Invalid geometry');
+        }
+      });
       fileReads = fileReads.reduce((all, fr) => {
         const match = existingFieldData.find(efd =>
           geometriesEqualAtPrecision(efd.geom, fr.geom.geometry, POSTGIS_SIGNIFICANT_DECIMAL_PLACES) &&
@@ -63,7 +69,7 @@ rlpGeomQueue.process(async function (job) {
     } catch (err) {
       return resolve({
         type: 'error',
-        message: 'Error while processing uploaded file.'
+        message: 'Error while processing geometries in uploaded file.'
       })
     }
 
