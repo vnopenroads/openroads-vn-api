@@ -45,10 +45,10 @@ module.exports = [
     method: 'GET',
     path: '/field/ids/all',
     handler: function(req, res) {
-      knex('point_properties')
-      .distinct('road_id')
-      .select('road_id as id')
-      .whereNotNull('road_id')
+      knex('road_properties')
+      .distinct('id')
+      .select('id as id')
+      .whereNotNull('id')
       .then(roads => res(roads.map(road => road.id)));
     }    
   }
