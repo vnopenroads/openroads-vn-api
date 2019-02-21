@@ -54,6 +54,7 @@
     "fast-csv": "^2.4.0",
     "fast-json-patch": "^2.0.6",
     "geojson-stream": "0.0.1",
+    "geojson-validation": "^0.2.1",
     "geojsontoosm": "^0.0.2",
     "hapi": "^16.6.0",
     "hapi-router": "^3.5.0",

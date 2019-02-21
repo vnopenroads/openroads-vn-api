@@ -59,22 +59,26 @@ async function parseProperties (path, contentsStream, existingRoadIds, version) 
   const roadId = getRoadIdFromPath(path, existingRoadIds);
 
   let rows = [];
-  return new Promise(resolve =>
+  return new Promise((resolve, reject) =>
     contentsStream.pipe(fastCSV
       .parse({headers: true})
       .on('data', d => {
-        let row;
-        if (version === 'v1') {
-          row = parseRowV1(d);
-        } else if (version === 'v2') {
-          row = parseRowV2(d);
-        } else {
-          throw new Error('Invalid version');
-        }
-        if (row) {
-          row.road_id = roadId;
-          row.source = 'RoadLabPro';
-          rows = rows.concat(row);
+        try {
+          let row;
+          if (version === 'v1') {
+            row = parseRowV1(d);
+          } else if (version === 'v2') {
+            row = parseRowV2(d);
+          } else {
+            reject('Invalid version');
+          }
+          if (row) {
+            row.road_id = roadId;
+            row.source = 'RoadLabPro';
+            rows = rows.concat(row);
+          }
+        } catch (e) {
+          reject(e);
         }
       })
       .on('end', () => {

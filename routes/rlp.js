@@ -6,6 +6,7 @@ const knex = require('../connection.js');
 const knexPostgis = require('knex-postgis');
 const libxml = require('libxmljs');
 const unzip = require('unzip2');
+const GJV = require('geojson-validation');
 // const pFilter = require('p-filter');
 const pMap = require('p-map');
 const { parseGeometries } = require('../services/rlp-geometries');
@@ -31,25 +32,47 @@ const POSTGIS_SIGNIFICANT_DECIMAL_PLACES = 7;
 
 rlpGeomQueue.process(async function (job) {
   return new Promise(async (resolve, reject) => {
+    if (job.data.hasErrors) {
+      return resolve({
+        type: 'error',
+        message: job.data.errMessage
+      });
+    }
     let fileReads = job.data.fileReads;
     const fieldDataRoadIds = job.data.fieldDataRoadIds;
       // Ignore any roads that were ingested earlier
-    const existingFieldData = await knex
-      .select(st.asGeoJSON('geom').as('geom'), 'road_id', 'type')
-      .from('field_data_geometries')
-      .whereIn('road_id', fieldDataRoadIds)
-      .orWhereNull('road_id')
-      .map(efd => Object.assign(efd, { geom: JSON.parse(efd.geom) }));
-    fileReads = fileReads.reduce((all, fr) => {
-      const match = existingFieldData.find(efd =>
-        geometriesEqualAtPrecision(efd.geom, fr.geom.geometry, POSTGIS_SIGNIFICANT_DECIMAL_PLACES) &&
-        _.isEqual(efd.datetime, fr.datetime) &&
-        efd.road_id === fr.road_id
-      );
-      if (!match) { all = all.concat(fr); }
-      return all;
-    }, []);
-    
+
+    try {
+      const existingFieldData = await knex
+        .select(st.asGeoJSON('geom').as('geom'), 'road_id', 'type')
+        .from('field_data_geometries')
+        .whereIn('road_id', fieldDataRoadIds)
+        .orWhereNull('road_id')
+        .map(efd => Object.assign(efd, { geom: JSON.parse(efd.geom) }));
+      fileReads = fileReads.filter(fr => {
+        return fr.geom.geometry.coordinates && fr.geom.geometry.coordinates.length > 0;
+      });
+      fileReads.map(fr => {
+        if (!GJV.valid(fr.geom.geometry)) {
+          throw new Error('Invalid geometry');
+        }
+      });
+      fileReads = fileReads.reduce((all, fr) => {
+        const match = existingFieldData.find(efd =>
+          geometriesEqualAtPrecision(efd.geom, fr.geom.geometry, POSTGIS_SIGNIFICANT_DECIMAL_PLACES) &&
+          _.isEqual(efd.datetime, fr.datetime) &&
+          efd.road_id === fr.road_id
+        );
+        if (!match) { all = all.concat(fr); }
+        return all;
+      }, []);
+    } catch (err) {
+      return resolve({
+        type: 'error',
+        message: 'Error while processing geometries in uploaded file.'
+      })
+    }
+
     if (!fileReads.length) { 
       return resolve({
         message: 'No roads imported. Data for this VProMM + Timestamp already ingested',
@@ -57,19 +80,19 @@ rlpGeomQueue.process(async function (job) {
       });
     }
 
-    return Promise.all(fileReads.map(fr =>
+    return Promise.all(fileReads.map(fr => {
       // Add roads to the `field_data_geometries` table
-      knex.insert({
+      return knex.insert({
         road_id: fr.road_id,
-        type: fr.type,
+        type: fr.type, 
         geom: st.geomFromGeoJSON(JSON.stringify(fr.geom.geometry))
       }).into('field_data_geometries')
-    ))
+    }))
     .then(async () => {
 
       // Filter out geometries that already exist in macrocosm
       // fileReads = await pFilter(fileReads, existingGeomFilter);
-
+      
       const osmChanges = await getOSMChanges(fileReads);
       const creates = osmChanges.map(c => c.create).filter(c => !!c);
 
@@ -113,9 +136,18 @@ rlpGeomQueue.process(async function (job) {
         }
       })
       .catch(e => {
-        console.error('error', e);
+        return resolve({
+          'type': 'error',
+          'message': 'Error while processing uploaded file.'
+        })
       });
-    });
+    })
+    .catch(e => {
+      return resolve({
+        'type': 'error',
+        'message': 'Error while processing geometry for uploaded file.'
+      })
+    })
   });
 });
 
@@ -210,6 +242,8 @@ async function geometriesHandler(req, res) {
 
   let fileReads = [];
   let badPaths = [];
+  let hasErrors = false;
+  let errMessage = null;
   payload[Object.keys(req.payload)[0]]
     .pipe(unzip.Parse())
     .on('entry', async e => {
@@ -228,8 +262,14 @@ async function geometriesHandler(req, res) {
     .on('close', async () => {
       // Prevent ingest of bad data
       const fieldDataRoadIds = [...new Set(fileReads.map(r => r.road_id))];
-      if (fieldDataRoadIds.includes(ONLY_PROPERTIES)) { return res(errors.cannotUseOnlyProperties); }
-      if (badPaths.length) { return res(errors.badPaths(badPaths)); }
+      if (fieldDataRoadIds.includes(ONLY_PROPERTIES)) {
+        hasErrors = true;
+        errMessage = 'Data includes only properties.';
+      }
+      if (badPaths.length) {
+        hasErrors = true;
+        errMessage = 'Road ID does not exist in system, please add it. If you are sure it exists, bad filenames exist in zipfile.'
+      }
 
       // Ignore any duplicate input road geometries
       fileReads = fileReads.reduce((all, fr) => {
@@ -245,7 +285,9 @@ async function geometriesHandler(req, res) {
 
       const job = rlpGeomQueue.add({
         fileReads,
-        fieldDataRoadIds
+        fieldDataRoadIds,
+        hasErrors,
+        errMessage
       }).then(job => {
         // res({job: job.id});
         res.redirect(`${frontendUrl}#/en/jobs/${job.id}`);
@@ -280,16 +322,20 @@ async function propertiesHandler (req, res) {
   req.payload[Object.keys(req.payload)[0]]
     .pipe(unzip.Parse())
     .on('entry', async e => {
-      const version = getPropertiesRLPVersion(e);
-      if (version) {
-        const read = await parseProperties(e.path, e, existingRoadIds, version);
-        if (!read[0].road_id) {
-          badPaths = badPaths.concat(e.path);
+      try {
+        const version = getPropertiesRLPVersion(e);
+        if (version) {
+          const read = await parseProperties(e.path, e, existingRoadIds, version);
+          if (read[0] && !read[0].road_id) {
+            badPaths = badPaths.concat(e.path);
+          }
+          rows = rows.concat(read);
+        } else {
+          // Avoid memory consumption by unneeded files
+          e.autodrain();
         }
-        rows = rows.concat(read);
-      } else {
-        // Avoid memory consumption by unneeded files
-        e.autodrain();
+      } catch (e) {
+        return res(errors.propertiesUnknownError)
       }
     })
     .on('close', async () => {
@@ -334,7 +380,8 @@ async function propertiesHandler (req, res) {
             properties: r.properties
           }).into('point_properties');
       }))
-      .then(() => res(fieldDataRoadIds));
+      .then(() => res(fieldDataRoadIds))
+      .catch((e) => res(errors.propertiesUnknownError))
     });
 }
 
