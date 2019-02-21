@@ -322,16 +322,20 @@ async function propertiesHandler (req, res) {
   req.payload[Object.keys(req.payload)[0]]
     .pipe(unzip.Parse())
     .on('entry', async e => {
-      const version = getPropertiesRLPVersion(e);
-      if (version) {
-        const read = await parseProperties(e.path, e, existingRoadIds, version);
-        if (!read[0].road_id) {
-          badPaths = badPaths.concat(e.path);
+      try {
+        const version = getPropertiesRLPVersion(e);
+        if (version) {
+          const read = await parseProperties(e.path, e, existingRoadIds, version);
+          if (!read[0].road_id) {
+            badPaths = badPaths.concat(e.path);
+          }
+          rows = rows.concat(read);
+        } else {
+          // Avoid memory consumption by unneeded files
+          e.autodrain();
         }
-        rows = rows.concat(read);
-      } else {
-        // Avoid memory consumption by unneeded files
-        e.autodrain();
+      } catch (e) {
+        return res(errors.propertiesUnknownError)
       }
     })
     .on('close', async () => {
@@ -376,7 +380,8 @@ async function propertiesHandler (req, res) {
             properties: r.properties
           }).into('point_properties');
       }))
-      .then(() => res(fieldDataRoadIds));
+      .then(() => res(fieldDataRoadIds))
+      .catch((e) => res(errors.propertiesUnknownError))
     });
 }
 

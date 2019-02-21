@@ -66,5 +66,8 @@ module.exports = {
   ),
   noExtraQuotesInTabular: Boom.badData(
     'Do not use unnecessary quotations'
+  ),
+  propertiesUnknownError: Boom.badData(
+    'Unknown error while processing properties'
   )
 };
