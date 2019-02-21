@@ -326,7 +326,7 @@ async function propertiesHandler (req, res) {
         const version = getPropertiesRLPVersion(e);
         if (version) {
           const read = await parseProperties(e.path, e, existingRoadIds, version);
-          if (!read[0].road_id) {
+          if (read[0] && !read[0].road_id) {
             badPaths = badPaths.concat(e.path);
           }
           rows = rows.concat(read);

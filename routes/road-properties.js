@@ -110,8 +110,8 @@ function getByIdHandler (req, res) {
     .where({type: 'district', code: districtCode, parent_id: row.province.id})
     .then(function([district]) {
       row['district'] = {
-        id: district.id,
-        name: district.name_en
+        id: district ? district.id : null,
+        name: district ? district.name_en : null
       };
       return row;
     });
