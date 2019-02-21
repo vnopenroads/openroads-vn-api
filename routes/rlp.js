@@ -31,6 +31,12 @@ const POSTGIS_SIGNIFICANT_DECIMAL_PLACES = 7;
 
 rlpGeomQueue.process(async function (job) {
   return new Promise(async (resolve, reject) => {
+    if (job.data.hasErrors) {
+      return resolve({
+        type: 'error',
+        message: job.data.errMessage
+      });
+    }
     let fileReads = job.data.fileReads;
     const fieldDataRoadIds = job.data.fieldDataRoadIds;
       // Ignore any roads that were ingested earlier
@@ -221,6 +227,8 @@ async function geometriesHandler(req, res) {
 
   let fileReads = [];
   let badPaths = [];
+  let hasErrors = false;
+  let errMessage = null;
   payload[Object.keys(req.payload)[0]]
     .pipe(unzip.Parse())
     .on('entry', async e => {
@@ -239,8 +247,14 @@ async function geometriesHandler(req, res) {
     .on('close', async () => {
       // Prevent ingest of bad data
       const fieldDataRoadIds = [...new Set(fileReads.map(r => r.road_id))];
-      if (fieldDataRoadIds.includes(ONLY_PROPERTIES)) { return res(errors.cannotUseOnlyProperties); }
-      if (badPaths.length) { return res(errors.badPaths(badPaths)); }
+      if (fieldDataRoadIds.includes(ONLY_PROPERTIES)) {
+        hasErrors = true;
+        errMessage = 'Data includes only properties.';
+      }
+      if (badPaths.length) {
+        hasErrors = true;
+        errMessage = 'Road ID does not exist in system, please add it. If you are sure it exists, bad filenames exist in zipfile.'
+      }
 
       // Ignore any duplicate input road geometries
       fileReads = fileReads.reduce((all, fr) => {
@@ -256,7 +270,9 @@ async function geometriesHandler(req, res) {
 
       const job = rlpGeomQueue.add({
         fileReads,
-        fieldDataRoadIds
+        fieldDataRoadIds,
+        hasErrors,
+        errMessage
       }).then(job => {
         // res({job: job.id});
         res.redirect(`${frontendUrl}#/en/jobs/${job.id}`);
