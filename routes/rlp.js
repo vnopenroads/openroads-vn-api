@@ -342,6 +342,7 @@ async function propertiesHandler (req, res) {
       // Prevent ingest of bad data
       const fieldDataRoadIds = [...new Set(rows.map(r => r.road_id))];
       if (badPaths.length) { return res(errors.badPaths(badPaths)); }
+      if (fieldDataRoadIds.length === 0) { return res(errors.noCSV); }
 
       // Strip the `NO_ID` and `ONLY_PROPERTIES` so that they
       // don't appear in the database
