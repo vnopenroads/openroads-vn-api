@@ -43,6 +43,23 @@ function nodeCoordinates (node) {
   ];
 }
 
+function getWayIdBBOX(req, res) {
+  console.log(req);
+  var wayId = req.params.way_id;
+  if (!wayId) {
+    return res(Boom.badRequest('Invalid way ID'));
+  }
+  queryWays(knex, wayId)
+    .then(function (result) {
+      let points = [];
+      points = result.nodes.map((node) => {
+        return point(nodeCoordinates(node));
+      }, points);
+      points = fc(flatten(points));
+      return res(bbox(points));
+    })
+    .catch(err => {return res(Boom.badRequest(err));})
+}
 function singleWayBBOX(req, res) {
   var vprommsId = req.params.VProMMs_Id;
   if (vprommsId.length !== 10) {
@@ -185,6 +202,33 @@ module.exports = [
     method: 'GET',
     path: '/way/{VProMMs_Id}/bbox',
     handler: singleWayBBOX
+  },
+  {
+    /**
+     * @api {get} /way/:way_id/bbox Get way bbox by Way ID
+     * @apiGroup bbox
+     * @apiName WayBBox
+     * @apiVersion 0.1.0
+     *
+     * @apiParam {String} VProMMs_Id way specific way id.
+     *
+     * @apiExample {curl} Example Usage:
+     *    curl http://localhost:4000/way/50883/bbox
+     *
+     *
+     * @apiSuccessExample {json} Success-Response:
+     *  {
+     *    '50883': [
+     *      105.6763663,
+     *      20.1874632,
+     *      105.6839964,
+     *      20.2027991
+     *    ]
+     *  }
+     */
+    method: 'GET',
+    path: '/wayid/{way_id}/bbox',
+    handler: getWayIdBBOX
   },
 /**
    * @api {PATCH} /way/tags/vprommid/:way_id Patch current_way_tags with new VPRoMM ID
