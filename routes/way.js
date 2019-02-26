@@ -44,7 +44,6 @@ function nodeCoordinates (node) {
 }
 
 function getWayIdBBOX(req, res) {
-  console.log(req);
   var wayId = req.params.way_id;
   if (!wayId) {
     return res(Boom.badRequest('Invalid way ID'));
