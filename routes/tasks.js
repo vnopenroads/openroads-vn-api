@@ -43,13 +43,18 @@ async function getNextTask (req, res) {
     task[0].boundary = boundary[0];
     task[0].boundary.type = boundaryType;
     queryWays(knex, ids, true).then(function (ways) {
-      return res({
-        id: task[0].id,
-        updated_at: task[0].updated_at,
-        province: task[0].province,
-        boundary: task[0].boundary,
-        data: toGeoJSON(ways)
-      }).type('application/json');
+      const data = toGeoJSON(ways);
+      if (!data.features.length) {
+        return res({'id': task[0].id}).code(302);
+      } else {
+        return res({
+          id: task[0].id,
+          updated_at: task[0].updated_at,
+          province: task[0].province,
+          boundary: task[0].boundary,
+          data: toGeoJSON(ways)
+        }).type('application/json');
+      }
     }).catch(function () {
       return res(Boom.badImplementation('Could not retrieve task'));
     });

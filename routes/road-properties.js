@@ -93,13 +93,16 @@ function getByIdHandler (req, res) {
     .leftJoin(knex.raw(`(SELECT id AS way_id, visible FROM current_ways WHERE visible = true) AS ways`), 'tags.way_id', 'ways.way_id')
     .where({ id: req.params.road_id })
   .then(function([row]) {
+    if (row === undefined) {
+      throw 'Not Found';
+    }
     return knex('admin_boundaries AS admin')
     .select('name_en', 'id')
     .where({type: 'province', code: provinceCode})
     .then(function([province]) {
       row['province'] = {
-        id: province.id,
-        name: province.name_en
+        id: province ? province.id : null,
+        name: province ? province.name_en : null
       };
       return row;
     });
@@ -132,6 +135,9 @@ function getByIdHandler (req, res) {
   })
   .catch(function(err) {
     console.error('Error GET /properties/roads/{road_id}', err);
+    if (err === 'Not Found') {
+      return res(Boom.notFound());
+    }
     return res(Boom.badImplementation());
   });
 }
