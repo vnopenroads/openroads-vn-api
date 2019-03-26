@@ -65,11 +65,11 @@ function getPoint(row, version) {
     Object.keys(row).forEach(key => {
       rowLower[key.toLowerCase()] = row[key];
     });
-    let latitudeKey = row.hasOwnProperty('point_latidude') ? 'point_latidude' : 'point_latitude';
+    let latitudeKey = rowLower.hasOwnProperty('point_latidude') ? 'point_latidude' : 'point_latitude';
     return {
-      'time': row['time'],
-      'latitude': row[latitudeKey],
-      'longitude': row['point_longitude']
+      'time': rowLower['time'],
+      'latitude': rowLower[latitudeKey],
+      'longitude': rowLower['point_longitude']
     }
   }
   throw new Error('Invalid Version format for geometries');
