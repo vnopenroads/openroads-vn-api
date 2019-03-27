@@ -61,11 +61,15 @@ function cleanGeometry (points) {
 function getPoint(row, version) {
   if (version === 'v1') return row;
   if (version === 'v2') {
-    let latitudeKey = row.hasOwnProperty('Point_Latidude') ? 'Point_Latidude' : 'Point_Latitude';
+    let rowLower = {};
+    Object.keys(row).forEach(key => {
+      rowLower[key.toLowerCase()] = row[key];
+    });
+    let latitudeKey = rowLower.hasOwnProperty('point_latidude') ? 'point_latidude' : 'point_latitude';
     return {
-      'time': row['Time'],
-      'latitude': row[latitudeKey],
-      'longitude': row['Point_Longitude']
+      'time': rowLower['time'],
+      'latitude': rowLower[latitudeKey],
+      'longitude': rowLower['point_longitude']
     }
   }
   throw new Error('Invalid Version format for geometries');

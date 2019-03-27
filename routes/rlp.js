@@ -226,7 +226,7 @@ function getVprommModification(way, roadId) {
 
 function getGeometriesRLPVersion(fileObject) {
   const filenamePatternV1 = /^.*\/RoadPath.*\.csv$/;
-  const filenamePatternV2 = /^.*\/.*_Link_.*_Path_.*\.csv$/;
+  const filenamePatternV2 = /^.*\/.*_Link.*_Path_.*\.csv$/;
 
   if (filenamePatternV1.test(fileObject.path)) return 'v1';
   if (filenamePatternV2.test(fileObject.path)) return 'v2';
@@ -305,7 +305,7 @@ function getPropertiesRLPVersion(fileObject) {
 
   // Some CSV filenames start with "RoadIntervals", others with just "Intervals"
   const filenamePatternV1 = /^.*\/(Road)?Intervals.*\.csv$/;
-  const filenamePatternV2 = /^.*\/.*_Link_.*_Roughness_.*\.csv$/;
+  const filenamePatternV2 = /^.*\/.*_Link.*_Roughness_.*\.csv$/;
 
   if (filenamePatternV1.test(fileObject.path)) return 'v1';
   if (filenamePatternV2.test(fileObject.path)) return 'v2';
@@ -324,6 +324,7 @@ async function propertiesHandler (req, res) {
     .on('entry', async e => {
       try {
         const version = getPropertiesRLPVersion(e);
+        console.log('RLP version', version);
         if (version) {
           const read = await parseProperties(e.path, e, existingRoadIds, version);
           if (read[0] && !read[0].road_id) {
@@ -370,7 +371,7 @@ async function propertiesHandler (req, res) {
           _.isEqual(p.datetime, r.datetime) &&
           p.road_id === r.road_id
         );
-
+        console.log('r', r);
         return match
           ? Promise.resolve()
           : knex.insert({
