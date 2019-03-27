@@ -26,30 +26,36 @@ function parseRowV1 (csvRow) {
 function parseRowV2(csvRow) {
   const DATE_STRING_FORMAT = 'HH:mm:ss YYYY-MMMM-DD';
 
+  // convert all column keys to lower-case to avoid inconsistent case between android / ios
+  const csvRowLower = {};
+  Object.keys(csvRow).forEach(key => {
+    csvRowLower[key.toLowerCase()] = csvRow[key];
+  });
+
   // Work-around for "Interval_Start_Latitude" key being sometimes misspelt
-  let startLatitudeKey = 'Interval_Start_Latitude';
-  if (csvRow.hasOwnProperty('Interval_Start_Latidude')) {
-    startLatitudeKey = 'Interval_Start_Latidude';
+  let startLatitudeKey = 'interval_start_latitude';
+  if (csvRowLower.hasOwnProperty('interval_start_latidude')) {
+    startLatitudeKey = 'interval_start_latidude';
   }
   const coord = midpoint(
-    point([Number(csvRow['Interval_Start_Longitude']), Number(csvRow[startLatitudeKey])]),
-    point([Number(csvRow['Interval_End_Longitude']), Number(csvRow['Interval_End_Latitude'])])
+    point([Number(csvRowLower['interval_start_longitude']), Number(csvRowLower[startLatitudeKey])]),
+    point([Number(csvRowLower['interval_end_longitude']), Number(csvRowLower['interval_end_latitude'])])
   );
 
   // If row does not have roughness, return null
-  if (!csvRow.hasOwnProperty('Roughness') || csvRow['Roughness'] === '') {
+  if (!csvRowLower.hasOwnProperty('roughness') || csvRow['roughness'] === '') {
     return null;
   }
 
   const props = {
-    'iri': csvRow['Roughness'],
-    'distance': csvRow['Interval_Length'],
-    'suspension': csvRow['Suspension_Type']
+    'iri': csvRowLower['roughness'],
+    'distance': csvRowLower['interval_length'],
+    'suspension': csvRowLower['suspension_type']
   };
 
   return {
     geom: coord.geometry,
-    datetime: moment(csvRow['Time'], DATE_STRING_FORMAT).toDate(),
+    datetime: moment(csvRowLower['time'], DATE_STRING_FORMAT).toDate(),
     properties: props
   };
 
