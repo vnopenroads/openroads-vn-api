@@ -10,5 +10,7 @@ RUN mkdir -p /init
 RUN mkdir -p /seed
 # Initialize the database using all SQL commands in the directory
 ADD run-seed.sh /seed/
+ADD init-db.sh /seed/
 RUN sh /seed/run-seed.sh
-COPY sql/*.sql /docker-entrypoint-initdb.d/
+RUN cat /seed/init-db.sh >> /docker-entrypoint-initdb.d/postgis.sh
+COPY sql/*.sql /docker-entrypoint-initdb.d/sql/
