@@ -1,5 +1,3 @@
-CREATE EXTENSION postgis;
-
 --
 -- Name: admin_boundaries; Type: TABLE; Schema: public; Owner: -; Tablespace:
 --
