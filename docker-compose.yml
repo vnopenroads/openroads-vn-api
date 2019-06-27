@@ -2,7 +2,7 @@ version: "2"
 services:
   db:
     build: ./db
-    image: developmentseed/openroads-vn-db:latest
+    image: vnopenroads/openroads-vn-db:latest
     container_name: vn-api-db
     ports:
       - "5433:5432"
@@ -11,7 +11,7 @@ services:
 
   api:
     build: .
-    image: developmentseed/openroads-vn-api:latest
+    image: vnopenroads/openroads-vn-api:latest
     env_file: .env
     depends_on:
       - db
@@ -23,7 +23,7 @@ services:
       - REDIS_URL=redis://redis:6379
 
   vn-tiler:
-    image: developmentseed/openroads-vn-tiler:latest
+    image: vnopenroads/openroads-vn-tiler:latest
     env_file: .env
     command: ./cron.sh
     environment:
@@ -32,7 +32,7 @@ services:
       - DATABASE_URL=postgres://postgres@db:5432/openroads
 
   tilemap:
-    image: developmentseed/openroads-tilemap:latest
+    image: vnopenroads/openroads-vn-tilemap:latest
     env_file: .env
     ports:
       - "3000:3000"
@@ -45,6 +45,6 @@ services:
     command: redis-server
 
   deploy:
-    image: developmentseed/openroads-vn-api:latest
+    image: vnopenroads/openroads-vn-api:latest
     command: node_modules/.bin/kes cf update -k aws/app --env-file .env
     env_file: .env
