@@ -1,0 +1,1 @@
+docker build -t vnopenroads/openroads-vn-db-dev .

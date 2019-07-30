@@ -136,3 +136,5 @@ tmp
 cloudformation.yml
 package-lock.json
 *.pyc
+
+db-dev/snapshot
