@@ -70,10 +70,10 @@ rlpGeomQueue.process(async function (job) {
       return resolve({
         type: 'error',
         message: 'Error while processing geometries in uploaded file.'
-      })
+      });
     }
 
-    if (!fileReads.length) { 
+    if (!fileReads.length) {
       return resolve({
         message: 'No roads imported. Data for this VProMM + Timestamp already ingested',
         type: 'error'
@@ -84,15 +84,15 @@ rlpGeomQueue.process(async function (job) {
       // Add roads to the `field_data_geometries` table
       return knex.insert({
         road_id: fr.road_id,
-        type: fr.type, 
+        type: fr.type,
         geom: st.geomFromGeoJSON(JSON.stringify(fr.geom.geometry))
-      }).into('field_data_geometries')
+      }).into('field_data_geometries');
     }))
     .then(async () => {
 
       // Filter out geometries that already exist in macrocosm
       // fileReads = await pFilter(fileReads, existingGeomFilter);
-      
+
       const osmChanges = await getOSMChanges(fileReads);
       const creates = osmChanges.map(c => c.create).filter(c => !!c);
 
@@ -100,7 +100,7 @@ rlpGeomQueue.process(async function (job) {
         return memo.concat(modification);
       }, []);
 
-      return pMap(modifications, patchVpromm, { concurrency: 4 })        
+      return pMap(modifications, patchVpromm, { concurrency: 4 })
       .then(() => {
 
         if (creates.length > 0) {
@@ -123,11 +123,11 @@ rlpGeomQueue.process(async function (job) {
           //     type: 'error'
           //   });
           // }
-          
+
           // Add roads to the production geometries tables, OSM format
           const changeset = `<osmChange version="0.6" generator="OpenRoads">\n<create>\n${osmCreate}\n</create>\n</osmChange>`;
 
-          uploadChangeset({payload: changeset}, function(apiResponse) { resolve(apiResponse) });
+          uploadChangeset({payload: changeset}, function(apiResponse) { resolve(apiResponse); });
         } else {
           return resolve({
             'type': 'success',
@@ -139,15 +139,15 @@ rlpGeomQueue.process(async function (job) {
         return resolve({
           'type': 'error',
           'message': 'Error while processing uploaded file.'
-        })
+        });
       });
     })
     .catch(e => {
       return resolve({
         'type': 'error',
         'message': 'Error while processing geometry for uploaded file.'
-      })
-    })
+      });
+    });
   });
 });
 
@@ -206,7 +206,7 @@ async function getOSMChanges(fileReads) {
         if (modification) {
           ret.modify.push(modification);
         }
-      }      
+      }
     });
 
     return ret;
@@ -235,7 +235,7 @@ function getGeometriesRLPVersion(fileObject) {
 }
 
 async function geometriesHandler(req, res) {
-  const frontendUrl = process.env.FRONTEND_URL || 'http://openroads-vn.com/';
+  const frontendUrl = process.env.FRONTEND_URL || 'http://orma.drvn.vn/';
   const payload = req.payload;
   const filenamePattern = /^.*\/RoadPath.*\.csv$/;
   const existingRoadIds = await knex.select('id').from('road_properties').map(r => r.id);
@@ -268,7 +268,7 @@ async function geometriesHandler(req, res) {
       }
       if (badPaths.length) {
         hasErrors = true;
-        errMessage = 'Road ID does not exist in system, please add it. If you are sure it exists, bad filenames exist in zipfile.'
+        errMessage = 'Road ID does not exist in system, please add it. If you are sure it exists, bad filenames exist in zipfile.';
       }
 
       // Ignore any duplicate input road geometries
@@ -310,12 +310,12 @@ function getPropertiesRLPVersion(fileObject) {
   if (filenamePatternV1.test(fileObject.path)) return 'v1';
   if (filenamePatternV2.test(fileObject.path)) return 'v2';
 
-  return false; 
+  return false;
 }
 
 async function propertiesHandler (req, res) {
 
-  const existingRoadIds = await knex.select('id').from('road_properties').map(r => r.id);  
+  const existingRoadIds = await knex.select('id').from('road_properties').map(r => r.id);
 
   let rows = [];
   let badPaths = [];
@@ -336,7 +336,7 @@ async function propertiesHandler (req, res) {
           e.autodrain();
         }
       } catch (e) {
-        return res(errors.propertiesUnknownError)
+        return res(errors.propertiesUnknownError);
       }
     })
     .on('close', async () => {
@@ -383,7 +383,7 @@ async function propertiesHandler (req, res) {
           }).into('point_properties');
       }))
       .then(() => res(fieldDataRoadIds))
-      .catch((e) => res(errors.propertiesUnknownError))
+      .catch((e) => res(errors.propertiesUnknownError));
     });
 }
 
