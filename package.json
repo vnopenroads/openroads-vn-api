@@ -8,6 +8,7 @@
   },
   "scripts": {
     "start": "node index.js",
+    "supervisor": "supervisor index.js",
     "test": "MACROCOSM_DEBUG=true mocha --recursive",
     "docker-start": "docker-compose up -d api && docker-compose build",
     "docker-stop": "docker-compose stop",
@@ -82,6 +83,7 @@
     "kes": "^0.1.6",
     "mocha": "^2.2.1",
     "should": "^5.2.0",
-    "split": "^0.3.3"
+    "split": "^0.3.3",
+    "supervisor": "*"
   }
 }

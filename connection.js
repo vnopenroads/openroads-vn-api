@@ -5,6 +5,7 @@ var assert = require('assert');
 var DEFAULT_ENVIRONMENT = 'development';
 
 var environment = process.env.MACROCOSM_ENV || DEFAULT_ENVIRONMENT;
+console.log(require('./local'));
 var connection = process.env.DATABASE_URL || require('./local').connection[environment];
 
 assert.ok(connection, 'Connection is undefined; check DATABASE_URL or local.js');
