@@ -1,5 +1,5 @@
 const Queue = require('bull');
-const rlpGeomQueue = require('../queue');
+const rlpGeomQueue = require('../util/queue');
 var Boom = require('boom');
 
 function jobHandler(req, res) {

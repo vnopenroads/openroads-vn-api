@@ -25,7 +25,7 @@ const errors = require('../util/errors');
 const turfBuffer = require('@turf/buffer').default;
 const turfBbox = require('@turf/bbox');
 const st = knexPostgis(knex);
-const rlpGeomQueue = require('../queue');
+const rlpGeomQueue = require('../util/queue');
 
 const POSTGIS_SIGNIFICANT_DECIMAL_PLACES = 7;
 

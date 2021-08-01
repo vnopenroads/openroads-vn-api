@@ -2,7 +2,7 @@
 
 var builder = require('xmlbuilder');
 
-var generator = require('../package.json').name;
+var generator = require('../../package.json').name;
 
 var rsp = {
   osm: {

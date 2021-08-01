@@ -15,10 +15,11 @@ const {
   uniq,
   uniqBy
 } = require('lodash');
-
+const utils = require('../services/handlers/utils.js')
 
 const validateId = (id) => /^\d{3}([A-ZĐ]{2}|00)\d{5}$/.test(id);
 const PAGE_SIZE = 20;
+
 
 
 function getHandler (req, res) {
@@ -29,16 +30,7 @@ function getHandler (req, res) {
   const district = req.query.district;
   const status = req.query.status;
 
-  if (sortField !== 'id') {
-    return res(Boom.badData(`Expected 'sortField' query param to be either 'id' or not included.  Got ${req.query.sortField}`));
-  }
-  if (sortOrder !== 'asc' && sortOrder !== 'desc') {
-    return res(Boom.badData(`Expected 'sortOrder' query param to be either 'asc', 'desc', or not included.  Got ${req.query.sortOrder}`));
-  }
-
-  if (page === 0 || isNaN(page)) {
-    return res(Boom.badData(`Expected 'page' query param to be a number >= 1, or not included.  Got ${req.query.page}`));
-  }
+  utils.checkStandardQueryParams(sortField, sortOrder, page);
 
   knex('road_properties as roads')
     .select('roads.id', 'roads.properties', 'roads.status')
@@ -275,51 +267,9 @@ function getCountHandler (req, res) {
   });
 }
 
-function checkStandardQueryParams(sortField, sortOrder, page) {
-  if (sortField !== 'id') {
-    return res(Boom.badData(`Expected 'sortField' query param to be either 'id' or not included.  Got ${req.query.sortField}`));
-  }
-  if (sortOrder !== 'asc' && sortOrder !== 'desc') {
-    return res(Boom.badData(`Expected 'sortOrder' query param to be either 'asc', 'desc', or not included.  Got ${req.query.sortOrder}`));
-  }
-  if (page === 0 || isNaN(page)) {
-    return res(Boom.badData(`Expected 'page' query param to be a number >= 1, or not included.  Got ${req.query.page}`));
-  }
-  return false;
-}
 
 
-function getRoadsCbaHandler(req, res) {
-  const sortField = req.query.sortField || 'id';
-  const sortOrder = req.query.sortOrder || 'asc';
-  const page = req.query.page === undefined ? 1 : parseInt(req.query.page);
-  const province = req.query.province;
-  const district = req.query.district;
-  const status = req.query.status;
 
-  var queryProblems = checkStandardQueryParams(sortField, sortOrder, page);
-  if (queryProblems) { return queryProblems; }
-
-  console.log(province);
-
-  knex('v_roads_cba as t')
-    .select('t.way_id as id', 't.vp_id', 't.length', 't.vp_length', 't.province', 't.district')
-    .modify(function(queryBuilder) {
-      if (province) {queryBuilder.andWhere('province', province);}
-      if (district) {queryBuilder.andWhere('district', district);}
-    //  if (district) {queryBuilder.where(`district = ${district}`);}
-    })
-    //.orderBy(sortField, sortOrder)
-    .limit(PAGE_SIZE)
-    //.offset((page - 1) * PAGE_SIZE)
-    .then((roads) => {
-      const ids = roads.map(e => e.id);
-      var results = roads.map((r) => {
-        return { 'id': r.id, 'vpromms_id': r.vp_id, 'length': r.length, 'vpromms_length': r.vp_length };
-      });
-      return res(results).type('application/json');
-    });
-};
 
 function createHandler(req, res) {
   if (!validateId(req.params.road_id)) {
@@ -332,27 +282,27 @@ function createHandler(req, res) {
     .select('id')
     .where('type', 'province')
     .andWhere('code', provinceCode)
-  .then(function(rows) {
-    if (rows.length) {
-      return knex('road_properties')
-      .insert({
-        id: req.params.road_id,
-        properties: {}
+    .then(function(rows) {
+      if (rows.length) {
+        return knex('road_properties')
+        .insert({
+          id: req.params.road_id,
+          properties: {}
+        })
+      .then(function(response) {
+        return res({ id: req.params.road_id }).type('application/json');
       })
-    .then(function(response) {
-      return res({ id: req.params.road_id }).type('application/json');
-    })
-    .catch(function(err) {
-      if (err.constraint === 'road_properties_pkey') {
-        return res(Boom.conflict('Road already exists'));
+      .catch(function(err) {
+        if (err.constraint === 'road_properties_pkey') {
+          return res(Boom.conflict('Road already exists'));
+        }
+        console.error('Error PUT /properties/roads/{road_id}', err);
+        return res(Boom.badImplementation('Unknown error'));
+      });
+      } else {
+        return res(Boom.notFound('Invalid province code'));
       }
-      console.error('Error PUT /properties/roads/{road_id}', err);
-      return res(Boom.badImplementation('Unknown error'));
     });
-    } else {
-      return res(Boom.notFound('Invalid province code'));
-    }
-  });
 }
 
 function moveHandler(req, res) {
@@ -603,11 +553,6 @@ module.exports = [
     handler: getCountHandler
   },
 
-  {
-    method: 'GET',
-    path: '/properties/roads_cba',
-    handler: getRoadsCbaHandler
-  },
   /**
    * @api {PUT} /properties/roads/:id Create road
    * @apiGroup Properties

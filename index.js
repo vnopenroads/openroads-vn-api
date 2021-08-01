@@ -40,7 +40,7 @@ server.register(Inert, () => {});
 server.register({
   register: require('hapi-router'),
   options: {
-    routes: 'routes/*.js'
+    routes: 'src/routes/*.js'
   }
 }, function (err) {
   if (err) throw err;

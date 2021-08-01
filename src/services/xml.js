@@ -5,7 +5,7 @@ var util = require('util');
 var libxml = require('libxmljs');
 var _ = require('lodash');
 
-var meta = require('../package.json');
+var meta = require('../../package.json');
 
 var GENERATOR = util.format('%s (v%s)', meta.name, meta.version);
 var RATIO = require('./ratio');
