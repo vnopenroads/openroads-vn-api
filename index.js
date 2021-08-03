@@ -20,8 +20,8 @@ var server = new Hapi.Server({
     }
   },
   debug: process.env.MACROCOSM_DEBUG ? {
-    log: [ 'error' ],
-    request: [ 'error', 'received', 'response' ]
+    log: ['error'],
+    request: ['error', 'received', 'response']
   } : false
 });
 
@@ -29,24 +29,24 @@ var server = new Hapi.Server({
 server.connection({ port: process.env.PORT || 4000 });
 
 
-server.ext('onRequest', function(req, res) {
+server.ext('onRequest', function (req, res) {
   debug('%s %s', req.method.toUpperCase(), req.url.href);
   return res.continue();
 });
 
 // Register routes
-server.register(Inert, () => {});
+server.register(Inert, () => { });
 
 server.register({
   register: require('hapi-router'),
   options: {
-    routes: 'src/routes/*.js'
+    routes: 'src/routes/**/*.js'
   }
 }, function (err) {
   if (err) throw err;
 });
 
-server.ext('onPostAuth', function(req, res) {
+server.ext('onPostAuth', function (req, res) {
 
   if (req.mime === 'text/xml' && req.payload.length > 0) {
     debug(req.payload);

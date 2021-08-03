@@ -1,4 +1,4 @@
-const cba = require('../services/handlers/cba.js')
+const cba = require('../../services/handlers/cba.js')
 
 module.exports = [
   /**

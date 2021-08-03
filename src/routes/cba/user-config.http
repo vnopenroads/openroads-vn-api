@@ -1,0 +1,11 @@
+# Get all user configs
+# http://localhost:4000/cba/user_configs
+
+# Create a new config
+POST http://localhost:4000/cba/user_configs/create HTTP/1.1
+content-type: application/json
+
+{
+    "name": "Jamie Test"
+}
+
