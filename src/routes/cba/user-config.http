@@ -1,11 +1,23 @@
 # Get all user configs
-# http://localhost:4000/cba/user_configs
+http://localhost:4000/cba/user_configs/1
 
 # Create a new config
-POST http://localhost:4000/cba/user_configs/create HTTP/1.1
+POST http://localhost:4000/cba/user_configs/1/update HTTP/1.1
 content-type: application/json
 
 {
-    "name": "Jamie Test"
+    "name": "Jamie Test",
+    "discount_rate": 2.9,
+    "economic_factor": 1.2
 }
+
+
+# POST http://localhost:4000/cba/user_configs/create HTTP/1.1
+# content-type: application/json
+
+# {
+#     "name": "Jamie Test",
+#     "discount_rate": 1.9,
+#     "economic_factor": 1.2
+# }
 
