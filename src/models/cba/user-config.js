@@ -7,8 +7,10 @@ var UserConfig = {
     name: { type: 'string' },
     discount_rate: { type: 'float' },
     economic_rate: { type: 'float' },
+    traffic_levels: { type: "jsonb" },
     created_at: { type: 'datetime', datetime: true },
     updated_at: { type: 'datetime', datetime: true }
   }
 };
+
 module.exports = UserConfig

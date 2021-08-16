@@ -21,22 +21,31 @@ function allGood(res) {
 }
 
 function buildData(payload, creation) {
-    var data = {
-        discount_rate: payload.discount_rate,
-        economic_factor: payload.economic_factor,
-        updated_at: new Date().toISOString()
-    };
+    var data = { updated_at: new Date().toISOString() };
     if (creation) {
         data['created_at'] = data['updated_at'];
         data['name'] = payload.name;
     }
-    return data
+    var rv = { ...data, ...payload };
+    if (rv['traffic_levels']) {
+        rv['traffic_levels'] = JSON.stringify(rv['traffic_levels'])
+    }
+    return rv;
 }
 
 function insertConfig(req, res) {
     knex(UserConfig.tableName)
         .insert(buildData(req.payload, true))
         .then(allGood(res))
+        .catch(createErrorHandler(res));
+}
+
+function selectQuery(res, id, fields) {
+    knex(UserConfig.tableName)
+        .select(fields)
+        .where({ id })
+        .first()
+        .then((results) => { res(results); })
         .catch(createErrorHandler(res));
 }
 
@@ -73,13 +82,13 @@ module.exports = [
         method: 'GET',
         path: '/cba/user_configs/{id}',
         handler: function (req, res) {
-            var id = req.params.id;
-            knex(UserConfig.tableName)
-                .select('*')
-                .where({ id })
-                .first()
-                .then((results) => { res(results); })
-                .catch(createErrorHandler(res));
+            selectQuery(res, req.params.id, ['discount_rate', 'economic_factor']);
+        }
+    }, {
+        method: 'GET',
+        path: '/cba/user_configs/{id}/traffic_levels',
+        handler: function (req, res) {
+            selectQuery(res, req.params.id, ['traffic_levels']);
         }
     }, {
         method: 'POST',

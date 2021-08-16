@@ -1,5 +1,7 @@
 # Get all user configs
-http://localhost:4000/cba/user_configs/1
+# http://localhost:4000/cba/user_configs/1
+
+# http://localhost:4000/cba/user_configs/1/traffic_levels
 
 # Create a new config
 POST http://localhost:4000/cba/user_configs/1/update HTTP/1.1
@@ -7,7 +9,7 @@ content-type: application/json
 
 {
     "name": "Jamie Test",
-    "discount_rate": 2.9,
+    "discount_rate": 3.9,
     "economic_factor": 1.2
 }
 
@@ -16,8 +18,9 @@ content-type: application/json
 # content-type: application/json
 
 # {
-#     "name": "Jamie Test",
-#     "discount_rate": 1.9,
-#     "economic_factor": 1.2
+#     "name": "Ha Ziang",
+#     "discount_rate": 2.9,
+#     "economic_factor": 0.7
 # }
 
+# GET http://localhost:4000/cba/user_configs/1/traffic_levels HTTP/1.1
