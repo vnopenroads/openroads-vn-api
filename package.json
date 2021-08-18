@@ -4,7 +4,7 @@
   "description": "An OSM-centric API for the Open Roads Vietnam platform",
   "main": "index.js",
   "engines": {
-    "node": "^8"
+    "node": "^10"
   },
   "scripts": {
     "start": "node index.js",
