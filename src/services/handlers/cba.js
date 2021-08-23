@@ -6,23 +6,76 @@ const PAGE_SIZE = 10;
 function maybeInt(x) { return x ? x : 0 }
 function maybeFloat(x) { return x ? x : 0.0 }
 
+function createErrorHandler(res) {
+  return (e) => {
+    console.log(e);
+    if (e.message.includes('duplicate')) {
+      res(Boom.conflict(e));
+    } else {
+      res(Boom.notImplemented(e.message));
+    }
+  };
+}
+
+function allGood(res) {
+  return (_) => { res({ success: true, message: 'ok' }); };
+};
+
+exports.getSnapshots = function (req, res) {
+  knex('cba_road_snapshots as t')
+    .select('t.*')
+    .then((results) => { return res(results).type('application/json'); })
+    .catch(createErrorHandler(res));
+}
+
+exports.createSnapshot = function (req, res) {
+  console.log(req.payload);
+
+  knex('cba_road_snapshots as t')
+    .insert(req.payload)
+    .then(allGood(res))
+    .catch(createErrorHandler(res));
+  // knex('cba_road_snapshots')
+  // .then(function(users) {
+  //   if (users.length > 0) {
+  //     return uid;
+  //   }
+  //   return knex('users')
+  //     .insert({
+  //       id: uid,
+  //       display_name: username,
+  //       // TODO: we aren't using the following fields; they're just here to
+  //       // cooperate w the database schema.
+  //       email: uid + '@email.org',
+  //       pass_crypt: '00000000000000000000000000000000',
+  //       data_public: true,
+  //       creation_time: new Date()
+  //     });
+  // });
+  // knex('cba_road_snapshots as t')
+  //   .select('t.*')
+  //   .then((results) => { return res(results).type('application/json'); })
+  //   .catch(createErrorHandler(res));
+}
+
+
 exports.getRoads = function (req, res) {
   const province = req.query.province;
   const district = req.query.district;
   const limit = req.query.limit;
 
   knex('v_roads_cba as t')
-    .select('t.way_id as id', 't.vp_id', 't.length', 't.vp_length', 't.province', 't.district', 't.surface_type', 
-            't.road_type', 't.lanes', 't.width', 't.condition', 't.traffic_level', 't.terrain')
-    .modify(function(queryBuilder) {
-      if (province) { queryBuilder.andWhere('province', province);}
-      if (district) { queryBuilder.andWhere('district', district);}
-      if (limit)    { queryBuilder.limit(limit); }
+    .select('t.way_id as id', 't.vp_id', 't.length', 't.vp_length', 't.province', 't.district', 't.surface_type',
+      't.road_type', 't.lanes', 't.width', 't.condition', 't.traffic_level', 't.terrain')
+    .modify(function (queryBuilder) {
+      if (province) { queryBuilder.andWhere('province', province); }
+      if (district) { queryBuilder.andWhere('district', district); }
+      if (limit) { queryBuilder.limit(limit); }
     })
     .then((roads) => {
       // const ids = roads.map(e => e.id);
       var results = roads.map((r) => {
-        return { 
+        return {
           'id': r.id, 'vpromms_id': r.vp_id, 'length': r.length, 'vpromms_length': r.vp_length,
           // "road_number": r.road number,
           // "road_name": r.name,
@@ -63,17 +116,16 @@ exports.getRoads = function (req, res) {
     });
 };
 
-
-exports.saveRoadArchive = function(req, res) {
+exports.takeSnapshot = function (req, res) {
 
   var logErrors = function (err) { console.log(err); return res({}).type('application/json'); };
   var returnNull = function (_) { return res({}).type('application/json'); }
 
-  var new_record = { id: req.payload.archive_id, road_data: { "data": req.payload.road_data }};
+  var new_record = { road_data: { "data": req.payload.road_data } };
   return knex('road_archives')
     .select('id')
     .andWhere('id', 1)
-    .then(function(rows) {
+    .then(function (rows) {
       if (rows.length == 0) {
         console.log("no existing record");
         return knex('road_archives').insert(new_record).then(returnNull).catch(logErrors);
@@ -83,12 +135,12 @@ exports.saveRoadArchive = function(req, res) {
       }
       return res(null);
     });
-    // .then(function(response) { return res({ id: req.params.road_id }).type('application/json'); } 
-    // .catch(function(err) {
-    //     if (err.constraint === 'road_properties_pkey') {
-    //       return res(Boom.conflict('Road already exists'));
-    //     }
-    //     console.error('Error PUT /properties/roads/{road_id}', err);
-    //     return res(Boom.badImplementation('Unknown error'));
-    // });
-  };
+  // .then(function(response) { return res({ id: req.params.road_id }).type('application/json'); } 
+  // .catch(function(err) {
+  //     if (err.constraint === 'road_properties_pkey') {
+  //       return res(Boom.conflict('Road already exists'));
+  //     }
+  //     console.error('Error PUT /properties/roads/{road_id}', err);
+  //     return res(Boom.badImplementation('Unknown error'));
+  // });
+};

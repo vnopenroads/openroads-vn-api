@@ -33,8 +33,13 @@ module.exports = [
    */
   {
     method: 'GET',
-    path: '/cba/roads',
+    path: '/cba/roads/live',
     handler: cba.getRoads
+  },
+  {
+    method: 'GET',
+    path: '/cba/roads/snapshots',
+    handler: cba.getSnapshots
   },
 
   /**
@@ -63,8 +68,8 @@ module.exports = [
    */
   {
     method: 'POST',
-    path: '/cba/road_archives/{archive_id}',
-    handler: cba.saveRoadArchive
+    path: '/cba/roads/snapshots/take',
+    handler: cba.createSnapshot
   }
 
 ]

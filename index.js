@@ -8,21 +8,23 @@ var xml2json = require('xml2json');
 
 var meta = require('./package.json');
 var debug = _debug(util.format('%s:http', meta.name));
+var shouldDebug = process.env.DS_ENV == 'uat' || process.env.DS_ENV == 'local';
+var debugOptions = {
+  log: ['error'],
+  request: ['error', 'received', 'response']
+};
 
 var server = new Hapi.Server({
   connections: {
     routes: {
-      cors: true,
+      cors: { origin: ['*'] },
       payload: {
         maxBytes: 5e+7,
         timeout: 100000
       }
     }
   },
-  debug: process.env.MACROCOSM_DEBUG ? {
-    log: ['error'],
-    request: ['error', 'received', 'response']
-  } : false
+  debug: shouldDebug ? debugOptions : false
 });
 
 

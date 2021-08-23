@@ -26,8 +26,10 @@ WITH vpromms AS (SELECT way_id, v AS vp_id from current_way_tags WHERE k = 'or_v
      aadt_lb   AS (SELECT way_id, v AS aadt_lb   FROM get_specific_tag('or_section_large_bus'))
 SELECT l.way_id, vpromms.vp_id, l.province, l.district, len.length as vp_length, l.length, 
        coalesce(surface1, surface2) as surface_type, coalesce(cond1,cond2) as condition, 
-       pave_age, traffic_level, road_type, width, lanes, terrain,
-       aadt_mcyc, aadt_sc, aadt_mc, aadt_dv, aadt_lt, aadt_mt, aadt_ht, aadt_at, aadt_sb, aadt_mb, aadt_lb
+       pave_age, traffic_level, road_type, width, cast(lanes as int), terrain,
+       cast(aadt_mcyc as text), cast(aadt_sc as text), cast(aadt_mc as text), cast(aadt_dv as text), 
+       cast(aadt_lt as text), cast(aadt_mt as text), cast(aadt_ht as text), cast(aadt_at as text), 
+       cast(aadt_sb as text), cast(aadt_mb as text), cast(aadt_lb as text)
 FROM lines_with_admin l
 LEFT JOIN vpromms ON l.way_id = vpromms.way_id
 LEFT JOIN len ON vpromms.vp_id = len.vp_id
