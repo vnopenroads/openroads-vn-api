@@ -8,7 +8,7 @@ POST http://localhost:4000/cba/roads/snapshots/take HTTP/1.1
 content-type: application/json
 
 {
-    "name": "Jamie Test",
+    "name": "Jame Test",
     "province_id": 294,
     "num_records": 888,
     "valid_records": 420

@@ -1,146 +1,105 @@
 'use strict'
-const knex = require('../../connection.js');
+const fetch = require('node-fetch');
+const knex = require('../../connection');
 const utils = require('./utils.js')
-const PAGE_SIZE = 10;
-
-function maybeInt(x) { return x ? x : 0 }
-function maybeFloat(x) { return x ? x : 0.0 }
-
-function createErrorHandler(res) {
-  return (e) => {
-    console.log(e);
-    if (e.message.includes('duplicate')) {
-      res(Boom.conflict(e));
-    } else {
-      res(Boom.notImplemented(e.message));
-    }
-  };
-}
-
-function allGood(res) {
-  return (_) => { res({ success: true, message: 'ok' }); };
-};
 
 exports.getSnapshots = function (req, res) {
-  knex('cba_road_snapshots as t')
-    .select('t.*')
-    .then((results) => { return res(results).type('application/json'); })
-    .catch(createErrorHandler(res));
+    // knex('cba_road_snapshots as t')
+    //   .select('t.*')
+    //   .then((results) => { return res(results).type('application/json'); })
+    //   .catch(utils.createErrorHandler(res));
+}
+
+var select_columns = `way_id, vp_id, province, district, vp_length, length, surface_type, 
+                      condition, pave_age, traffic_level, road_type, width, lanes, terrain, aadt_mcyc, aadt_sc,
+                      aadt_mc,aadt_dv,aadt_lt,aadt_mt, aadt_ht, aadt_at,aadt_sb, aadt_mb,aadt_lb`;
+var insert_columns = `cba_road_snapshot_id, ${select_columns}`;
+
+function copySnapshotData(id, payload) {
+    var sql = `
+      INSERT INTO cba_road_snapshots_data(${insert_columns})
+      SELECT ${id} as cba_road_snapshot_id, ${select_columns} 
+      FROM v_roads_cba
+    `;
+    console.log(sql)
+    var prom;
+    if (payload.province_id) {
+        prom = knex.raw(`${sql} WHERE province = ?`, [payload.province_id]);
+    } else {
+        prom = knex.raw(sql);
+    }
+    return prom;
+}
+
+function retrieveSnapshotMeta(res, id) {
+    console.log("Generating meta data for " + id);
+    return (result) => {
+        console.log("Got meta result: " + JSON.stringify(result));
+        return knex('cba_road_snapshots_data as t')
+            .select('t.*')
+            .where('cba_road_snapshot_id', '=', id)
+            .then((response) => {
+                console.log(typeof (response), response.length)
+                var url = 'http://localhost:5000/evaluate_assets'
+                var opts = {
+                    method: 'POST',
+                    body: JSON.stringify(response.map(utils.convertToPythonFormat)),
+                    headers: { 'Content-Type': 'application/json' }
+                };
+                return fetch(url, opts)
+                    .then((response) => response.json())
+                    .then((response) => {
+                        console.log(id);
+                        console.log(response);
+                        res(response);
+                    });
+            });
+    }
+}
+
+function copyData(res, payload) {
+    return (result) => {
+        var [snapshotId] = result;
+        console.log(`Got snapshotId: ${snapshotId}`);
+        return copySnapshotData(snapshotId, payload)
+            .then(retrieveSnapshotMeta(res, snapshotId));
+    };
+}
+
+function delete1() {
+    return knex('cba_road_snapshots as t').where('id', '>', 2).del();
+}
+function delete2() {
+    return knex('cba_road_snapshots_data as t').where('cba_road_snapshot_id', '>', 2).del();
 }
 
 exports.createSnapshot = function (req, res) {
-  console.log(req.payload);
+    var insertData = knex('cba_road_snapshots as t').insert(req.payload, 'id')
 
-  knex('cba_road_snapshots as t')
-    .insert(req.payload)
-    .then(allGood(res))
-    .catch(createErrorHandler(res));
-  // knex('cba_road_snapshots')
-  // .then(function(users) {
-  //   if (users.length > 0) {
-  //     return uid;
-  //   }
-  //   return knex('users')
-  //     .insert({
-  //       id: uid,
-  //       display_name: username,
-  //       // TODO: we aren't using the following fields; they're just here to
-  //       // cooperate w the database schema.
-  //       email: uid + '@email.org',
-  //       pass_crypt: '00000000000000000000000000000000',
-  //       data_public: true,
-  //       creation_time: new Date()
-  //     });
-  // });
-  // knex('cba_road_snapshots as t')
-  //   .select('t.*')
-  //   .then((results) => { return res(results).type('application/json'); })
-  //   .catch(createErrorHandler(res));
+    delete1()
+        .then(delete2)
+        .then(() => insertData)
+        .then(copyData(res, req.payload))
+        .catch(utils.createErrorHandler(res));
 }
 
-
 exports.getRoads = function (req, res) {
-  const province = req.query.province;
-  const district = req.query.district;
-  const limit = req.query.limit;
+    const province = req.query.province;
+    const district = req.query.district;
+    const limit = req.query.limit;
 
-  knex('v_roads_cba as t')
-    .select('t.way_id as id', 't.vp_id', 't.length', 't.vp_length', 't.province', 't.district', 't.surface_type',
-      't.road_type', 't.lanes', 't.width', 't.condition', 't.traffic_level', 't.terrain')
-    .modify(function (queryBuilder) {
-      if (province) { queryBuilder.andWhere('province', province); }
-      if (district) { queryBuilder.andWhere('district', district); }
-      if (limit) { queryBuilder.limit(limit); }
-    })
-    .then((roads) => {
-      // const ids = roads.map(e => e.id);
-      var results = roads.map((r) => {
-        return {
-          'id': r.id, 'vpromms_id': r.vp_id, 'length': r.length, 'vpromms_length': r.vp_length,
-          // "road_number": r.road number,
-          // "road_name": r.name,
-          // "road_start": r.road start location,
-          // "road_end": r.road end location,
-          "province": r.province,
-          "district": r.district,
-          // "commune": r.section_commune_gso,
-          // "management": Section.maybe_int(r.management),
-          "lanes": maybeInt(r.lanes),
-          "terrain": r.terrain,
-          "width": r.width == "6+" ? 6 : maybeFloat(r.width),
-          "road_class": r.link_class,
-          "temperature": r.section_temperature,
-          "moisture": r.section_moisture,
-          "surface_type": r.surface_type,
-          "condition_class": r.condition,
-          "roughness": maybeFloat(r.iri),
-          "traffic_level": r.traffic_level,
-          "traffic_growth": 0,
-          "pavement_age": maybeInt(r.section_pavement_age),
-          "aadt_motorcyle": maybeInt(r.aadt_mcyc),
-          "aadt_carsmall": maybeInt(r.aadt_sc),
-          "aadt_carmedium": maybeInt(r.aadt_mc),
-          "aadt_delivery": maybeInt(r.aadt_dv),
-          "aadt_4wheel": maybeInt(r.aadt_fourwd),
-          "aadt_smalltruck": maybeInt(r.aadt_lt),
-          "aadt_mediumtruck": maybeInt(r.aadt_mt),
-          "aadt_largetruck": maybeInt(r.aadt_ht),
-          "aadt_articulatedtruck": maybeInt(r.aadt_at),
-          "aadt_smallbus": maybeInt(r.aadt_sb),
-          "aadt_mediumbus": maybeInt(r.aadt_mb),
-          "aadt_largebus": maybeInt(r.aadt_lb),
-          "aadt_total": maybeInt(r.aadt),
-        };
-      });
-      return res(results).type('application/json');
-    });
+    knex('v_roads_cba as t')
+        .select('t.way_id as id', 't.vp_id', 't.length', 't.vp_length', 't.province', 't.district', 't.surface_type',
+            't.road_type', 't.lanes', 't.width', 't.condition', 't.traffic_level', 't.terrain')
+        .modify(function (queryBuilder) {
+            if (province) { queryBuilder.andWhere('province', province); }
+            if (district) { queryBuilder.andWhere('district', district); }
+            if (limit) { queryBuilder.limit(limit); }
+        })
+        .then((roads) => {
+            // const ids = roads.map(e => e.id);
+            var results = roads.map(utils.convertToPythonFormat);
+            return res(results).type('application/json');
+        });
 };
 
-exports.takeSnapshot = function (req, res) {
-
-  var logErrors = function (err) { console.log(err); return res({}).type('application/json'); };
-  var returnNull = function (_) { return res({}).type('application/json'); }
-
-  var new_record = { road_data: { "data": req.payload.road_data } };
-  return knex('road_archives')
-    .select('id')
-    .andWhere('id', 1)
-    .then(function (rows) {
-      if (rows.length == 0) {
-        console.log("no existing record");
-        return knex('road_archives').insert(new_record).then(returnNull).catch(logErrors);
-      } else {
-        console.log("updating existing record");
-        return knex('road_archives').update(new_record).then(returnNull).catch(logErrors);
-      }
-      return res(null);
-    });
-  // .then(function(response) { return res({ id: req.params.road_id }).type('application/json'); } 
-  // .catch(function(err) {
-  //     if (err.constraint === 'road_properties_pkey') {
-  //       return res(Boom.conflict('Road already exists'));
-  //     }
-  //     console.error('Error PUT /properties/roads/{road_id}', err);
-  //     return res(Boom.badImplementation('Unknown error'));
-  // });
-};
