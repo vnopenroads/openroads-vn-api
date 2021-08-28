@@ -1,12 +1,12 @@
 'use strict';
 
 const _ = require('lodash');
-const csvParse = require('d3-dsv').csvParse;
+const csvParse = import('d3-dsv').csvParse;
 const errors = require('../util/errors');
 const { NO_ID } = require('../util/road-id-utils');
 const knex = require('../connection.js');
 
-function upload (req, res) {
+function upload(req, res) {
   var parsed;
   try {
     parsed = csvParse(req.payload.toString());

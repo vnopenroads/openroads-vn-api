@@ -1,5 +1,5 @@
 'use strict';
-var Boom = require('boom');
+var Boom = require('@hapi/boom');
 
 var knex = require('../connection.js');
 var toGeoJSON = require('../services/osm-data-to-geojson.js');
@@ -59,12 +59,12 @@ module.exports = {
     }
 
     queryBbox(knex, bbox)
-    .then(function (result) {
-      res(toGeoJSON(result));
-    })
-    .catch(function (err) {
-      log.error(err);
-      return res(Boom.wrap(err));
-    });
+      .then(function (result) {
+        res(toGeoJSON(result));
+      })
+      .catch(function (err) {
+        log.error(err);
+        return res(Boom.wrap(err));
+      });
   }
 };

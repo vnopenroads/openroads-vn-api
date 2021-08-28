@@ -1,6 +1,6 @@
 'use strict';
 
-var Boom = require('boom');
+var Boom = require('@hapi/boom');
 var Promise = require('bluebird');
 
 var knex = require('../connection');
@@ -124,7 +124,7 @@ module.exports = [
      */
     method: 'GET',
     path: '/api/0.6/ways',
-    handler: function(req, res) {
+    handler: function (req, res) {
       var withNodes = req.query.nodes === 'true';
       var excludeDoubleLinkedNodes = withNodes && req.query.excludeDoubleLinkedNodes === 'true';
       var wayIds = req.query.ways.split(',');
@@ -134,37 +134,37 @@ module.exports = [
       }
 
       queryWays(knex, wayIds)
-      .then(function(result) {
-        var doc = {
-          ways: Node.withTags(result.ways, result.waytags, 'way_id')
-        };
-        if (!excludeDoubleLinkedNodes) {
-          doc.nodes = withNodes ? result.nodes : null;
-          return Promise.resolve(doc);
-        } else {
-          return knex('current_way_nodes')
-          .whereIn('node_id', result.nodes.map(nd => nd.id))
-          .then(function (wayNodes) {
-            const nodesToExclude = [];
-            for (let i = 0, ii = wayNodes.length; i < ii; ++i) {
-              let { way_id, node_id } = wayNodes[i];
-              if (wayIds.indexOf(way_id) === -1) {
-                nodesToExclude.push(node_id);
-              }
-            }
-            doc.nodes = result.nodes.filter(nd => nodesToExclude.indexOf(nd.id) === -1);
+        .then(function (result) {
+          var doc = {
+            ways: Node.withTags(result.ways, result.waytags, 'way_id')
+          };
+          if (!excludeDoubleLinkedNodes) {
+            doc.nodes = withNodes ? result.nodes : null;
             return Promise.resolve(doc);
-          });
-        }
-      }).then(function (doc) {
-        var xmlDoc = XML.write(doc);
-        var response = res(xmlDoc.toString());
-        response.type('text/xml');
-      })
-      .catch(function(err) {
-        log.error(err);
-        return res(Boom.wrap(err));
-      });
+          } else {
+            return knex('current_way_nodes')
+              .whereIn('node_id', result.nodes.map(nd => nd.id))
+              .then(function (wayNodes) {
+                const nodesToExclude = [];
+                for (let i = 0, ii = wayNodes.length; i < ii; ++i) {
+                  let { way_id, node_id } = wayNodes[i];
+                  if (wayIds.indexOf(way_id) === -1) {
+                    nodesToExclude.push(node_id);
+                  }
+                }
+                doc.nodes = result.nodes.filter(nd => nodesToExclude.indexOf(nd.id) === -1);
+                return Promise.resolve(doc);
+              });
+          }
+        }).then(function (doc) {
+          var xmlDoc = XML.write(doc);
+          var response = res(xmlDoc.toString());
+          response.type('text/xml');
+        })
+        .catch(function (err) {
+          log.error(err);
+          return res(Boom.wrap(err));
+        });
     }
   }
 ];

@@ -1,12 +1,12 @@
 'use strict';
-var Boom = require('boom');
+var Boom = require('@hapi/boom');
 
 var knex = require('../connection.js');
 var queryBbox = require('../services/query-bbox.js');
 var XML = require('../services/xml.js');
 var BoundingBox = require('../services/bounding-box.js');
 
-function mapHandler (req, res) {
+function mapHandler(req, res) {
   // parse and validate bbox parameter from query
   // See services/BoundingBox.js.
   var paramString = req.query.bbox || '';
@@ -16,19 +16,19 @@ function mapHandler (req, res) {
   }
 
   queryBbox(knex, bbox)
-  .then(function(result) {
-    var xmlDoc = XML.write({
-      bbox: bbox,
-      nodes: result.nodes,
-      ways: result.ways,
-      relations: result.relations
+    .then(function (result) {
+      var xmlDoc = XML.write({
+        bbox: bbox,
+        nodes: result.nodes,
+        ways: result.ways,
+        relations: result.relations
+      });
+      var response = res(xmlDoc.toString());
+      response.type('text/xml');
+    })
+    .catch(function (err) {
+      return res(Boom.wrap(err));
     });
-    var response = res(xmlDoc.toString());
-    response.type('text/xml');
-  })
-  .catch(function (err) {
-    return res(Boom.wrap(err));
-  });
 }
 
 module.exports = [

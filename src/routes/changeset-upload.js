@@ -1,6 +1,6 @@
 'use strict';
 
-var Boom = require('boom');
+var Boom = require('@hapi/boom');
 
 var knex = require('../connection.js');
 var BoundingBox = require('../services/bounding-box.js');
@@ -28,14 +28,14 @@ function upload(req, res) {
   knex('changesets')
     .where('id', changesetID)
 
-    .then(function(meta) {
+    .then(function (meta) {
       if (meta.length === 0) {
-        throw {name: 'notFound'};
+        throw { name: 'notFound' };
       }
       return _upload(meta[0], changesetPayload);
     })
 
-    .then(function(changeObject) {
+    .then(function (changeObject) {
       /* TODO
        * <diffResult generator="OpenStreetMap Server" version="0.6">
        *   <node|way|relation old_id="#" new_id="#" new_version="#"/>
@@ -45,7 +45,7 @@ function upload(req, res) {
       return res(changeObject);
     })
 
-    .catch(function(err) {
+    .catch(function (err) {
       if (err.name === 'notFound') {
         log.error('Changeset not found', err);
         return res(Boom.notFound('Could not find changeset'));
@@ -60,7 +60,7 @@ function _upload(meta, changeset) {
   // Useful to keep track of how long stuff takes.
   var time = new Date();
   log.info('Starting changeset transaction');
-  return knex.transaction(function(transaction) {
+  return knex.transaction(function (transaction) {
 
     var queryData = {
       // Map of old ids to newly-created ones.
@@ -75,29 +75,29 @@ function _upload(meta, changeset) {
     };
 
     return models.node.save(queryData)
-      .then(function() {
+      .then(function () {
         log.info('Nodes transaction completed', (new Date() - time) / 1000, 'seconds');
         time = new Date();
         return models.way.save(queryData);
       })
-      .then(function() {
+      .then(function () {
         log.info('Ways transaction completed', (new Date() - time) / 1000, 'seconds');
         time = new Date();
         return models.relation.save(queryData);
       })
-      .then(function(saved) {
+      .then(function (saved) {
         log.info('Relations transaction completed', (new Date() - time) / 1000, 'seconds');
         time = new Date();
         var newMeta = updateChangeset(meta, changeset);
         return knex('changesets')
           .where('id', meta.id)
           .update(newMeta)
-          .then(function() {
+          .then(function () {
             log.info('New changeset updated', (new Date() - time) / 1000, 'seconds');
-            return {changeset: Object.assign({}, newMeta, saved), created: queryData.map};
+            return { changeset: Object.assign({}, newMeta, saved), created: queryData.map };
           });
       })
-      .catch(function(err) {
+      .catch(function (err) {
         // Once we get here, rollback should happen automatically,
         // since we are returning promises in this transaction.
         // https://github.com/tgriesser/knex/issues/362
@@ -113,11 +113,11 @@ function updateChangeset(meta, changeset) {
   // Keep track of the number of changes this upload operation is doing.
   var numChanges = parseInt(meta.num_changes, 10) || 0;
   var nodes = [];
-  ['create', 'modify', 'delete'].forEach(function(action) {
+  ['create', 'modify', 'delete'].forEach(function (action) {
     if (changeset[action] && changeset[action].node) {
       nodes = nodes.concat(changeset[action].node);
     }
-    ['node', 'way', 'relation'].forEach(function(entity) {
+    ['node', 'way', 'relation'].forEach(function (entity) {
       if (changeset[action] && Array.isArray(changeset[action][entity])) {
         numChanges += changeset[action][entity].length;
       } else if (changeset[action] && changeset[action][entity] != null) {

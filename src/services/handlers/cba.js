@@ -3,11 +3,10 @@ const fetch = require('node-fetch');
 const knex = require('../../connection');
 const utils = require('./utils.js')
 
-exports.getSnapshots = function (req, res) {
-    // knex('cba_road_snapshots as t')
-    //   .select('t.*')
-    //   .then((results) => { return res(results).type('application/json'); })
-    //   .catch(utils.createErrorHandler(res));
+exports.getSnapshots = async function (req, res) {
+    return knex('cba_road_snapshots as t')
+        .select('t.*')
+        .catch(utils.createErrorHandler(res));
 }
 
 var select_columns = `way_id, vp_id, province, district, vp_length, length, surface_type, 
@@ -21,7 +20,6 @@ function copySnapshotData(id, payload) {
       SELECT ${id} as cba_road_snapshot_id, ${select_columns} 
       FROM v_roads_cba
     `;
-    console.log(sql)
     var prom;
     if (payload.province_id) {
         prom = knex.raw(`${sql} WHERE province = ?`, [payload.province_id]);
@@ -34,25 +32,17 @@ function copySnapshotData(id, payload) {
 function retrieveSnapshotMeta(res, id) {
     console.log("Generating meta data for " + id);
     return (result) => {
-        console.log("Got meta result: " + JSON.stringify(result));
         return knex('cba_road_snapshots_data as t')
             .select('t.*')
             .where('cba_road_snapshot_id', '=', id)
             .then((response) => {
-                console.log(typeof (response), response.length)
                 var url = 'http://localhost:5000/evaluate_assets'
                 var opts = {
                     method: 'POST',
                     body: JSON.stringify(response.map(utils.convertToPythonFormat)),
                     headers: { 'Content-Type': 'application/json' }
                 };
-                return fetch(url, opts)
-                    .then((response) => response.json())
-                    .then((response) => {
-                        console.log(id);
-                        console.log(response);
-                        res(response);
-                    });
+                return fetch(url, opts).then((response) => response.json());
             });
     }
 }
@@ -76,7 +66,7 @@ function delete2() {
 exports.createSnapshot = function (req, res) {
     var insertData = knex('cba_road_snapshots as t').insert(req.payload, 'id')
 
-    delete1()
+    return delete1()
         .then(delete2)
         .then(() => insertData)
         .then(copyData(res, req.payload))
@@ -88,7 +78,7 @@ exports.getRoads = function (req, res) {
     const district = req.query.district;
     const limit = req.query.limit;
 
-    knex('v_roads_cba as t')
+    return knex('v_roads_cba as t')
         .select('t.way_id as id', 't.vp_id', 't.length', 't.vp_length', 't.province', 't.district', 't.surface_type',
             't.road_type', 't.lanes', 't.width', 't.condition', 't.traffic_level', 't.terrain')
         .modify(function (queryBuilder) {
@@ -96,10 +86,6 @@ exports.getRoads = function (req, res) {
             if (district) { queryBuilder.andWhere('district', district); }
             if (limit) { queryBuilder.limit(limit); }
         })
-        .then((roads) => {
-            // const ids = roads.map(e => e.id);
-            var results = roads.map(utils.convertToPythonFormat);
-            return res(results).type('application/json');
-        });
+        .then((roads) => roads.map(utils.convertToPythonFormat));
 };
 

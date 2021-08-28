@@ -1,6 +1,6 @@
 const Queue = require('bull');
 const rlpGeomQueue = require('../util/queue');
-var Boom = require('boom');
+var Boom = require('@hapi/boom');
 
 function jobHandler(req, res) {
   const jobID = req.params.jobID;

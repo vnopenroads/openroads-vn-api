@@ -1,5 +1,5 @@
 'use strict';
-var Boom = require('boom');
+var Boom = require('@hapi/boom');
 
 var knex = require('../connection');
 var XML = require('../services/xml');
@@ -52,17 +52,17 @@ module.exports = [
         knex('current_nodes').where('id', nodeId),
         knex('current_node_tags').where('node_id', nodeId)
       ])
-      .then(function (result) {
-        var xmlDoc = XML.write({
-          nodes: Node.withTags(result[0], result[1], 'node_id'),
+        .then(function (result) {
+          var xmlDoc = XML.write({
+            nodes: Node.withTags(result[0], result[1], 'node_id'),
+          });
+          var response = res(xmlDoc.toString());
+          response.type('text/xml');
+        })
+        .catch(function (err) {
+          log.error(err);
+          return res(Boom.wrap(err));
         });
-        var response = res(xmlDoc.toString());
-        response.type('text/xml');
-      })
-      .catch(function (err) {
-        log.error(err);
-        return res(Boom.wrap(err));
-      });
     }
   },
   {
@@ -88,7 +88,7 @@ module.exports = [
      */
     method: 'GET',
     path: '/api/0.6/nodes',
-    handler: function(req, res) {
+    handler: function (req, res) {
       var ids = req.query.nodes.split(',').map(Number);
 
       if (ids.length === 0) {
@@ -99,19 +99,19 @@ module.exports = [
         knex('current_nodes').whereIn('id', ids),
         knex('current_node_tags').whereIn('node_id', ids)
       ])
-      .then(function(result) {
-        console.log('result:', result);
+        .then(function (result) {
+          console.log('result:', result);
 
-        var xmlDoc = XML.write({
-          nodes: Node.withTags(result[0], result[1], 'node_id')
+          var xmlDoc = XML.write({
+            nodes: Node.withTags(result[0], result[1], 'node_id')
+          });
+          var response = res(xmlDoc.toString());
+          response.type('text/xml');
+        })
+        .catch(function (err) {
+          console.log(err);
+          res(Boom.wrap(err));
         });
-        var response = res(xmlDoc.toString());
-        response.type('text/xml');
-      })
-      .catch(function(err) {
-        console.log(err);
-        res(Boom.wrap(err));
-      });
     }
   }
 ];

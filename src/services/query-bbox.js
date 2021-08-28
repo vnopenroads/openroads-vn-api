@@ -1,6 +1,6 @@
 'use strict';
 
-var Boom = require('boom');
+var Boom = require('@hapi/boom');
 
 var quadTile = require('../services/quad-tile.js');
 var ratio = require('./ratio.js');
@@ -32,8 +32,8 @@ module.exports = function queryBbox(knex, bbox) {
     return knex('current_way_nodes')
       .whereIn('node_id', nodeIds)
       .distinct('way_id AS id')
-      .then(function(rows) {
-        return rows.map(function(row) {
+      .then(function (rows) {
+        return rows.map(function (row) {
           return row.id;
         });
       });
@@ -43,8 +43,8 @@ module.exports = function queryBbox(knex, bbox) {
     return knex('current_way_nodes')
       .whereIn('way_id', wayIds)
       .distinct('node_id AS id')
-      .then(function(rows) {
-        return rows.map(function(row) {
+      .then(function (rows) {
+        return rows.map(function (row) {
           return row.id;
         });
       });
@@ -55,8 +55,8 @@ module.exports = function queryBbox(knex, bbox) {
       .where('member_type', 'Way')
       .whereIn('member_id', wayIds)
       .distinct('relation_id AS id')
-      .then(function(rows) {
-        return rows.map(function(row) {
+      .then(function (rows) {
+        return rows.map(function (row) {
           return row.id;
         });
       });
@@ -67,8 +67,8 @@ module.exports = function queryBbox(knex, bbox) {
       .where('member_type', 'Node')
       .whereIn('member_id', nodeIds)
       .distinct('relation_id AS id')
-      .then(function(rows) {
-        return rows.map(function(row) {
+      .then(function (rows) {
+        return rows.map(function (row) {
           return row.id;
         });
       });
@@ -79,8 +79,8 @@ module.exports = function queryBbox(knex, bbox) {
       .where('member_type', 'Relation')
       .whereIn('member_id', relationIds)
       .distinct('relation_id AS id')
-      .then(function(rows) {
-        return rows.map(function(row) {
+      .then(function (rows) {
+        return rows.map(function (row) {
           return row.id;
         });
       });
@@ -146,17 +146,17 @@ module.exports = function queryBbox(knex, bbox) {
   var relationIds = new Set();
 
   return selectNodesFromBbox(bbox)
-    .then(function(nodes) {
+    .then(function (nodes) {
       nodes.forEach(nodeIds.add, nodeIds);
 
       return selectWaysFromNodes(nodes);
     })
-    .then(function(ways) {
+    .then(function (ways) {
       ways.forEach(wayIds.add, wayIds);
 
       return selectNodesFromWays(ways);
     })
-    .then(function(nodes) {
+    .then(function (nodes) {
       nodes.forEach(nodeIds.add, nodeIds);
 
       return Promise.all([
@@ -164,7 +164,7 @@ module.exports = function queryBbox(knex, bbox) {
         selectRelationsFromNodes([...nodeIds])
       ]);
     })
-    .then(function(values) {
+    .then(function (values) {
       // ways
       values[0].forEach(relationIds.add, relationIds);
 
@@ -173,7 +173,7 @@ module.exports = function queryBbox(knex, bbox) {
 
       return selectRelationsFromRelations([...relationIds]);
     })
-    .then(function(relations) {
+    .then(function (relations) {
       relations.forEach(relationIds.add, relationIds);
 
       return Promise.all([
@@ -187,7 +187,7 @@ module.exports = function queryBbox(knex, bbox) {
         selectRelationTags([...relationIds])
       ]);
     })
-    .then(function(entities) {
+    .then(function (entities) {
       var nodes = entities.shift();
       var nodeTags = entities.shift();
       var ways = entities.shift();
@@ -197,32 +197,32 @@ module.exports = function queryBbox(knex, bbox) {
       var relationMembers = entities.shift();
       var relationTags = entities.shift();
 
-      nodes = nodes.map(function(node) {
-        node.tags = nodeTags.filter(function(tag) {
+      nodes = nodes.map(function (node) {
+        node.tags = nodeTags.filter(function (tag) {
           return tag.id === node.id;
         });
 
         return node;
       });
 
-      ways = ways.map(function(way) {
-        way.nodes = wayNds.filter(function(nd) {
+      ways = ways.map(function (way) {
+        way.nodes = wayNds.filter(function (nd) {
           return nd.way_id === way.id;
         });
 
-        way.tags = wayTags.filter(function(tag) {
+        way.tags = wayTags.filter(function (tag) {
           return tag.id === way.id;
         });
 
         return way;
       });
 
-      relations = relations.map(function(relation) {
-        relation.members = relationMembers.filter(function(member) {
+      relations = relations.map(function (relation) {
+        relation.members = relationMembers.filter(function (member) {
           return member.id === relation.id;
         });
 
-        relation.tags = relationTags.filter(function(tag) {
+        relation.tags = relationTags.filter(function (tag) {
           return tag.id === relation.id;
         });
 

@@ -2,12 +2,12 @@
 
 const _ = require('lodash');
 const fastCSV = require('fast-csv');
-const midpoint = require('turf-midpoint');
+const midpoint = require('@turf/midpoint');
 const moment = require('moment');
 const point = require('turf-point');
 const getRoadIdFromPath = require('../util/road-id-utils').getRoadIdFromPath;
 
-function parseRowV1 (csvRow) {
+function parseRowV1(csvRow) {
   const DATE_STRING_FORMAT = 'HH:mm:ss YYYY-MMMM-DD';
   const USED_PROERTIES = ['time', 'start_lat', 'start_lon', 'end_lat', 'end_lon'];
 
@@ -61,13 +61,13 @@ function parseRowV2(csvRow) {
 
 }
 
-async function parseProperties (path, contentsStream, existingRoadIds, version) {
+async function parseProperties(path, contentsStream, existingRoadIds, version) {
   const roadId = getRoadIdFromPath(path, existingRoadIds);
 
   let rows = [];
   return new Promise((resolve, reject) =>
     contentsStream.pipe(fastCSV
-      .parse({headers: true})
+      .parse({ headers: true })
       .on('data', d => {
         try {
           let row;

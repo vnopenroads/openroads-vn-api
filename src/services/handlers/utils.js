@@ -1,4 +1,4 @@
-var Boom = require('boom');
+var Boom = require('@hapi/boom');
 
 function maybeInt(x) { return x ? x : 0 }
 function maybeFloat(x) { return x ? x : 0.0 }
@@ -8,26 +8,32 @@ exports.createErrorHandler = function (res) {
   return (e) => {
     console.log(e);
     if (e.message.includes('duplicate')) {
-      res(Boom.conflict(e));
+      return Boom.conflict(e);
     } else {
-      res(Boom.notImplemented(e.message));
+      return Boom.notImplemented(e.message);
     }
   };
 }
 
+exports.boomWrapper = function (e) {
+  console.log(e);
+  // return error if it occurs
+  return (Boom.wrap(e));
+}
+
 exports.allGood = function (res) {
-  return (_) => { res({ success: true, message: 'ok' }); };
+  return (_) => { return { success: true, message: 'ok' } };
 }
 
 exports.checkStandardQueryParams = function (sortField, sortOrder, page) {
   if (sortField !== 'id') {
-    return res(Boom.badData(`Expected 'sortField' query param to be either 'id' or not included.  Got ${req.query.sortField}`));
+    return Boom.badData(`Expected 'sortField' query param to be either 'id' or not included.  Got ${req.query.sortField}`);
   }
   if (sortOrder !== 'asc' && sortOrder !== 'desc') {
-    return res(Boom.badData(`Expected 'sortOrder' query param to be either 'asc', 'desc', or not included.  Got ${req.query.sortOrder}`));
+    return Boom.badData(`Expected 'sortOrder' query param to be either 'asc', 'desc', or not included.  Got ${req.query.sortOrder}`);
   }
   if (page === 0 || isNaN(page)) {
-    return res(Boom.badData(`Expected 'page' query param to be a number >= 1, or not included.  Got ${req.query.page}`));
+    return Boom.badData(`Expected 'page' query param to be a number >= 1, or not included.  Got ${req.query.page}`);
   }
   return false;
 }

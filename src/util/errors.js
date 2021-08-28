@@ -1,6 +1,6 @@
 'use strict';
 
-const Boom = require('boom');
+const Boom = require('@hapi/boom');
 const {
   NO_ID,
   ONLY_PROPERTIES

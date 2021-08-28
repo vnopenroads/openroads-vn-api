@@ -1,6 +1,6 @@
 'use strict';
 
-var Boom = require('boom');
+var Boom = require('@hapi/boom');
 var _ = require('lodash');
 var knex = require('../connection');
 var validateArray = require('../util/validate-array');
@@ -23,7 +23,7 @@ function changesetCreate(req, res) {
 
   knex('users')
     .where('id', uid)
-    .then(function(users) {
+    .then(function (users) {
       if (users.length > 0) {
         return uid;
       }
@@ -43,33 +43,33 @@ function changesetCreate(req, res) {
     .then(function () {
       // TODO do this in a transaction
       return knex('changesets')
-      .returning('id')
-      .insert({
-        user_id: uid,
-        created_at: now,
-        closed_at: now,
-        num_changes: 0
-      });
+        .returning('id')
+        .insert({
+          user_id: uid,
+          created_at: now,
+          closed_at: now,
+          num_changes: 0
+        });
     })
 
-    .then(function(ids) {
+    .then(function (ids) {
       if (!ids.length) { throw new Error('Could not add changeset to database.'); }
       var id = ids[0];
       if (changeset.tag == null || changeset.tag.length === 0) { return id; }
 
-      var tags = changeset.tag.map(function(tag) {
+      var tags = changeset.tag.map(function (tag) {
         return _.extend({}, tag, {
           changeset_id: id
         });
       });
       return knex('changeset_tags')
         .insert(tags)
-        .then(function() {
+        .then(function () {
           return id;
         });
     })
 
-    .then(function(id) {
+    .then(function (id) {
       return res(String(id));
     })
 

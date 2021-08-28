@@ -1,5 +1,5 @@
 'use strict';
-var Boom = require('boom');
+var Boom = require('@hapi/boom');
 
 const {
   validate
@@ -22,21 +22,21 @@ function serveSingleWay(req, res) {
   }
 
   queryWays(knex, wayId)
-  .then(function (result) {
-    var xmlDoc = XML.write({
-      ways: Node.withTags(result.ways, result.waytags, 'way_id')
+    .then(function (result) {
+      var xmlDoc = XML.write({
+        ways: Node.withTags(result.ways, result.waytags, 'way_id')
+      });
+      var response = res(xmlDoc.toString());
+      response.type('text/xml');
+    })
+    .catch(function (err) {
+      log.error(err);
+      return res(Boom.wrap(err));
     });
-    var response = res(xmlDoc.toString());
-    response.type('text/xml');
-  })
-  .catch(function (err) {
-    log.error(err);
-    return res(Boom.wrap(err));
-  });
 }
 
 // convert to decimal degree lat/lon
-function nodeCoordinates (node) {
+function nodeCoordinates(node) {
   return [
     parseInt(node.longitude, 10) / 10000000,
     parseInt(node.latitude, 10) / 10000000
@@ -57,7 +57,7 @@ function getWayIdBBOX(req, res) {
       points = fc(flatten(points));
       return res(bbox(points));
     })
-    .catch(err => {return res(Boom.badRequest(err));})
+    .catch(err => { return res(Boom.badRequest(err)); })
 }
 function singleWayBBOX(req, res) {
   var vprommsId = req.params.VProMMs_Id;
@@ -66,28 +66,28 @@ function singleWayBBOX(req, res) {
   }
   // get way_id for row where where the 'v' column matches vprommsId;
   knex('current_way_tags')
-  .where('v', vprommsId)
-  .then(function (result) {
-    // make points for each of the returned ways as mutiple ways can have the same VProMMs;
-    Promise.map(result, (res) => {
-      // get nodes of that way, then return bbox that surround those nodes
-      return queryWays(knex, result[0].way_id)
-      .then(function (result) {
-        // make points from each way node, then use those points to make a bbox
-        return Promise.map(result.nodes, function (node) {
-          return point(nodeCoordinates(node));
+    .where('v', vprommsId)
+    .then(function (result) {
+      // make points for each of the returned ways as mutiple ways can have the same VProMMs;
+      Promise.map(result, (res) => {
+        // get nodes of that way, then return bbox that surround those nodes
+        return queryWays(knex, result[0].way_id)
+          .then(function (result) {
+            // make points from each way node, then use those points to make a bbox
+            return Promise.map(result.nodes, function (node) {
+              return point(nodeCoordinates(node));
+            });
+          });
+      })
+        .then(function (points) {
+          points = fc(flatten(points));
+          res(bbox(points));
         });
-      });
     })
-    .then(function (points) {
-      points = fc(flatten(points));
-      res(bbox(points));
+    .catch(function (err) {
+      log.error(err);
+      return res(Boom.wrap(err));
     });
-  })
-  .catch(function (err) {
-    log.error(err);
-    return res(Boom.wrap(err));
-  });
 }
 
 function patchVprommIdHandler(req, res) {
@@ -106,25 +106,25 @@ function patchVprommIdHandler(req, res) {
     .update({
       v: req.payload.vprommid
     })
-  .then(function(response) {
-    if (response === 0) {
-      throw new Error('404');
-      return response;
-    }
-    return res({ wayId: wayId }).type('application/json');
-  })
-  .catch(function(err) {
-    if (err.constraint) {
-      return res(Boom.conflict());
-    }
+    .then(function (response) {
+      if (response === 0) {
+        throw new Error('404');
+        return response;
+      }
+      return res({ wayId: wayId }).type('application/json');
+    })
+    .catch(function (err) {
+      if (err.constraint) {
+        return res(Boom.conflict());
+      }
 
-    if (err.message === '404') {
-      return res(Boom.notFound());
-    }
+      if (err.message === '404') {
+        return res(Boom.notFound());
+      }
 
-    console.error('Error PATCH /way/tags/vprommid/{wayId}', err);
-    return res(Boom.badImplementation());
-  });
+      console.error('Error PATCH /way/tags/vprommid/{wayId}', err);
+      return res(Boom.badImplementation());
+    });
 }
 
 module.exports = [
@@ -229,25 +229,25 @@ module.exports = [
     path: '/wayid/{way_id}/bbox',
     handler: getWayIdBBOX
   },
-/**
-   * @api {PATCH} /way/tags/vprommid/:way_id Patch current_way_tags with new VPRoMM ID
-   * @apiGroup Properties
-   * @apiName Patch current_way_tags with new VPRoMM ID
-   * @apiVersion 0.3.0
-   *
-   * @apiParam {String} id way id
-   * @apiParam {String} json-patch patch operations to apply new VPRoMM ID.  See https://tools.ietf.org/html/rfc6902 for spec details.
-   *
-   * @apiErrorExample {json} Error-Response
-   *     Patch operations are invalid
-   *     HTTP/1.1 422 Unprocessable Entity
-   *     {
-   *       error: "Unprocessable Entity"
-   *     }
-   *
-   * @apiExample {curl} Example Usage:
-   *  curl -X PATCH- H "Content-Type: application/json-patch+json" -d '{vprommid: 214TT00039}' http://localhost:4000/way/tags/vprommid/123
-   */
+  /**
+     * @api {PATCH} /way/tags/vprommid/:way_id Patch current_way_tags with new VPRoMM ID
+     * @apiGroup Properties
+     * @apiName Patch current_way_tags with new VPRoMM ID
+     * @apiVersion 0.3.0
+     *
+     * @apiParam {String} id way id
+     * @apiParam {String} json-patch patch operations to apply new VPRoMM ID.  See https://tools.ietf.org/html/rfc6902 for spec details.
+     *
+     * @apiErrorExample {json} Error-Response
+     *     Patch operations are invalid
+     *     HTTP/1.1 422 Unprocessable Entity
+     *     {
+     *       error: "Unprocessable Entity"
+     *     }
+     *
+     * @apiExample {curl} Example Usage:
+     *  curl -X PATCH- H "Content-Type: application/json-patch+json" -d '{vprommid: 214TT00039}' http://localhost:4000/way/tags/vprommid/123
+     */
   {
     method: 'PATCH',
     path: '/way/tags/vprommid/{wayId}',

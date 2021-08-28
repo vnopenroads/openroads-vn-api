@@ -4,7 +4,7 @@
   "description": "An OSM-centric API for the Open Roads Vietnam platform",
   "main": "index.js",
   "engines": {
-    "node": "^10"
+    "node": "^14"
   },
   "scripts": {
     "start": "node index.js",
@@ -23,7 +23,9 @@
     "kes-iam-create": "kes cf create --kes-folder aws/iam --profile ds --region us-east-1",
     "kes-iam-update": "kes cf update --kes-folder aws/iam --profile ds --region us-east-1",
     "kes-deployer-create": "kes cf create --kes-folder aws/deployer --profile ds --region us-east-1",
-    "kes-deployer-update": "kes cf update --kes-folder aws/deployer --profile ds --region us-east-1",
+    "kes-deployer-update": "kes cf update --kes-folder aws/deployer --profile ds --region us-east-1"
+  },
+  "//": {
     "postinstall": "npm run gendoc"
   },
   "repository": {
@@ -39,52 +41,60 @@
     "url": "https://github.com/orma/openroads-vn-analytics/issues"
   },
   "homepage": "https://github.com/orma/openroads-vn-api",
-  "dependencies": {
-    "@turf/bbox": "^4.6.0",
-    "@turf/bbox-polygon": "^6.0.1",
-    "@turf/buffer": "^5.1.5",
-    "@turf/distance": "^5.0.0",
-    "@turf/helpers": "^6.1.4",
-    "@turf/points-within-polygon": "^5.1.5",
+  "//": {
     "apidoc": "^0.12.3",
     "bluebird": "^3.5.0",
-    "boom": "^2.7.0",
-    "bull": "^3.4.4",
-    "d3-dsv": "^1.0.7",
     "debug": "^2.2.0",
-    "fast-csv": "^2.4.0",
-    "fast-json-patch": "^2.0.6",
     "geojson-stream": "0.0.1",
-    "geojson-validation": "^0.2.1",
-    "geojsontoosm": "^0.0.2",
-    "hapi": "^16.6.0",
-    "hapi-router": "^3.5.0",
-    "inert": "^4.2.1",
-    "knex": "^0.9.0",
-    "knex-postgis": "^0.5.0",
-    "libxmljs": "^0.18.7",
-    "lodash": "^4.17.4",
     "moment": "^2.18.1",
-    "node-fetch": "*",
     "p-filter": "^1.0.0",
     "p-map": "^1.2.0",
-    "pg": "^4.3.0",
-    "turf-linestring": "^1.0.2",
-    "turf-midpoint": "^3.0.12",
-    "turf-point": "^2.0.1",
-    "unzip2": "^0.2.5",
     "winston": "^0.9.0",
-    "xml2json": "^0.9.0",
-    "xmlbuilder": "^4.2.0"
+    "xmlbuilder": "^4.2.0",
+    "unzip2": "*"
+  },
+  "dependencies": {
+    "redis": "*",
+    "@hapi/hapi": "^20.1.4",
+    "@hapi/boom": "^9.1.4",
+    "@hapi/inert": "*",
+    "@turf/bbox": "*",
+    "@turf/bbox-polygon": "*",
+    "@turf/buffer": "*",
+    "@turf/distance": "*",
+    "@turf/helpers": "*",
+    "@turf/midpoint": "*",
+    "@turf/points-within-polygon": "*",
+    "bull": "*",
+    "d3-dsv": "*",
+    "fast-csv": ">2.4.0",
+    "fast-json-patch": "*",
+    "geojsontoosm": "*",
+    "geojson-validation": "*",
+    "hapi-router": "^4.0.1",
+    "knex": "*",
+    "knex-postgis": "*",
+    "libxmljs": "*",
+    "lodash": "^4.17.4",
+    "node-fetch": "*",
+    "pg": "*",
+    "turf-linestring": "*",
+    "turf-point": "*",
+    "xml2json": "*"
   },
   "devDependencies": {
-    "babel-eslint": "^8.0.2",
-    "eslint": "^1.10.3",
+    "@babel/core": "*",
+    "eslint": "*",
+    "@babel/eslint-parser": "*",
+    "inject-then": "*",
+    "kes": "*",
+    "supervisor": "*"
+  },
+  "//": {
     "inject-then": "^2.0.0",
     "kes": "^0.1.6",
     "mocha": "^2.2.1",
     "should": "^5.2.0",
-    "split": "^0.3.3",
-    "supervisor": "*"
+    "split": "^0.3.3"
   }
 }

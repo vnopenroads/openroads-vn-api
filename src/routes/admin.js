@@ -1,9 +1,10 @@
 'use strict';
 
-var Boom = require('boom');
+var Boom = require('@hapi/boom');
 var knex = require('../connection');
 var formatBox = require('../services/admin').formatBOX;
 var _ = require('lodash');
+var { boomWrapper } = require('../services/handlers/utils')
 
 module.exports = [
   {
@@ -42,24 +43,20 @@ module.exports = [
       // check to make sure admin level is of the proper type
       const levelCheck = ['commune', 'district', 'province'].indexOf(level);
       if (levelCheck === -1) {
-        return res(Boom.badRequest('Admin level must be of type \'province\', \'district\', or \'commune'));
+        return Boom.badRequest('Admin level must be of type \'province\', \'district\', or \'commune');
       }
       // if proper, SELECT id FROM admin_boundaries WHERE type=${level}
-      knex('admin_boundaries')
-      .where({ type: level })
-      .select('id', 'name_en', 'name_vn')
-      .then((ids) => {
-        // format response per apiSuccessExample spec
-        const resObj = {};
-        resObj[level] = ids;
-        // serve result
-        res(resObj);
-      })
-      .catch((e) => {
-        console.log(e);
-        // return error if it occurs
-        res(Boom.wrap(e));
-      });
+      return knex('admin_boundaries')
+        .where({ type: level })
+        .select('id', 'name_en', 'name_vn')
+        .then((ids) => {
+          // format response per apiSuccessExample spec
+          const resObj = {};
+          resObj[level] = ids;
+          // serve result
+          return (resObj);
+        })
+        .catch(boomWrapper);
     }
   },
   {
@@ -107,19 +104,13 @@ module.exports = [
       const limit = (!Number.isNaN(req.query.limit) && Number(req.query.limit) > 0) ? Number(req.query.limit) : 100;
       const lang = req.query.lang || 'en';
       // selects all admin boundaries ids and name_en fields where name_en field matches query string
-      knex('admin_boundaries')
-      .where('name_en', 'ILIKE', `${queryString}%`)
-      .orWhere('name_vn', 'ILIKE', `${queryString}%`)
-      .select('id', 'name_en', 'name_vn', 'type as level')
-      .orderBy('name_en', 'asc')
-      .limit(limit)
-      .then((results) => {
-        res(results);
-      })
-      .catch((e) => {
-        console.log(e);
-        req(Boom.wrap(e));
-      });
+      return knex('admin_boundaries')
+        .where('name_en', 'ILIKE', `${queryString}%`)
+        .orWhere('name_vn', 'ILIKE', `${queryString}%`)
+        .select('id', 'name_en', 'name_vn', 'type as level')
+        .orderBy('name_en', 'asc')
+        .limit(limit)
+        .catch(boomWrapper);
     }
   },
   {
@@ -189,11 +180,11 @@ module.exports = [
       // check if unitId is valid length
       const validIdCheck = [7, 5, 3].indexOf(unitId.toString().length);
       // serve bad request if unitId string is not an integer
-      if(!Number.isInteger(Number(unitId))) {
-        return res(Boom.badRequest('unit_id must be an integer'));
-      // serve a bad request if unitId is not of valid length
+      if (!Number.isInteger(Number(unitId))) {
+        return Boom.badRequest('unit_id must be an integer');
+        // serve a bad request if unitId is not of valid length
       } else if (validIdCheck === -1) {
-        return res(Boom.badRequest('unit_id must be a numeric code of length 7, 5, or 3. See documentation'));
+        return Boom.badRequest('unit_id must be a numeric code of length 7, 5, or 3. See documentation');
       }
       // joins two tables made from select statements:
       //   1. a table with admin:
@@ -209,53 +200,50 @@ module.exports = [
       //      - child_admin names
       // on id
       knex
-      .select(
-        'self.id as id',
-        'self.name_en as name_en',
-        'self.name_vn as name_vn',
-        'self.type as level',
-        'child.name_en as c_name_en',
-        'child.name_vn as c_name_vn',
-        'child.id as c_id',
-        'child.type as c_level',
-        'parent.id as p_id',
-        'parent.name_en as p_name_en',
-        'parent.name_vn as p_name_vn',
-        'parent.type as p_level',
-        knex.raw(`ST_Extent(self.geom) as bbox`)
-      )
-      .from('admin_boundaries AS self')
-      .where('self.id', unitId)
-      .leftJoin('admin_boundaries AS child', 'self.id', 'child.parent_id')
-      .leftJoin('admin_boundaries AS parent', 'self.parent_id', 'parent.id')
-      .groupBy('self.id', 'child.id', 'parent.id', 'child.name_en', 'child.name_vn')
-      .then((info) => {
-        // format the results, making the bounding box of correct spec, finding parent_ids
-        let children = info.map(o => {
-          return {name_en: o.c_name_en, name_vn: o.c_name_vn, id: o.c_id};
-        });
-        let parent = {
-          name_en: info[0].p_name_en,
-          name_vn: info[0].p_name_vn,
-          id: info[0].p_id,
-          level: info[0].p_level
-        };
-        let response = {
-          id: info[0].id,
-          name_en: info[0].name_en,
-          name_vn: info[0].name_vn,
-          level: info[0].level,
-          parent: parent,
-          children: children,
-          children_level: info[0].c_level,
-          bbox: formatBox(info[0].bbox)
-        };
-        res(response);
-      })
-      .catch((e) => {
-        console.log(e);
-        throw e;
-      });
+        .select(
+          'self.id as id',
+          'self.name_en as name_en',
+          'self.name_vn as name_vn',
+          'self.type as level',
+          'child.name_en as c_name_en',
+          'child.name_vn as c_name_vn',
+          'child.id as c_id',
+          'child.type as c_level',
+          'parent.id as p_id',
+          'parent.name_en as p_name_en',
+          'parent.name_vn as p_name_vn',
+          'parent.type as p_level',
+          knex.raw(`ST_Extent(self.geom) as bbox`)
+        )
+        .from('admin_boundaries AS self')
+        .where('self.id', unitId)
+        .leftJoin('admin_boundaries AS child', 'self.id', 'child.parent_id')
+        .leftJoin('admin_boundaries AS parent', 'self.parent_id', 'parent.id')
+        .groupBy('self.id', 'child.id', 'parent.id', 'child.name_en', 'child.name_vn')
+        .then((info) => {
+          // format the results, making the bounding box of correct spec, finding parent_ids
+          let children = info.map(o => {
+            return { name_en: o.c_name_en, name_vn: o.c_name_vn, id: o.c_id };
+          });
+          let parent = {
+            name_en: info[0].p_name_en,
+            name_vn: info[0].p_name_vn,
+            id: info[0].p_id,
+            level: info[0].p_level
+          };
+          let response = {
+            id: info[0].id,
+            name_en: info[0].name_en,
+            name_vn: info[0].name_vn,
+            level: info[0].level,
+            parent: parent,
+            children: children,
+            children_level: info[0].c_level,
+            bbox: formatBox(info[0].bbox)
+          };
+          return response;
+        })
+        .catch(boomWrapper);
     }
   },
   {
@@ -284,20 +272,17 @@ module.exports = [
             ON tags.way_id = ways.id
         GROUP BY province_id;
       `)
-      .then(function({ rows }) {
-        return res(rows.reduce((provinces, { province_id, count, osmcount}) => {
-          provinces[province_id] = {
-            count: parseInt(count),
-            osmCount: parseInt(osmcount)
-          };
-
-          return provinces;
-        }, {})).type('application/json');
-      })
-      .catch(function(err) {
-        console.error('Error GET /admin/roads/total', err);
-        return res(Boom.badImplementation(err));
-      });
+        .then(function ({ rows }) {
+          var reducer = (provinces, { province_id, count, osmcount }) => {
+            provinces[province_id] = { count: parseInt(count), osmCount: parseInt(osmcount) };
+            return provinces;
+          }
+          return rows.reduce(reducer, {});
+        })
+        .catch(function (err) {
+          console.error('Error GET /admin/roads/total', err);
+          return Boom.badImplementation(err);
+        });
     }
   },
   {
@@ -320,73 +305,73 @@ module.exports = [
       const district = req.query.district || null;
       const stats = {};
       knex('admin_boundaries')
-      .select('id', 'code', 'parent_id', 'name_en', 'name_vn', 'type', 'total_length as total', 'vpromm_length as vpromm')
-      .modify(queryBuilder => {
-        if (province && district) {
-          queryBuilder.andWhere('id', province)
-          .orWhere('id', district);
-        } else if (province) {
-          queryBuilder.andWhere('id', province)
-          .orWhere('parent_id', province);
-        }
-      })
-      .then((rows) => {
-        // this query also needs to respect the province and/or district filter
-        stats.lengths = rows;
-        return knex('road_properties')
-        .select(knex.raw('id, status'))
-        .then((roads) => {
-          const adminStatus = {
-            province: {},
-            district: {}
-          };
-          _.forEach(roads, (r) => {
-            let provinceCode = r.id.substr(0, 2);
-            let districtCode = provinceCode + r.id.substr(3, 2);
-            if (!adminStatus.province.hasOwnProperty(provinceCode)) {
-              adminStatus.province[provinceCode] = {'pending': 0, 'reviewed': 0};
-            }
-            if (!adminStatus.district.hasOwnProperty(districtCode)) {
-              adminStatus.district[districtCode] = {'pending': 0, 'reviewed': 0};
-            }
-            if (r.status === 'reviewed') {
-              adminStatus.province[provinceCode].reviewed = adminStatus.province[provinceCode].reviewed + 1;
-              adminStatus.district[districtCode].reviewed = adminStatus.district[districtCode].reviewed + 1;
-            } else {
-              adminStatus.province[provinceCode].pending = adminStatus.province[provinceCode].pending + 1;
-              adminStatus.district[districtCode].pending = adminStatus.district[districtCode].pending + 1;
-            }
-          });
-          stats.status = adminStatus;
-          return stats;
-        });
-      })
-      .then((stats) => {
-        const admins = {};
-        // get all the provinces
-        admins['provinces'] = _.filter(stats.lengths, (r) => {
-          r.status = null;
-          if (r.code) {
-            r.status = stats.status.province[r.code];
+        .select('id', 'code', 'parent_id', 'name_en', 'name_vn', 'type', 'total_length as total', 'vpromm_length as vpromm')
+        .modify(queryBuilder => {
+          if (province && district) {
+            queryBuilder.andWhere('id', province)
+              .orWhere('id', district);
+          } else if (province) {
+            queryBuilder.andWhere('id', province)
+              .orWhere('parent_id', province);
           }
-          return r.type === 'province';
-        });
-
-        // group district per province
-        _.forEach(admins.provinces, (p) => {
-          p['districts'] = _.filter(_.cloneDeep(stats).lengths, (d) => {
-            if (d.code) {
-              d.status = stats.status.district[p.code + d.code];
+        })
+        .then((rows) => {
+          // this query also needs to respect the province and/or district filter
+          stats.lengths = rows;
+          return knex('road_properties')
+            .select(knex.raw('id, status'))
+            .then((roads) => {
+              const adminStatus = {
+                province: {},
+                district: {}
+              };
+              _.forEach(roads, (r) => {
+                let provinceCode = r.id.substr(0, 2);
+                let districtCode = provinceCode + r.id.substr(3, 2);
+                if (!adminStatus.province.hasOwnProperty(provinceCode)) {
+                  adminStatus.province[provinceCode] = { 'pending': 0, 'reviewed': 0 };
+                }
+                if (!adminStatus.district.hasOwnProperty(districtCode)) {
+                  adminStatus.district[districtCode] = { 'pending': 0, 'reviewed': 0 };
+                }
+                if (r.status === 'reviewed') {
+                  adminStatus.province[provinceCode].reviewed = adminStatus.province[provinceCode].reviewed + 1;
+                  adminStatus.district[districtCode].reviewed = adminStatus.district[districtCode].reviewed + 1;
+                } else {
+                  adminStatus.province[provinceCode].pending = adminStatus.province[provinceCode].pending + 1;
+                  adminStatus.district[districtCode].pending = adminStatus.district[districtCode].pending + 1;
+                }
+              });
+              stats.status = adminStatus;
+              return stats;
+            });
+        })
+        .then((stats) => {
+          const admins = {};
+          // get all the provinces
+          admins['provinces'] = _.filter(stats.lengths, (r) => {
+            r.status = null;
+            if (r.code) {
+              r.status = stats.status.province[r.code];
             }
-            return d.parent_id === p.id;
+            return r.type === 'province';
           });
+
+          // group district per province
+          _.forEach(admins.provinces, (p) => {
+            p['districts'] = _.filter(_.cloneDeep(stats).lengths, (d) => {
+              if (d.code) {
+                d.status = stats.status.district[p.code + d.code];
+              }
+              return d.parent_id === p.id;
+            });
+          });
+          return admins;
+        })
+        .catch(function (err) {
+          console.error('Error GET /admin/roads/total', err);
+          return Boom.badImplementation(err);
         });
-        return res(admins).type('application/json');
-      })
-      .catch(function(err) {
-        console.error('Error GET /admin/roads/total', err);
-        return res(Boom.badImplementation(err));
-      });
     }
   }
 ];

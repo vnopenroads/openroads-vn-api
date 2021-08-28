@@ -5,7 +5,7 @@ const geojsontoosm = require('geojsontoosm');
 const knex = require('../connection.js');
 const knexPostgis = require('knex-postgis');
 const libxml = require('libxmljs');
-const unzip = require('unzip2');
+// const unzip = require('unzip2');
 const GJV = require('geojson-validation');
 // const pFilter = require('p-filter');
 const pMap = require('p-map');
@@ -40,7 +40,7 @@ rlpGeomQueue.process(async function (job) {
     }
     let fileReads = job.data.fileReads;
     const fieldDataRoadIds = job.data.fieldDataRoadIds;
-      // Ignore any roads that were ingested earlier
+    // Ignore any roads that were ingested earlier
 
     try {
       const existingFieldData = await knex
@@ -73,7 +73,7 @@ rlpGeomQueue.process(async function (job) {
       })
     }
 
-    if (!fileReads.length) { 
+    if (!fileReads.length) {
       return resolve({
         message: 'No roads imported. Data for this VProMM + Timestamp already ingested',
         type: 'error'
@@ -84,70 +84,70 @@ rlpGeomQueue.process(async function (job) {
       // Add roads to the `field_data_geometries` table
       return knex.insert({
         road_id: fr.road_id,
-        type: fr.type, 
+        type: fr.type,
         geom: st.geomFromGeoJSON(JSON.stringify(fr.geom.geometry))
       }).into('field_data_geometries')
     }))
-    .then(async () => {
+      .then(async () => {
 
-      // Filter out geometries that already exist in macrocosm
-      // fileReads = await pFilter(fileReads, existingGeomFilter);
-      
-      const osmChanges = await getOSMChanges(fileReads);
-      const creates = osmChanges.map(c => c.create).filter(c => !!c);
+        // Filter out geometries that already exist in macrocosm
+        // fileReads = await pFilter(fileReads, existingGeomFilter);
 
-      const modifications = osmChanges.map(c => c.modify).reduce((memo, modification) => {
-        return memo.concat(modification);
-      }, []);
+        const osmChanges = await getOSMChanges(fileReads);
+        const creates = osmChanges.map(c => c.create).filter(c => !!c);
 
-      return pMap(modifications, patchVpromm, { concurrency: 4 })        
-      .then(() => {
+        const modifications = osmChanges.map(c => c.modify).reduce((memo, modification) => {
+          return memo.concat(modification);
+        }, []);
 
-        if (creates.length > 0) {
-          // Get osmChange XML for create actions
-          const featuresToAdd = creates.map(fr => {
-            // All geometries should be tagged with a `highway` value
-            // `road` is temporary until we can do better classification here
-            const properties = {highway: 'road'};
-            if (fr.road_id) { properties.or_vpromms = fr.road_id; }
-            return Object.assign(fr.geom, {properties: properties});
+        return pMap(modifications, patchVpromm, { concurrency: 4 })
+          .then(() => {
+
+            if (creates.length > 0) {
+              // Get osmChange XML for create actions
+              const featuresToAdd = creates.map(fr => {
+                // All geometries should be tagged with a `highway` value
+                // `road` is temporary until we can do better classification here
+                const properties = { highway: 'road' };
+                if (fr.road_id) { properties.or_vpromms = fr.road_id; }
+                return Object.assign(fr.geom, { properties: properties });
+              });
+
+              const osmCreate = libxml.parseXmlString(geojsontoosm(featuresToAdd))
+                .root().childNodes().map(n => n.toString()).join('');
+              // FIXME: convert `ways` in `modifications` array into `osmChange` XML
+
+              // if (fileReads.length === 0) {
+              //   return resolve({
+              //     message: 'No roads imported. Overlapping geometries exist in system.',
+              //     type: 'error'
+              //   });
+              // }
+
+              // Add roads to the production geometries tables, OSM format
+              const changeset = `<osmChange version="0.6" generator="OpenRoads">\n<create>\n${osmCreate}\n</create>\n</osmChange>`;
+
+              uploadChangeset({ payload: changeset }, function (apiResponse) { resolve(apiResponse) });
+            } else {
+              return resolve({
+                'type': 'success',
+                'message': `Vpromm added to ${modifications.length} ways`
+              });
+            }
+          })
+          .catch(e => {
+            return resolve({
+              'type': 'error',
+              'message': 'Error while processing uploaded file.'
+            })
           });
-
-          const osmCreate = libxml.parseXmlString(geojsontoosm(featuresToAdd))
-            .root().childNodes().map(n => n.toString()).join('');
-          // FIXME: convert `ways` in `modifications` array into `osmChange` XML
-
-          // if (fileReads.length === 0) {
-          //   return resolve({
-          //     message: 'No roads imported. Overlapping geometries exist in system.',
-          //     type: 'error'
-          //   });
-          // }
-          
-          // Add roads to the production geometries tables, OSM format
-          const changeset = `<osmChange version="0.6" generator="OpenRoads">\n<create>\n${osmCreate}\n</create>\n</osmChange>`;
-
-          uploadChangeset({payload: changeset}, function(apiResponse) { resolve(apiResponse) });
-        } else {
-          return resolve({
-            'type': 'success',
-            'message': `Vpromm added to ${modifications.length} ways`
-          });
-        }
       })
       .catch(e => {
         return resolve({
           'type': 'error',
-          'message': 'Error while processing uploaded file.'
+          'message': 'Error while processing geometry for uploaded file.'
         })
-      });
-    })
-    .catch(e => {
-      return resolve({
-        'type': 'error',
-        'message': 'Error while processing geometry for uploaded file.'
       })
-    })
   });
 });
 
@@ -161,15 +161,15 @@ async function patchVpromm(way) {
       k: 'or_vpromms',
       v: vpromm
     })
-  .then(function(response) {
-    if (response === 0) {
-      throw new Error('404');
-    }
-    return true;
-  })
-  .catch(e => {
-    console.error('error', e);
-  });
+    .then(function (response) {
+      if (response === 0) {
+        throw new Error('404');
+      }
+      return true;
+    })
+    .catch(e => {
+      console.error('error', e);
+    });
 }
 
 
@@ -178,7 +178,7 @@ async function getOSMChanges(fileReads) {
   return pMap(fileReads, async (fr) => {
     const geom = fr.geom;
     // get a buffer of the RLP geom, and find bbox.
-    const geomBuffer = turfBuffer(geom, 0.01, {units: 'kilometers'});
+    const geomBuffer = turfBuffer(geom, 0.01, { units: 'kilometers' });
     const geomBbox = turfBbox(geomBuffer);
     const bbox = {
       minLat: geomBbox[1],
@@ -206,7 +206,7 @@ async function getOSMChanges(fileReads) {
         if (modification) {
           ret.modify.push(modification);
         }
-      }      
+      }
     });
 
     return ret;
@@ -310,12 +310,12 @@ function getPropertiesRLPVersion(fileObject) {
   if (filenamePatternV1.test(fileObject.path)) return 'v1';
   if (filenamePatternV2.test(fileObject.path)) return 'v2';
 
-  return false; 
+  return false;
 }
 
-async function propertiesHandler (req, res) {
+async function propertiesHandler(req, res) {
 
-  const existingRoadIds = await knex.select('id').from('road_properties').map(r => r.id);  
+  const existingRoadIds = await knex.select('id').from('road_properties').map(r => r.id);
 
   let rows = [];
   let badPaths = [];
@@ -361,7 +361,7 @@ async function propertiesHandler (req, res) {
         .from('point_properties')
         .whereIn('road_id', fieldDataRoadIds)
         .orWhereNull('road_id')
-        .map(p => Object.assign(p, {geom: JSON.parse(p.geom)}));
+        .map(p => Object.assign(p, { geom: JSON.parse(p.geom) }));
 
       Promise.all(rows.map(r => {
         // Add observations to the `point_properties` table,
@@ -382,8 +382,8 @@ async function propertiesHandler (req, res) {
             properties: r.properties
           }).into('point_properties');
       }))
-      .then(() => res(fieldDataRoadIds))
-      .catch((e) => res(errors.propertiesUnknownError))
+        .then(() => res(fieldDataRoadIds))
+        .catch((e) => res(errors.propertiesUnknownError))
     });
 }
 

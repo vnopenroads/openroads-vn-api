@@ -1,29 +1,29 @@
 'use strict';
 
-var Boom = require('boom');
+var Boom = require('@hapi/boom');
 const knex = require('../connection');
 const queryWays = require('../services/query-ways');
 const toGeoJSON = require('../services/osm-data-to-geojson');
 
 const properties = ['id', 'way_id', 'neighbors', 'provinces', 'updated_at', 'districts'];
 
-async function getNextTask (req, res) {
+async function getNextTask(req, res) {
   const skip = req.query.skip ? req.query.skip.split(',') : [];
   const province = req.query.province;
   const district = req.query.district;
   const task = await knex.select(properties)
-  .from('tasks')
-  .where('pending', false)
-  .whereNotIn('id', skip)
-  .modify(function(queryBuilder) {
-    if (province) {
-      queryBuilder.whereRaw(`provinces @> '{${province}}'`);
-    }else if (district) {
-      queryBuilder.whereRaw(`districts @> '{${district}}'`);
-    }
-  })
-  .orderByRaw('random()')
-  .limit(1);
+    .from('tasks')
+    .where('pending', false)
+    .whereNotIn('id', skip)
+    .modify(function (queryBuilder) {
+      if (province) {
+        queryBuilder.whereRaw(`provinces @> '{${province}}'`);
+      } else if (district) {
+        queryBuilder.whereRaw(`districts @> '{${district}}'`);
+      }
+    })
+    .orderByRaw('random()')
+    .limit(1);
 
   if (!task.length) return res(Boom.notFound('There are no pending tasks'));
   const ids = [task[0].way_id].concat(task[0].neighbors);
@@ -37,34 +37,34 @@ async function getNextTask (req, res) {
   }
 
   knex('admin_boundaries AS admin')
-  .select('name_en', 'id')
-  .where({type: boundaryType, id: taskProviceOrDistrict })
-  .then(function(boundary) {
-    task[0].boundary = boundary[0];
-    task[0].boundary.type = boundaryType;
-    queryWays(knex, ids, true).then(function (ways) {
-      const data = toGeoJSON(ways);
-      if (!data.features.length) {
-        return res({'id': task[0].id}).code(302);
-      } else {
-        return res({
-          id: task[0].id,
-          updated_at: task[0].updated_at,
-          province: task[0].province,
-          boundary: task[0].boundary,
-          data: toGeoJSON(ways)
-        }).type('application/json');
-      }
-    }).catch(function () {
-      return res(Boom.badImplementation('Could not retrieve task'));
+    .select('name_en', 'id')
+    .where({ type: boundaryType, id: taskProviceOrDistrict })
+    .then(function (boundary) {
+      task[0].boundary = boundary[0];
+      task[0].boundary.type = boundaryType;
+      queryWays(knex, ids, true).then(function (ways) {
+        const data = toGeoJSON(ways);
+        if (!data.features.length) {
+          return res({ 'id': task[0].id }).code(302);
+        } else {
+          return res({
+            id: task[0].id,
+            updated_at: task[0].updated_at,
+            province: task[0].province,
+            boundary: task[0].boundary,
+            data: toGeoJSON(ways)
+          }).type('application/json');
+        }
+      }).catch(function () {
+        return res(Boom.badImplementation('Could not retrieve task'));
+      });
     });
-  });
 }
 
-async function getTask (req, res) {
+async function getTask(req, res) {
   const task = await knex.select(properties)
-  .from('tasks')
-  .where('id', req.params.taskId);
+    .from('tasks')
+    .where('id', req.params.taskId);
   if (!task.length) return res(Boom.notFound('No task with that ID'));
   const ids = [task[0].way_id].concat(task[0].neighbors);
   queryWays(knex, ids, true).then(function (ways) {
@@ -78,35 +78,35 @@ async function getTask (req, res) {
   });
 }
 
-async function getTaskCount (req, res) {
+async function getTaskCount(req, res) {
   const province = req.query.province;
   const district = req.query.district;
   if (province && district) {
     return res(Boom.badImplementation('Cannot query both district and province'));
   }
   const [{ count }] = await knex('tasks')
-  .where('pending', false)
-  .modify(function(queryBuilder) {
-    if (province) {
-      queryBuilder.whereRaw(`provinces @> '{${province}}'`);
-    }
-    if (district) {
-      queryBuilder.whereRaw(`districts @> '{${district}}'`);
-    }
-  })
-  .count();
+    .where('pending', false)
+    .modify(function (queryBuilder) {
+      if (province) {
+        queryBuilder.whereRaw(`provinces @> '{${province}}'`);
+      }
+      if (district) {
+        queryBuilder.whereRaw(`districts @> '{${district}}'`);
+      }
+    })
+    .count();
 
   res({ count: Number(count) }).type('application/json');
 }
 
-async function setTaskPending (req, res) {
+async function setTaskPending(req, res) {
   console.log('Setting tasks to pending', req.payload.way_ids.join(', '));
-  knex('tasks').whereIn('way_id', req.payload.way_ids).update({pending: true})
-  .then(function () {
-    return res(req.params.taskId);
-  }).catch(function () {
-    return res(Boom.badImplementation('Could not update task'));
-  });
+  knex('tasks').whereIn('way_id', req.payload.way_ids).update({ pending: true })
+    .then(function () {
+      return res(req.params.taskId);
+    }).catch(function () {
+      return res(Boom.badImplementation('Could not update task'));
+    });
 }
 
 module.exports = [

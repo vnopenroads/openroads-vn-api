@@ -1,7 +1,7 @@
 'use strict';
 
 var knex = require('../connection.js');
-var Boom = require('boom');
+var Boom = require('@hapi/boom');
 var groupGeometriesById = require('../services/field-data').groupGeometriesById;
 var makeGeomsFC = require('../services/field-data').makeGeomsFC;
 
@@ -23,10 +23,10 @@ module.exports = [
     path: '/field/ids',
     handler: function (req, res) {
       knex('field_data_geometries')
-      .distinct('road_id')
-      .select('road_id as id')
-      .whereNotNull('road_id')
-      .then(roads => res(roads.map(road => road.id)));
+        .distinct('road_id')
+        .select('road_id as id')
+        .whereNotNull('road_id')
+        .then(roads => res(roads.map(road => road.id)));
     }
   },
   {
@@ -44,13 +44,13 @@ module.exports = [
     */
     method: 'GET',
     path: '/field/ids/all',
-    handler: function(req, res) {
+    handler: function (req, res) {
       knex('road_properties')
-      .distinct('id')
-      .select('id as id')
-      .whereNotNull('id')
-      .then(roads => res(roads.map(road => road.id)));
-    }    
+        .distinct('id')
+        .select('id as id')
+        .whereNotNull('id')
+        .then(roads => res(roads.map(road => road.id)));
+    }
   }
 ];
 

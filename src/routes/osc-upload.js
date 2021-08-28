@@ -2,7 +2,7 @@
 var XML = require('../services/xml');
 var create = require('./changeset-create')[0].handler;
 var upload = require('./changeset-upload')[0].handler;
-var Boom = require('boom');
+var Boom = require('@hapi/boom');
 /*
   This route combines changeset id creation,
   XML reading and changeset upload
@@ -11,7 +11,7 @@ var Boom = require('boom');
 function oscUpload(req, res) {
   try {
     var json = XML.read(req.payload.toString());
-  } catch(e) {
+  } catch (e) {
     if (e) {
       return res(Boom.badRequest('Could not parse XML file'));
     }
@@ -27,8 +27,8 @@ function oscUpload(req, res) {
     }
   };
   if (!changesetID) {
-    create({payload: {uid: 99, user: 'openroads'}},
-      function(fromCreate) {
+    create({ payload: { uid: 99, user: 'openroads' } },
+      function (fromCreate) {
         if (fromCreate.isBoom) {
 
           //Couldn't create a changeset

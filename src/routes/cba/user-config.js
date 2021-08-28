@@ -1,6 +1,6 @@
 'use strict';
 
-var Boom = require('boom');
+var Boom = require('@hapi/boom');
 const { times } = require('lodash');
 var knex = require('../../connection');
 var UserConfig = require('../../models/cba/user-config.js')

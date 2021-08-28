@@ -1,6 +1,6 @@
 'use strict';
 
-var Boom = require('boom');
+var Boom = require('@hapi/boom');
 var knex = require('../connection');
 var _ = require('lodash');
 var XML = require('../services/xml');
@@ -15,47 +15,47 @@ function changesetQuery(req, res) {
 
   var userName;
   return knex.select('display_name').from('users')
-  .where('id', user)
-  .then(function (userResponse) {
-    if (!userResponse.length) {
-      throw new Error('No user with that id!');
-    }
-    userName = userResponse[0].display_name;
-    return knex('changesets')
-      .leftJoin('changeset_tags', 'changesets.id', '=', 'changeset_tags.changeset_id')
-      .where('changesets.user_id', user)
-      .select('changesets.*', 'changeset_tags.k', 'changeset_tags.v');
-  })
+    .where('id', user)
+    .then(function (userResponse) {
+      if (!userResponse.length) {
+        throw new Error('No user with that id!');
+      }
+      userName = userResponse[0].display_name;
+      return knex('changesets')
+        .leftJoin('changeset_tags', 'changesets.id', '=', 'changeset_tags.changeset_id')
+        .where('changesets.user_id', user)
+        .select('changesets.*', 'changeset_tags.k', 'changeset_tags.v');
+    })
 
-  .then(function (changesets) {
-    if (!changesets.length) {
-      throw new Error('No changesets found for that query');
-    }
-    var result = _.chain(changesets).groupBy('id')
-      .values()
-      .map(function (tags) {
-        var change = _.pick(tags[0], ['id', 'created_at', 'closed_at',
-        'min_lat', 'max_lat', 'min_lon', 'max_lon', 'num_changes']);
-        change.user = userName;
-        change.uid = user;
-        change.open = 'false';
-        change.tags = tags.map(function (tag) {
-          if (tag.hasOwnProperty('k') && tag.k !== null) {
-            return {
-              k: tag.k,
-              v: tag.v
-            };
-          }
-          else return false;
-        }).filter(Boolean);
-        return change;
-      }).value();
-    return res(XML.write({changesets: result}).toString()).type('text/xml');
-  })
-  .catch(function (e) {
-    log.error(e);
-    return res(Boom.notFound(e.message));
-  });
+    .then(function (changesets) {
+      if (!changesets.length) {
+        throw new Error('No changesets found for that query');
+      }
+      var result = _.chain(changesets).groupBy('id')
+        .values()
+        .map(function (tags) {
+          var change = _.pick(tags[0], ['id', 'created_at', 'closed_at',
+            'min_lat', 'max_lat', 'min_lon', 'max_lon', 'num_changes']);
+          change.user = userName;
+          change.uid = user;
+          change.open = 'false';
+          change.tags = tags.map(function (tag) {
+            if (tag.hasOwnProperty('k') && tag.k !== null) {
+              return {
+                k: tag.k,
+                v: tag.v
+              };
+            }
+            else return false;
+          }).filter(Boolean);
+          return change;
+        }).value();
+      return res(XML.write({ changesets: result }).toString()).type('text/xml');
+    })
+    .catch(function (e) {
+      log.error(e);
+      return res(Boom.notFound(e.message));
+    });
 }
 
 module.exports = [
