@@ -6,7 +6,7 @@ const utils = require('./utils.js')
 exports.getSnapshots = async function (req, res) {
     return knex('cba_road_snapshots as t')
         .select('t.*')
-        .catch(utils.createErrorHandler(res));
+        .catch(utils.errorHandler);
 }
 
 var select_columns = `way_id, vp_id, province, district, vp_length, length, surface_type, 
@@ -29,32 +29,33 @@ function copySnapshotData(id, payload) {
     return prom;
 }
 
-function retrieveSnapshotMeta(res, id) {
+function retrieveSnapshotMeta(id) {
     console.log("Generating meta data for " + id);
     return (result) => {
         return knex('cba_road_snapshots_data as t')
             .select('t.*')
             .where('cba_road_snapshot_id', '=', id)
             .then((response) => {
+                // TODO: Change this from localhost:5000
                 var url = 'http://localhost:5000/evaluate_assets'
                 var opts = {
                     method: 'POST',
                     body: JSON.stringify(response.map(utils.convertToPythonFormat)),
                     headers: { 'Content-Type': 'application/json' }
                 };
-                return fetch(url, opts).then((response) => response.json());
+                return fetch(url, opts)
+                    .then((response) => response.json())
+                    .then((response) => {
+                        console.log(response);
+                        var total = response['stats']['valid'] + response['stats']['invalid'];
+                        return knex('cba_road_snapshots')
+                            .update({ num_records: total, valid_records: response['stats']['valid'] })
+                            .where({ id });
+                    });
             });
     }
 }
 
-function copyData(res, payload) {
-    return (result) => {
-        var [snapshotId] = result;
-        console.log(`Got snapshotId: ${snapshotId}`);
-        return copySnapshotData(snapshotId, payload)
-            .then(retrieveSnapshotMeta(res, snapshotId));
-    };
-}
 
 function delete1() {
     return knex('cba_road_snapshots as t').where('id', '>', 2).del();
@@ -64,13 +65,17 @@ function delete2() {
 }
 
 exports.createSnapshot = function (req, res) {
-    var insertData = knex('cba_road_snapshots as t').insert(req.payload, 'id')
 
     return delete1()
         .then(delete2)
-        .then(() => insertData)
-        .then(copyData(res, req.payload))
-        .catch(utils.createErrorHandler(res));
+        .then(() => knex('cba_road_snapshots as t').insert(req.payload, 'id'))
+        .then((result) => {
+            var [snapshotId] = result;
+            console.log(`Got snapshotId: ${snapshotId}`);
+            return copySnapshotData(snapshotId, req.payload)
+                .then(retrieveSnapshotMeta(snapshotId));
+        })
+        .catch(utils.errorHandler);
 }
 
 exports.getRoads = function (req, res) {

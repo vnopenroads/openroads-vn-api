@@ -4,15 +4,13 @@ function maybeInt(x) { return x ? x : 0 }
 function maybeFloat(x) { return x ? x : 0.0 }
 
 
-exports.createErrorHandler = function (res) {
-  return (e) => {
-    console.log(e);
-    if (e.message.includes('duplicate')) {
-      return Boom.conflict(e);
-    } else {
-      return Boom.notImplemented(e.message);
-    }
-  };
+exports.createErrorHandler = function (e) {
+  console.log(e);
+  if (e.message.includes('duplicate')) {
+    return Boom.conflict(e);
+  } else {
+    return Boom.notImplemented(e.message);
+  }
 }
 
 exports.boomWrapper = function (e) {

@@ -11,8 +11,9 @@ CREATE TABLE cba_road_snapshots (
     province_id float NOT NULL DEFAULT -1,
     district_name text NOT NULL DEFAULT '',
     district_id float NOT NULL DEFAULT -1,
-    num_records int NOT NULL,
-    valid_records int NOT NULL,
+    num_records int NOT NULL DEFAULT 0,
+    valid_records int NOT NULL DEFAULT 0,
+    invalid_reasons jsonb DEFAULT '{}'::jsonb,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
