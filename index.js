@@ -1,5 +1,7 @@
 'use strict';
 
+require('app-module-path').addPath(`${__dirname}/src`);
+
 var _debug = require('debug');
 var Hapi = require('@hapi/hapi');
 var Inert = require('@hapi/inert');

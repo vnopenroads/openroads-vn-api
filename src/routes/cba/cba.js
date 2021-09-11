@@ -41,6 +41,11 @@ module.exports = [
     path: '/cba/roads/snapshots',
     handler: cba.getSnapshots
   },
+  {
+    method: 'GET',
+    path: '/cba/roads/snapshot/{snapshot_id}',
+    handler: (req, res) => cba.getSnapshotRoads(req.params.snapshot_id)
+  },
 
   /**
    * @api {PUT} /cba/roads/:id Create road
@@ -70,6 +75,23 @@ module.exports = [
     method: 'POST',
     path: '/cba/roads/snapshots/take',
     handler: cba.createSnapshot
-  }
+  },
 
+  {
+    method: 'GET',
+    path: '/cba/run',
+    handler: (req, res) => cba.runSnapshot(req)
+  },
+
+  {
+    method: 'GET',
+    path: '/cba/results',
+    handler: (req, res) => cba.getResults(req)
+  },
+
+  {
+    method: 'GET',
+    path: '/cba/results/delete',
+    handler: (req, res) => cba.deleteResult(req)
+  }
 ]

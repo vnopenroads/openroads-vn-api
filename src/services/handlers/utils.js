@@ -4,7 +4,7 @@ function maybeInt(x) { return x ? x : 0 }
 function maybeFloat(x) { return x ? x : 0.0 }
 
 
-exports.createErrorHandler = function (e) {
+exports.errorHandler = function (e) {
   console.log(e);
   if (e.message.includes('duplicate')) {
     return Boom.conflict(e);

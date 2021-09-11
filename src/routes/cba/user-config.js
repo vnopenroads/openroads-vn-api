@@ -5,19 +5,19 @@ const { times } = require('lodash');
 var knex = require('../../connection');
 var UserConfig = require('../../models/cba/user-config.js')
 
-function createErrorHandler(res) {
+function createErrorHandler() {
     return (e) => {
         console.log(e);
         if (e.message.includes('duplicate')) {
-            res(Boom.conflict(e));
+            return Boom.conflict(e);
         } else {
-            res(Boom.notImplemented(e.message));
+            return Boom.notImplemented(e.message);
         }
     };
 };
 
-function allGood(res) {
-    return (_) => { res({ success: true, message: 'ok' }); };
+function allGood() {
+    return { success: true, message: 'ok' };
 }
 
 function buildData(payload, creation) {
@@ -34,37 +34,36 @@ function buildData(payload, creation) {
 }
 
 function insertConfig(req, res) {
-    knex(UserConfig.tableName)
+    return knex(UserConfig.tableName)
         .insert(buildData(req.payload, true))
-        .then(allGood(res))
-        .catch(createErrorHandler(res));
+        .then(allGood)
+        .catch(createErrorHandler());
 }
 
 function selectQuery(res, id, fields) {
-    knex(UserConfig.tableName)
+    return knex(UserConfig.tableName)
         .select(fields)
         .where({ id })
         .first()
-        .then((results) => { res(results); })
-        .catch(createErrorHandler(res));
+        .catch(createErrorHandler());
 }
 
 function updateConfig(req, res) {
     var id = req.params.id;
-    knex(UserConfig.tableName)
+    return knex(UserConfig.tableName)
         .where({ id })
         .update(buildData(req.payload, false))
-        .then(allGood(res))
-        .catch(createErrorHandler(res));
+        .then(allGood())
+        .catch(createErrorHandler());
 }
 
 function wrapHandler(f, req, res) {
     try {
-        f(req, res);
+        return f(req, res);
     } catch (err) {
         console.log("Caught an error in a wrapped function");
         console.log(err);
-        res(Boom.wrap(err));
+        return Boom.wrap(err);
     }
 }
 
@@ -73,34 +72,33 @@ module.exports = [
         method: 'GET',
         path: '/cba/user_configs',
         handler: function (req, res) {
-            knex(UserConfig.tableName)
+            return knex(UserConfig.tableName)
                 .select('*')
-                .then((results) => { res(results); })
                 .catch(createErrorHandler(res));
         }
     }, {
         method: 'GET',
         path: '/cba/user_configs/{id}',
         handler: function (req, res) {
-            selectQuery(res, req.params.id, ['discount_rate', 'economic_factor']);
+            return selectQuery(res, req.params.id, ['discount_rate', 'economic_factor']);
         }
     }, {
         method: 'GET',
         path: '/cba/user_configs/{id}/traffic_levels',
         handler: function (req, res) {
-            selectQuery(res, req.params.id, ['traffic_levels']);
+            return selectQuery(res, req.params.id, ['traffic_levels']);
         }
     }, {
         method: 'POST',
         path: '/cba/user_configs/{id}/update',
         handler: function (req, res) {
-            wrapHandler(updateConfig, req, res);
+            return wrapHandler(updateConfig, req, res);
         }
     }, {
         method: 'POST',
         path: '/cba/user_configs/create',
         handler: function (req, res) {
-            wrapHandler(insertConfig, req, res);
+            return wrapHandler(insertConfig, req, res);
         }
     }
 ];

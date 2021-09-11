@@ -68,3 +68,28 @@ SELECT 1 as cba_road_snapshot_id,
 FROM v_roads_cba
 WHERE province = 294
 ;
+
+
+DROP TABLE cba_snapshot_results;
+
+CREATE TABLE cba_snapshot_results (
+  	id SERIAL PRIMARY KEY,
+    cba_road_snapshot_id bigint,
+    cba_user_config_id bigint,
+    way_id bigint,
+    eirr double precision,
+    esa_loading double precision,
+    npv double precision,
+    npv_cost double precision,
+    npv_km double precision,
+    truck_percent double precision,
+    vehicle_utilization double precision,
+    work_class text,
+    work_cost double precision,
+    work_cost_km double precision,
+    work_name text,
+    work_type text,
+    work_year int
+);
+CREATE INDEX cba_snapshot_results_idx ON cba_snapshot_results USING btree (cba_road_snapshot_id);
+ 
