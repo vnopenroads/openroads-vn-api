@@ -43,6 +43,16 @@ module.exports = [
   },
   {
     method: 'GET',
+    path: '/cba/roads/snapshot/{snapshot_id}/stats',
+    handler: (req, res) => cba.getSnapshotStats(req.params.snapshot_id)
+  },
+  {
+    method: 'GET',
+    path: '/cba/roads/snapshot/{snapshot_id}/stats/surface_type',
+    handler: (req, res) => cba.getSnapshotSurfaceTypeStats(req.params.snapshot_id)
+  },
+  {
+    method: 'GET',
     path: '/cba/roads/snapshot/{snapshot_id}',
     handler: (req, res) => cba.getSnapshotRoads(req.params.snapshot_id)
   },
@@ -93,5 +103,12 @@ module.exports = [
     method: 'GET',
     path: '/cba/results/delete',
     handler: (req, res) => cba.deleteResult(req)
+  },
+
+  {
+    method: 'GET',
+    path: '/cba/results/kpis',
+    handler: (req, res) => cba.getResultKpis(req)
   }
+
 ]

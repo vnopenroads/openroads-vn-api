@@ -3,7 +3,6 @@ const fetch = require('node-fetch');
 const knex = require('connection');
 const utils = require('./utils.js');
 const config = require('config/config').config;
-// const { Boom } = require('@hapi/boom');
 var Boom = require('@hapi/boom');
 
 exports.getSnapshots = async function (req, res) {
@@ -12,6 +11,22 @@ exports.getSnapshots = async function (req, res) {
         .catch(utils.errorHandler);
 }
 
+exports.getSnapshotStats = function (snapshotId) {
+    return knex('cba_road_snapshots')
+        .select('*')
+        .where('id', snapshotId)
+        .first()
+        .catch(utils.errorHandler);
+}
+
+exports.getSnapshotSurfaceTypeStats = function (snapshotId) {
+    return knex('cba_road_snapshots_data')
+        .select('surface_type')
+        .sum({ 'length': 'length' })
+        .groupBy('surface_type')
+        .where('cba_road_snapshot_id', snapshotId)
+        .catch(utils.errorHandler);
+}
 
 var select_columns = `way_id, vp_id, province, district, vp_length, length, surface_type, 
                       condition, pave_age, traffic_level, road_type, width, lanes, terrain, aadt_mcyc, aadt_sc,
@@ -39,6 +54,7 @@ function retrieveSnapshotMeta(id) {
         return knex('cba_road_snapshots_data')
             .select('*')
             .where('cba_road_snapshot_id', '=', id)
+            .limit(200)
             .then((response) => {
                 var url = `${config.cba_api}/evaluate_assets`;
                 var opts = {
@@ -47,17 +63,25 @@ function retrieveSnapshotMeta(id) {
                     headers: { 'Content-Type': 'application/json' }
                 };
                 return fetch(url, opts)
-                    .then((response) => response.json())
-                    .then((response) => {
-                        console.log(response);
-                        var total = response['stats']['valid'] + response['stats']['invalid'];
-                        return knex('cba_road_snapshots')
-                            .update({
-                                num_records: total,
-                                valid_records: response['stats']['valid'],
-                                invalid_reasons: response['invalids']
-                            })
-                            .where({ id });
+                    .then((response) => response.text())
+                    .then((raw_response) => {
+                        try {
+                            console.log(raw_response);
+                            let response = JSON.parse(raw_response);
+                            console.log(response);
+                            var total = response['stats']['valid'] + response['stats']['invalid'];
+                            return knex('cba_road_snapshots')
+                                .update({
+                                    num_records: total,
+                                    valid_records: response['stats']['valid'],
+                                    invalid_reasons: response['invalids']
+                                })
+                                .where({ id });
+                        } catch (err) {
+                            console.error("Error:", err);
+                            console.error("Response body:", raw_response);
+                            return Boom.internal("Error in response from CBA API");
+                        }
                     });
             });
     }
@@ -91,7 +115,7 @@ function getSnapshotRoads(id) {
     return knex('cba_road_snapshots_data')
         .select('*')
         .where('cba_road_snapshot_id', '=', id)
-        .limit(100)
+        .limit(200)
         .then((response) => response.map(utils.convertToPythonFormat));
 }
 exports.getSnapshotRoads = getSnapshotRoads;
@@ -191,4 +215,16 @@ exports.getResults = function (req, res) {
             .distinct('cba_road_snapshot_id as snapshot_id',
                 'cba_user_config_id as config_id')
     }
+}
+
+exports.getResultKpis = function (req, res) {
+    if (!req.query.snapshot_id || !req.query.config_id) {
+        return Boom.badRequest("You must provide a snapshot_id and config_id");
+    }
+
+    return knex('cba_snapshot_results')
+        .where('cba_road_snapshot_id', '=', req.query.snapshot_id)
+        .where('cba_user_config_id', '=', req.query.config_id)
+        .sum({ cost: 'work_cost', npv: 'npv' })
+        .catch(utils.errorHandler);
 }

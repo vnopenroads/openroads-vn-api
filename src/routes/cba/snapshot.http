@@ -15,4 +15,5 @@
 # } 
 
 
-http://localhost:4000/cba/run?snapshot_id=1&config_id=1
+http://localhost:4000/cba/roads/snapshot/21/stats
+ http://localhost:4000/cba/results
