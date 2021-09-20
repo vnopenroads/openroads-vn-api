@@ -5,7 +5,11 @@ function maybeFloat(x) { return x ? x : 0.0 }
 
 
 exports.errorHandler = function (e) {
+  console.log("=-=-=-=-=-=-=-=-=-=-=-=-=-=")
+  console.log("      ERROR HANDLER")
+  console.log("=-=-=-=-=-=-=-=-=-=-=-=-=-=")
   console.log(e);
+  console.log("=-=-=-=-=-=-=-=-=-=-=-=-=-=")
   if (e.message.includes('duplicate')) {
     return Boom.conflict(e);
   } else {
@@ -17,10 +21,6 @@ exports.boomWrapper = function (e) {
   console.log(e);
   // return error if it occurs
   return (Boom.wrap(e));
-}
-
-exports.allGood = function (res) {
-  return (_) => { return { success: true, message: 'ok' } };
 }
 
 exports.checkStandardQueryParams = function (sortField, sortOrder, page) {

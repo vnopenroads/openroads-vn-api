@@ -14,6 +14,8 @@
 #     "valid_records": 420
 # } 
 
-
-http://localhost:4000/cba/roads/snapshot/21/stats
+#jhttp://localhost:4000/cba/user_configs
+#http://localhost:4000/cba/run?snapshot_id=1&config_id=1
+#http://localhost:4000/cba/results/kpis?snapshot_id=1&config_id=1
+http://localhost:4000/cba/roads/snapshot/24/stats
  http://localhost:4000/cba/results
