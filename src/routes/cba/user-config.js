@@ -25,6 +25,12 @@ module.exports = [
             return handler.selectQuery(req.params.id, ['traffic_levels']);
         }
     }, {
+        method: 'GET',
+        path: '/cba/user_configs/{id}/growth_rates',
+        handler: function (req, res) {
+            return handler.selectQuery(req.params.id, ['growth_rates']);
+        }
+    }, {
         method: 'POST',
         path: '/cba/user_configs/{id}/update',
         handler: function (req, res) {
