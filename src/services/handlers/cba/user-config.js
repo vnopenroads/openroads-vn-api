@@ -30,6 +30,7 @@ function buildData(payload, creation) {
     if (rv['traffic_levels']) {
         rv['traffic_levels'] = JSON.stringify(rv['traffic_levels'])
     }
+    console.log(rv);
     return rv;
 }
 

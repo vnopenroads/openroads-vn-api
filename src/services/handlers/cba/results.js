@@ -57,7 +57,7 @@ exports.runSnapshot = async function (req) {
     if (Boom.isBoom(params)) { return params; };
     var assets = await snapshotHandler.getSnapshotRoads(params.snapshot_id);
     var url = `${config.cba_api}/run_sections`;
-    var cbaConfig = await configHandler.selectQuery(params.config_id, ['discount_rate', 'economic_factor']);
+    var cbaConfig = await configHandler.selectQuery(params.config_id, ['discount_rate', 'economic_factor', 'growth_rates', 'traffic_levels']);
     console.log("=--------=");
     console.log(cbaConfig);
     console.log("=--------=");
