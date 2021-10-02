@@ -12,7 +12,7 @@ CREATE TABLE cba_user_configs (
     growth_rates jsonb NOT NULL,
     traffic_levels jsonb NOT NULL,
     road_works jsonb NOT NULL,
-    recurrent_maintainence jsonb NOT NULL,
+    recurrent_maintenance jsonb NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
@@ -43,6 +43,102 @@ UPDATE cba_user_configs SET traffic_levels = '{"by_level": {
   "13": {"aadt": 35000, "struct_no": 8.0, "motorcycle": 0.25, "small_car": 0.08, "medium_car": 0.12, "delivery": 0.07, "four_wheel_drive": 0.07, "light_truck": 0.18, "medium_truck": 0.08, "heavy_truck": 0.05, "articulated_truck": 0.01, "small_bus": 0.06, "medium_bus": 0.02, "large_bus": 0.01 }, 
   "14": {"aadt": 500000, "struct_no": 8.0, "motorcycle": 0.25, "small_car": 0.08, "medium_car": 0.12, "delivery": 0.07, "four_wheel_drive": 0.07, "light_truck": 0.18, "medium_truck": 0.08, "heavy_truck": 0.05, "articulated_truck": 0.01, "small_bus": 0.06, "medium_bus": 0.02, "large_bus": 0.01}}}
   ';
+
+
+UPDATE cba_user_configs SET road_works = '{ "alternatives": [
+{"name": "Periodic Maintenance (Concrete)", "code": "C-P", "work_class": "Periodic", "cost_flat": 132.0, "cost_hilly": 132.0, "cost_mountainous": 132.0, "iri": 3.0, "lanes_class": 0, "width": 0, "surface": 0, "thickness": null, "strength": null, "snc": null, "repair": 1, "repair_period": 8, "idx": 0},
+{"name": "Reconstruction (Concrete)", "code": "C-R", "work_class": "Rehabilitation", "cost_flat": 549.0, "cost_hilly": 549.0, "cost_mountainous": 549.0, "iri": 1.8, "lanes_class": 0, "width": 0, "surface": 0, "thickness": null, "strength": null, "snc": null, "repair": 1, "repair_period": 8, "idx": 1},
+{"name": "Reseal", "code": "B-P1", "work_class": "Periodic", "cost_flat": 127.0, "cost_hilly": 127.0, "cost_mountainous": 127.0, "iri": 4.0, "lanes_class": 0, "width": 0, "surface": 0, "thickness": 25, "strength": 0.2, "snc": null, "repair": 4, "repair_period": 8, "idx": 2},
+{"name": "Functional Overlay (<=50mm)", "code": "B-P2", "work_class": "Periodic", "cost_flat": 176.25, "cost_hilly": 176.25, "cost_mountainous": 176.25, "iri": 3.5, "lanes_class": 0, "width": 0, "surface": 0, "thickness": 50, "strength": 0.4, "snc": null, "repair": 4, "repair_period": 8, "idx": 3},
+{"name": "Structural Overlay (51-100mm)", "code": "B-P3", "work_class": "Periodic", "cost_flat": 282.0, "cost_hilly": 282.0, "cost_mountainous": 282.0, "iri": 3.0, "lanes_class": 0, "width": 0, "surface": 0, "thickness": 80, "strength": 0.4, "snc": null, "repair": 4, "repair_period": 8, "idx": 4},
+{"name": "Thick Overlay (>100mm)", "code": "B-R1", "work_class": "Rehabilitation", "cost_flat": 352.5, "cost_hilly": 352.5, "cost_mountainous": 352.5, "iri": 2.5, "lanes_class": 0, "width": 0, "surface": 0, "thickness": 100, "strength": 0.4, "snc": null, "repair": 4, "repair_period": 8, "idx": 5},
+{"name": "Reconstruction Type V", "code": "B-R2", "work_class": "Rehabilitation", "cost_flat": 397.0, "cost_hilly": 397.0, "cost_mountainous": 397.0, "iri": 2.0, "lanes_class": 0, "width": 0, "surface": 0, "thickness": null, "strength": null, "snc": 2.0, "repair": 4, "repair_period": 8, "idx": 6},
+{"name": "Reconstruction Type IV", "code": "B-R3", "work_class": "Rehabilitation", "cost_flat": 397.0, "cost_hilly": 397.0, "cost_mountainous": 397.0, "iri": 2.0, "lanes_class": 0, "width": 0, "surface": 0, "thickness": null, "strength": null, "snc": 3.0, "repair": 4, "repair_period": 8, "idx": 7},
+{"name": "Reconstruction Type III", "code": "B-R4", "work_class": "Rehabilitation", "cost_flat": 397.0, "cost_hilly": 397.0, "cost_mountainous": 397.0, "iri": 2.0, "lanes_class": 0, "width": 0, "surface": 0, "thickness": null, "strength": null, "snc": 4.0, "repair": 4, "repair_period": 8, "idx": 8},
+{"name": "Reconstruction Type II", "code": "B-R5", "work_class": "Rehabilitation", "cost_flat": 397.0, "cost_hilly": 397.0, "cost_mountainous": 397.0, "iri": 2.0, "lanes_class": 0, "width": 0, "surface": 0, "thickness": null, "strength": null, "snc": 5.0, "repair": 4, "repair_period": 8, "idx": 9},
+{"name": "Reconstruction Type I", "code": "B-R6", "work_class": "Rehabilitation", "cost_flat": 397.0, "cost_hilly": 397.0, "cost_mountainous": 397.0, "iri": 2.0, "lanes_class": 0, "width": 0, "surface": 0, "thickness": null, "strength": null, "snc": 6.0, "repair": 4, "repair_period": 8, "idx": 10},
+{"name": "Regravelling (Gravel)", "code": "G-P", "work_class": "Periodic", "cost_flat": 37.0, "cost_hilly": 37.0, "cost_mountainous": 37.0, "iri": 12.0, "lanes_class": 0, "width": 0, "surface": 0, "thickness": null, "strength": null, "snc": null, "repair": 12, "repair_period": 4, "idx": 11},
+{"name": "Reconstruction (Gravel)", "code": "G-R", "work_class": "Rehabilitation", "cost_flat": 114.0, "cost_hilly": 114.0, "cost_mountainous": 114.0, "iri": 7.0, "lanes_class": 0, "width": 0, "surface": 0, "thickness": null, "strength": null, "snc": null, "repair": 12, "repair_period": 4, "idx": 12},
+{"name": "Heavy Grading (Earth)", "code": "E-P", "work_class": "Periodic", "cost_flat": 16.0, "cost_hilly": 16.0, "cost_mountainous": 16.0, "iri": 16.0, "lanes_class": 0, "width": 0, "surface": 0, "thickness": null, "strength": null, "snc": null, "repair": 14, "repair_period": 4, "idx": 13},
+{"name": "Reconstruction (Earth)", "code": "E-R", "work_class": "Rehabilitation", "cost_flat": 24.0, "cost_hilly": 24.0, "cost_mountainous": 24.0, "iri": 10.0, "lanes_class": 0, "width": 0, "surface": 0, "thickness": null, "strength": null, "snc": null, "repair": 14, "repair_period": 4, "idx": 14},
+{"name": "Periodic Maintenance (Macadam)", "code": "M-P", "work_class": "Periodic", "cost_flat": 37.0, "cost_hilly": 37.0, "cost_mountainous": 37.0, "iri": 8.0, "lanes_class": 0, "width": 0, "surface": 0, "thickness": null, "strength": null, "snc": null, "repair": 16, "repair_period": 8, "idx": 15},
+{"name": "Reconstruction (Macadam)", "code": "M-R", "work_class": "Rehabilitation", "cost_flat": 114.0, "cost_hilly": 114.0, "cost_mountainous": 114.0, "iri": 4.0, "lanes_class": 0, "width": 0, "surface": 0, "thickness": null, "strength": null, "snc": null, "repair": 16, "repair_period": 8, "idx": 16},
+{"name": "Periodic Maintenance (Cobblestone)", "code": "O-P", "work_class": "Periodic", "cost_flat": 37.0, "cost_hilly": 37.0, "cost_mountainous": 37.0, "iri": 8.0, "lanes_class": 0, "width": 0, "surface": 0, "thickness": null, "strength": null, "snc": null, "repair": 18, "repair_period": 8, "idx": 17},
+{"name": "Reconstruction (Cobblestone)", "code": "O-R", "work_class": "Rehabilitation", "cost_flat": 114.0, "cost_hilly": 114.0, "cost_mountainous": 114.0, "iri": 4.0, "lanes_class": 0, "width": 0, "surface": 0, "thickness": null, "strength": null, "snc": null, "repair": 18, "repair_period": 8, "idx": 18},
+{"name": "Upgrade to Cobblestone", "code": "U-C", "work_class": "Upgrade", "cost_flat": 500.0, "cost_hilly": 500.0, "cost_mountainous": 500.0, "iri": 4.0, "lanes_class": 3, "width": 7.0, "surface": 7, "thickness": null, "strength": null, "snc": null, "repair": 18, "repair_period": 8, "idx": 19},
+{"name": "Upgrade to Macadam", "code": "U-M", "work_class": "Upgrade", "cost_flat": 500.0, "cost_hilly": 500.0, "cost_mountainous": 500.0, "iri": 4.0, "lanes_class": 3, "width": 7.0, "surface": 6, "thickness": null, "strength": null, "snc": null, "repair": 16, "repair_period": 8, "idx": 20},
+{"name": "Upgrade to Gravel", "code": "U-G", "work_class": "Upgrade", "cost_flat": 500.0, "cost_hilly": 500.0, "cost_mountainous": 500.0, "iri": 8.0, "lanes_class": 3, "width": 7.0, "surface": 4, "thickness": null, "strength": null, "snc": null, "repair": 12, "repair_period": 4, "idx": 21},
+{"name": "Upgrade to Surface Treatment", "code": "U-S", "work_class": "Upgrade", "cost_flat": 500.0, "cost_hilly": 500.0, "cost_mountainous": 500.0, "iri": 2.6, "lanes_class": 3, "width": 7.0, "surface": 3, "thickness": null, "strength": null, "snc": 2.0, "repair": 4, "repair_period": 8, "idx": 22},
+{"name": "Upgrade to Asphalt Concrete", "code": "U-A", "work_class": "Upgrade", "cost_flat": 500.0, "cost_hilly": 500.0, "cost_mountainous": 500.0, "iri": 2.2, "lanes_class": 3, "width": 7.0, "surface": 2, "thickness": null, "strength": null, "snc": 4.0, "repair": 4, "repair_period": 8, "idx": 23},
+{"name": "Upgrade to Cement Concrete", "code": "U-C2", "work_class": "Upgrade", "cost_flat": 500.0, "cost_hilly": 500.0, "cost_mountainous": 500.0, "iri": 1.8, "lanes_class": 3, "width": 7.0, "surface": 1, "thickness": null, "strength": null, "snc": null, "repair": 1, "repair_period": 8, "idx": 24}
+]}';
+
+UPDATE cba_user_configs SET recurrent_maintenance = '{
+  "cement_concrete": {
+    "one_lane": 10167.7938484056,
+    "two_lanes_narrow": 19115.4524350025,
+    "two_lanes": 20282.3695008311,
+    "two_lanes_wide": 19928.875942875,
+    "four_lanes": 20335.5876968112,
+    "six_lanes": 20335.5876968112,
+    "eight_lanes": 20335.5876968112
+  },
+  "asphalt_concrete": {
+    "one_lane": 14758.9085060652,
+    "two_lanes_narrow": 26861.2134810386,
+    "two_lanes": 27746.7479914025,
+    "two_lanes_wide": 28632.2825017664,
+    "four_lanes": 29517.8170121303,
+    "six_lanes": 29517.8170121303,
+    "eight_lanes": 29517.8170121303
+  },
+  "surface_treatment": {
+    "one_lane": 12117.2647173132,
+    "two_lanes_narrow": 18418.242370316,
+    "two_lanes": 20357.0047250861,
+    "two_lanes_wide": 22295.7670798562,
+    "four_lanes": 24234.5294346263,
+    "six_lanes": 24234.5294346263,
+    "eight_lanes": 24234.5294346263
+  },
+  "gravel": {
+    "one_lane": 8845.72489898381,
+    "two_lanes_narrow": 12737.8438545367,
+    "two_lanes": 14330.0743363538,
+    "two_lanes_wide": 16099.2193161505,
+    "four_lanes": 17691.4497979676,
+    "six_lanes": 17691.4497979676,
+    "eight_lanes": 17691.4497979676
+  },
+  "earth": {
+    "one_lane": 5662.55318106041,
+    "two_lanes_narrow": 7361.31913537853,
+    "two_lanes": 8607.08083521182,
+    "two_lanes_wide": 9966.09359866632,
+    "four_lanes": 11325.1063621208,
+    "six_lanes": 11325.1063621208,
+    "eight_lanes": 11325.1063621208
+  },
+  "macadam": {
+    "one_lane": 12117.2647173132,
+    "two_lanes_narrow": 18418.242370316,
+    "two_lanes": 20357.0047250861,
+    "two_lanes_wide": 22295.7670798562,
+    "four_lanes": 24234.5294346263,
+    "six_lanes": 24234.5294346263,
+    "eight_lanes": 24234.5294346263
+  },
+  "cobblestones": {
+    "one_lane": 8845.72489898381,
+    "two_lanes_narrow": 12737.8438545367,
+    "two_lanes": 14330.0743363538,
+    "two_lanes_wide": 16099.2193161505,
+    "four_lanes": 17691.4497979676,
+    "six_lanes": 17691.4497979676,
+    "eight_lanes": 17691.4497979676
+  }
+}';
+
 
 UPDATE cba_user_configs SET growth_rates = '{"very_low": 0.034, "low": 0.046, "medium": 0.054, "high": 0.057, "very_high": 0.086}';
 

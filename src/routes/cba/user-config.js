@@ -14,21 +14,10 @@ module.exports = [
         }
     }, {
         method: 'GET',
-        path: '/cba/user_configs/{id}',
+        path: '/cba/user_configs/{id}/sub_config/{config_type}',
         handler: function (req, res) {
-            return handler.selectQuery(req.params.id, ['discount_rate', 'economic_factor']);
-        }
-    }, {
-        method: 'GET',
-        path: '/cba/user_configs/{id}/traffic_levels',
-        handler: function (req, res) {
-            return handler.selectQuery(req.params.id, ['traffic_levels']);
-        }
-    }, {
-        method: 'GET',
-        path: '/cba/user_configs/{id}/growth_rates',
-        handler: function (req, res) {
-            return handler.selectQuery(req.params.id, ['growth_rates']);
+            const fields = req.params.config_type == 'general' ? ['discount_rate', 'economic_factor'] : [req.params.config_type]
+            return handler.selectQuery(req.params.id, fields);
         }
     }, {
         method: 'POST',
