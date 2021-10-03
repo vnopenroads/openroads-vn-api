@@ -90,8 +90,6 @@ function retrieveSnapshotMeta(id) {
     }
 }
 
-
-
 function delete1() {
     return knex('cba_road_snapshots').where('id', '>', 2).del();
 }
@@ -130,7 +128,7 @@ exports.getRoads = function (req, res) {
 
     return knex('v_roads_cba as t')
         .select('t.way_id as id', 't.vp_id', 't.length', 't.vp_length', 't.province', 't.district', 't.surface_type',
-            't.road_type', 't.lanes', 't.width', 't.condition', 't.traffic_level', 't.terrain')
+            't.road_class', 't.road_type', 't.lanes', 't.width', 't.condition', 't.traffic_level', 't.terrain')
         .modify(function (queryBuilder) {
             if (province) { queryBuilder.andWhere('province', province); }
             if (district) { queryBuilder.andWhere('district', district); }

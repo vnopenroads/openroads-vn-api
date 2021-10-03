@@ -79,6 +79,28 @@ END;
 $$
 LANGUAGE 'plpgsql' IMMUTABLE;
 
+
+CREATE OR REPLACE FUNCTION normalise_road_class(x text) RETURNS float AS $$
+DECLARE
+  xx text := lower(x);
+BEGIN
+  IF xx = 'class i'      THEN RETURN 1.0;
+  ELSIF xx = 'class ii'  THEN RETURN 2.0;
+  ELSIF xx = 'class iii' THEN RETURN 3.0;
+  ELSIF xx = 'class iv'  THEN RETURN 4.0;
+  ELSIF xx = 'class v'   THEN RETURN 5.0;
+  ELSIF xx = 'class vi'  THEN RETURN 6.0;
+  ELSIF xx = 'a'         THEN RETURN 7.0;
+  ELSIF xx = 'b'         THEN RETURN 8.0;
+  ELSIF xx = 'c'         THEN RETURN 9.0;
+  ELSIF xx = 'd'         THEN RETURN 10.0;
+  ELSE RETURN cast(xx as float);
+  END IF;
+END;
+$$
+LANGUAGE 'plpgsql' IMMUTABLE;
+
+
 CREATE OR REPLACE FUNCTION get_specific_tag(_property_name text)
   RETURNS TABLE ( way_id bigint, v character varying(255))
   LANGUAGE plpgsql AS

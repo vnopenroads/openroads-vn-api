@@ -20,8 +20,7 @@ CREATE TABLE cba_road_snapshots (
 CREATE INDEX cba_road_snapshots_idx ON cba_road_snapshots USING btree (id);
 
 INSERT INTO cba_road_snapshots(name, province_name, province_id, num_records, valid_records)
-VALUES ('Ha Giang 202108', 'Ha Ziang', 294, 1884, 980),
-       ('Ha Gaing 202104', 'Ha Ziang', 294, 1884, 655);
+VALUES ('Ha Giang 2021 October', 'Ha Ziang', 294, 1884, 1005);
 
 
 -- And the data table to store the snapshotted records
@@ -39,6 +38,7 @@ CREATE TABLE cba_road_snapshots_data (
     condition text,
     pave_age double precision,
     traffic_level character varying,
+    road_class double precision,
     road_type character varying,
     width double precision,
     lanes text,
@@ -60,14 +60,7 @@ CREATE INDEX cba_road_snapshots_data_idx ON cba_road_snapshots USING btree (id);
 
 DROP TABLE cba_road_snapshots_data;
 
--- SELECT INTO cba_road_snapshots_data (cba_road_snapshot_id, way_id, vp_id, province, district, vp_length, length, surface_type, condition, pave_age, 
---                                      traffic_level, road_type, width, lanes, terrain, aadt_mcyc, aadt_sc,aadt_mc,aadt_dv,aadt_lt,
---                                      aadt_mt, aadt_ht, aadt_at,aadt_sb, aadt_mb,aadt_lb )
-
-SELECT 1 as cba_road_snapshot_id, 
-       way_id, vp_id, province, district, vp_length, length,
-       surface_type, condition, pave_age, traffic_level, road_type, width, lanes, terrain,
-       aadt_mcyc, aadt_sc, aadt_mc, aadt_dv, aadt_lt, aadt_mt, aadt_ht, aadt_at, aadt_sb, aadt_mb, aadt_lb
+SELECT 1 as cba_road_snapshot_id, *
 INTO cba_road_snapshots_data
 FROM v_roads_cba
 WHERE province = 294
