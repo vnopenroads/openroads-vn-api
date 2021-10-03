@@ -38,7 +38,7 @@ exports.checkStandardQueryParams = function (sortField, sortOrder, page) {
 
 exports.convertToPythonFormat = function (r) {
   return {
-    'orma_way_id': r.id, 'vpromms_id': r.vp_id, 'length': r.length, 'vpromms_length': r.vp_length,
+    'orma_way_id': r.way_id, 'vpromms_id': r.vp_id, 'length': r.length, 'vpromms_length': r.vp_length,
     // "road_number": r.road number,
     // "road_name": r.name,
     // "road_start": r.road start location,
