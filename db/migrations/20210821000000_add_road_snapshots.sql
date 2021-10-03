@@ -60,13 +60,15 @@ CREATE INDEX cba_road_snapshots_data_idx ON cba_road_snapshots USING btree (id);
 
 DROP TABLE cba_road_snapshots_data;
 
-INSERT INTO cba_road_snapshots_data (cba_road_snapshot_id, way_id, vp_id, province, district, vp_length, length, surface_type, condition, pave_age, 
-                                     traffic_level, road_type, width, lanes, terrain, aadt_mcyc, aadt_sc,aadt_mc,aadt_dv,aadt_lt,
-                                     aadt_mt, aadt_ht, aadt_at,aadt_sb, aadt_mb,aadt_lb )
+-- SELECT INTO cba_road_snapshots_data (cba_road_snapshot_id, way_id, vp_id, province, district, vp_length, length, surface_type, condition, pave_age, 
+--                                      traffic_level, road_type, width, lanes, terrain, aadt_mcyc, aadt_sc,aadt_mc,aadt_dv,aadt_lt,
+--                                      aadt_mt, aadt_ht, aadt_at,aadt_sb, aadt_mb,aadt_lb )
+
 SELECT 1 as cba_road_snapshot_id, 
        way_id, vp_id, province, district, vp_length, length,
        surface_type, condition, pave_age, traffic_level, road_type, width, lanes, terrain,
        aadt_mcyc, aadt_sc, aadt_mc, aadt_dv, aadt_lt, aadt_mt, aadt_ht, aadt_at, aadt_sb, aadt_mb, aadt_lb
+INTO cba_road_snapshots_data
 FROM v_roads_cba
 WHERE province = 294
 ;
