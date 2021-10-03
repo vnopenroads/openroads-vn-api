@@ -118,7 +118,7 @@ function getSnapshotRoads(id) {
     return knex('cba_road_snapshots_data')
         .select('*')
         .where('cba_road_snapshot_id', '=', id)
-        .limit(500)
+        // .limit(500)
         .then((response) => response.map(utils.convertToPythonFormat));
 }
 exports.getSnapshotRoads = getSnapshotRoads;
