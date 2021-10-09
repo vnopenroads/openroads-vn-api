@@ -6,6 +6,7 @@ var Boom = require('@hapi/boom');
 const config = require('config/config').config;
 const configHandler = require('./user-config.js');
 const snapshotHandler = require('./snapshots.js');
+const JSON5 = require('json5')
 
 function checkResultQuery(query) {
     let snapshot_id = query.snapshot_id;
@@ -67,9 +68,10 @@ exports.runSnapshot = async function (req) {
         headers: { 'Content-Type': 'application/json' }
     };
 
-    var body = await fetch(url, opts).then((response) => response.json())
+    var body = await fetch(url, opts).then((response) => response.text())
+    var body_ = JSON5.parse(body);
     const insertFn = (e) => prepCbaResultRow(params.snapshot_id, params.config_id, e);
-    const rows = body['data'].map(insertFn);
+    const rows = body_['data'].map(insertFn);
     return deleteResultFn(params.snapshot_id, params.config_id)
         .then(() => knex.batchInsert('cba_snapshot_results', rows, 500))
         .catch(function (error) { console.log(error); });
