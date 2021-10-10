@@ -92,14 +92,34 @@ exports.getResults = function (req, res) {
     }
 }
 
-exports.getResultKpis = function (req, res) {
+exports.getResultKpis = async function (req, res) {
     if (!req.query.snapshot_id || !req.query.config_id) {
         return Boom.badRequest("You must provide a snapshot_id and config_id");
     }
 
-    return knex('cba_snapshot_results')
+    var results = () => knex('cba_snapshot_results')
         .where('cba_road_snapshot_id', '=', req.query.snapshot_id)
-        .where('cba_user_config_id', '=', req.query.config_id)
+        .where('cba_user_config_id', '=', req.query.config_id);
+
+    var r1 = await results()
+        .where('npv', '>', 0)
         .sum({ cost: 'work_cost', npv: 'npv' })
+        .count({ positive_npv: 'npv' })
         .catch(utils.errorHandler);
+    var { cost, npv, positive_npv } = r1[0];
+
+    var r2 = await knex('cba_road_snapshots')
+        .where({ id: req.query.snapshot_id })
+        .select('num_records as num_assets', 'valid_records as valid_assets')
+    var { num_assets, valid_assets } = r2[0];
+    var invalid_assets = num_assets - valid_assets;
+
+    var r3 = await results().where('npv', '=', 0).count();
+    var negative_npv = parseInt(r3[0].count);
+    positive_npv = parseInt(positive_npv);
+
+    return {
+        cost, npv,
+        assetBreakdown: { num_assets, positive_npv, negative_npv, valid_assets, invalid_assets }
+    };
 }
