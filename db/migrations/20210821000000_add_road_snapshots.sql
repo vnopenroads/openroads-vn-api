@@ -19,8 +19,8 @@ CREATE TABLE cba_road_snapshots (
 );
 CREATE INDEX cba_road_snapshots_idx ON cba_road_snapshots USING btree (id);
 
-INSERT INTO cba_road_snapshots(name, province_name, province_id, num_records, valid_records)
-VALUES ('Ha Giang 2021 October', 'Ha Ziang', 294, 1884, 1005);
+-- INSERT INTO cba_road_snapshots(name, province_name, province_id, num_records, valid_records)
+-- VALUES ('Ha Giang 2021 October', 'Ha Ziang', 294, 1884, 1005);
 
 
 -- And the data table to store the snapshotted records

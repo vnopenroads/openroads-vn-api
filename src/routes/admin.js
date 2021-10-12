@@ -199,7 +199,7 @@ module.exports = [
       //      - child_admin ids
       //      - child_admin names
       // on id
-      knex
+      return knex
         .select(
           'self.id as id',
           'self.name_en as name_en',

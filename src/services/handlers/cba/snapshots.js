@@ -46,8 +46,12 @@ function copySnapshotData(id, payload) {
       FROM v_roads_cba
     `;
     var prom;
-    if (payload.province_id) {
+    if (payload.province_id && payload.district_id) {
+        prom = knex.raw(`${sql} WHERE province = ? AND district = ?`, [payload.province_id, payload.district_id]);
+    } else if (payload.province_id) {
         prom = knex.raw(`${sql} WHERE province = ?`, [payload.province_id]);
+    } else if (payload.district_id) {
+        prom = knex.raw(`${sql} WHERE district = ?`, [payload.district_id]);
     } else {
         prom = knex.raw(sql);
     }
@@ -99,9 +103,7 @@ function delete2() {
 
 exports.createSnapshot = function (req, res) {
 
-    return delete1()
-        .then(delete2)
-        .then(() => knex('cba_road_snapshots').insert(req.payload, 'id'))
+    return knex('cba_road_snapshots').insert(req.payload, 'id')
         .then((result) => {
             var [snapshotId] = result;
             console.log(`Got snapshotId: ${snapshotId}`);
