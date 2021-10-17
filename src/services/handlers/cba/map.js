@@ -43,7 +43,8 @@ exports.getRoadAssets = function (query) {
         select json_build_object('type', 'FeatureCollection', 
                                  'features', json_agg(ST_AsGeoJSON(t.*)::json)
                                 )
-        from (SELECT l.way_id, eirr, npv, work_year, l.geom
+        from (SELECT ROW_NUMBER() OVER (ORDER BY work_year, npv_cost) as priority,
+                     l.way_id, eirr, npv, npv_cost, work_year, l.geom
               FROM cba_snapshot_results r
               LEFT JOIN lines_with_admin l
                      ON l.way_id = r.way_id
