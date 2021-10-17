@@ -1,5 +1,6 @@
 const snapshotHandler = require('../../services/handlers/cba/snapshots.js')
 const resultsHandler = require('../../services/handlers/cba/results.js')
+const mapHandler = require('../../services/handlers/cba/map.js')
 
 module.exports = [
   {
@@ -53,6 +54,24 @@ module.exports = [
     method: 'GET',
     path: '/cba/results/kpis',
     handler: (req, res) => resultsHandler.getResultKpis(req)
+  },
+
+
+  // Mapping Functionality
+  {
+    method: 'GET',
+    path: '/cba/map/districts',
+    handler: (req, res) => mapHandler.getDistrictBoundaries(req)
+  },
+  {
+    method: 'GET',
+    path: '/cba/map/province',
+    handler: (req, res) => mapHandler.getProvinceBoundary(req)
+  },
+  {
+    method: 'GET',
+    path: '/cba/map/road_assets',
+    handler: (req, res) => mapHandler.getRoadAssets(req.query)
   }
 
 ]
