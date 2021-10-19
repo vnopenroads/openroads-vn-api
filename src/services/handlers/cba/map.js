@@ -9,21 +9,20 @@ const snapshotHandler = require('./snapshots.js');
 const JSON5 = require('json5')
 
 exports.getDistrictBoundaries = function (query) {
-    let province_id = 294; // query.snapshot_id;
     return knex.raw(`
     select json_build_object(
         'type', 'FeatureCollection',
         'features', json_agg(ST_AsGeoJSON(t.*)::json)
         )
-    from ( SELECT id, name_en, ST_Simplify(geom, 0.01)
+    from ( SELECT id, name_en, ST_Simplify(geom, 0.001)
            FROM admin_boundaries
-           WHERE parent_id = ${province_id}
+           WHERE parent_id = ${query.province_id}
          ) as t;
     `);
 }
 
 exports.getProvinceBoundary = function (query) {
-    let province_id = 294; // query.snapshot_id;
+    var whereClause = query.province_id ? `AND id = ${query.province_id}` : ''
     return knex.raw(`
         select json_build_object('type', 
                                  'FeatureCollection', 
@@ -31,20 +30,22 @@ exports.getProvinceBoundary = function (query) {
                                  json_agg(ST_AsGeoJSON(t.*)::json)
                                 ),
                 ST_AsText(st_centroid(st_collect(t.geom))) as centroid
-        from (SELECT id, name_en, ST_Simplify(geom, 0.01) as geom
+        from (SELECT id, name_en, ST_Simplify(geom, 0.001) as geom
               FROM admin_boundaries
-              WHERE id = ${province_id}
+              WHERE parent_id is NULL
+              ${whereClause}
              ) as t;
     `);
 }
 
 exports.getRoadAssets = function (query) {
     return knex.raw(`
-        select json_build_object('type', 'FeatureCollection', 
+        SELECT json_build_object('type', 'FeatureCollection', 
                                  'features', json_agg(ST_AsGeoJSON(t.*)::json)
-                                )
-        from (SELECT ROW_NUMBER() OVER (ORDER BY work_year, npv_cost) as priority,
-                     l.way_id, eirr, npv, npv_cost, work_year, l.geom
+                                ),
+               ST_AsText(st_centroid(st_collect(t.geom))) as centroid
+        FROM (SELECT ROW_NUMBER() OVER (ORDER BY work_year, npv_cost) as priority,
+                     l.way_id, eirr, npv, npv_cost, work_year, work_name, l.geom
               FROM cba_snapshot_results r
               LEFT JOIN lines_with_admin l
                      ON l.way_id = r.way_id

@@ -61,12 +61,12 @@ module.exports = [
   {
     method: 'GET',
     path: '/cba/map/districts',
-    handler: (req, res) => mapHandler.getDistrictBoundaries(req)
+    handler: (req, res) => mapHandler.getDistrictBoundaries(req.query)
   },
   {
     method: 'GET',
     path: '/cba/map/province',
-    handler: (req, res) => mapHandler.getProvinceBoundary(req)
+    handler: (req, res) => mapHandler.getProvinceBoundary(req.query)
   },
   {
     method: 'GET',
