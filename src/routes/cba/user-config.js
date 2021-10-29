@@ -16,7 +16,8 @@ module.exports = [
         method: 'GET',
         path: '/cba/user_configs/{id}/sub_config/{config_type}',
         handler: function (req, res) {
-            const fields = req.params.config_type == 'general' ? ['discount_rate', 'economic_factor'] : [req.params.config_type]
+            const general_fields = ['discount_rate', 'economic_factor', 'starting_year']
+            const fields = req.params.config_type == 'general' ? general_fields : [req.params.config_type]
             return handler.selectQuery(req.params.id, fields);
         }
     }, {

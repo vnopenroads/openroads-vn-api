@@ -68,12 +68,12 @@ WHERE province = 294
 
 
 DROP TABLE cba_snapshot_results;
-
 CREATE TABLE cba_snapshot_results (
   	id SERIAL PRIMARY KEY,
     cba_road_snapshot_id bigint,
     cba_user_config_id bigint,
     way_id bigint,
+    length double precision,
     eirr double precision,
     esa_loading double precision,
     npv double precision,
@@ -86,7 +86,20 @@ CREATE TABLE cba_snapshot_results (
     work_cost_km double precision,
     work_name text,
     work_type text,
-    work_year int
+    work_year int,
+    iri_base jsonb,
+    iri_projection jsonb,
+    capital_cost jsonb,
+    repair_cost jsonb,
+    maintenance_cost jsonb,
+    user_cost jsonb
 );
 CREATE INDEX cba_snapshot_results_idx ON cba_snapshot_results USING btree (cba_road_snapshot_id);
+
+
+
+CREATE TABLE tester (
+  id SERIAL PRIMARY KEY,
+  j jsonb
+);
  

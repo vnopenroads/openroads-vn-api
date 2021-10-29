@@ -36,6 +36,7 @@ function prepCbaResultRow(snapshot_id, config_id, e) {
         cba_road_snapshot_id: snapshot_id,
         cba_user_config_id: config_id,
         way_id: e['orma_way_id'],
+        length: e['length'],
         eirr: e['eirr'],
         esa_loading: e['esa_loading'],
         npv: e['npv'],
@@ -48,7 +49,13 @@ function prepCbaResultRow(snapshot_id, config_id, e) {
         work_cost_km: e['work_cost_km'],
         work_name: e['work_name'],
         work_type: e['work_type'],
-        work_year: e['work_year']
+        work_year: e['work_year'],
+        iri_base: JSON.stringify(e['iri_base']),
+        iri_projection: JSON.stringify(e['iri_projection']),
+        capital_cost: JSON.stringify(e['capital_cost']),
+        repair_cost: JSON.stringify(e['repair_cost']),
+        maintenance_cost: JSON.stringify(e['maintenance_cost']),
+        user_cost: JSON.stringify(e['user_cost'])
     }
 }
 
@@ -72,12 +79,12 @@ exports.runSnapshot = async function (req) {
     var body_ = JSON5.parse(body);
     const insertFn = (e) => prepCbaResultRow(params.snapshot_id, params.config_id, e);
     const rows = body_['data'].map(insertFn);
+    console.log(body_['data']);
+    console.log(rows[0]);
     return deleteResultFn(params.snapshot_id, params.config_id)
-        .then(() => knex.batchInsert('cba_snapshot_results', rows, 500))
+        .then(() => knex.batchInsert('cba_snapshot_results', rows, 1))
         .catch(function (error) { console.log(error); });
 }
-
-
 
 exports.getResults = function (req, res) {
     if (req.query.snapshot_id && req.query.config_id) {
@@ -108,6 +115,20 @@ exports.getResultKpis = async function (req, res) {
         .catch(utils.errorHandler);
     var { cost, npv, positive_npv } = r1[0];
 
+    var costYr = async (yr) => {
+        var r = await results()
+            .where('npv', '>', 0)
+            .where('work_year', '<=', yr)
+            .sum({ cost_for_year: 'work_cost' })
+            .catch(utils.errorHandler);
+        var { cost_for_year } = r[0];
+        return cost_for_year || 0;
+    };
+
+    var cost1yr = await costYr(1);
+    var cost3yr = await costYr(3);
+    var cost5yr = await costYr(5);
+
     var r2 = await knex('cba_road_snapshots')
         .where({ id: req.query.snapshot_id })
         .select('num_records as num_assets', 'valid_records as valid_assets')
@@ -123,7 +144,7 @@ exports.getResultKpis = async function (req, res) {
     var districtId = parseInt(r4[0].district_id);
 
     return {
-        cost, npv, provinceId, districtId,
+        cost, cost1yr, cost3yr, cost5yr, npv, provinceId, districtId,
         assetBreakdown: { num_assets, positive_npv, negative_npv, valid_assets, invalid_assets }
     };
 }

@@ -44,7 +44,7 @@ exports.getRoadAssets = function (query) {
                                  'features', json_agg(ST_AsGeoJSON(t.*)::json)
                                 ),
                ST_AsText(st_centroid(st_collect(t.geom))) as centroid
-        FROM (SELECT ROW_NUMBER() OVER (ORDER BY work_year, npv_cost) as priority,
+        FROM (SELECT ROW_NUMBER() OVER (ORDER BY work_year ASC, npv_cost DESC) as priority,
                      l.way_id, eirr, npv, npv_cost, work_year, work_name, l.geom
               FROM cba_snapshot_results r
               LEFT JOIN lines_with_admin l
