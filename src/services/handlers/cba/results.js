@@ -139,12 +139,16 @@ exports.getResultKpis = async function (req, res) {
     var negative_npv = parseInt(r3[0].count);
     positive_npv = parseInt(positive_npv);
 
-    var r4 = await knex('cba_road_snapshots').where('id', '=', req.query.snapshot_id).select('province_id', 'district_id')
-    var provinceId = parseInt(r4[0].province_id);
-    var districtId = parseInt(r4[0].district_id);
+    var r4 = await knex('cba_road_snapshots')
+        .where('id', '=', req.query.snapshot_id)
+        .select('province_id as provinceId', 'district_id as districtId')
+
+    var r5 = await knex('cba_user_configs')
+        .where('id', '=', req.query.config_id)
+        .select('starting_year as startingYear')
 
     return {
-        cost, cost1yr, cost3yr, cost5yr, npv, provinceId, districtId,
+        cost, cost1yr, cost3yr, cost5yr, npv, ...r4[0], ...r5[0],
         assetBreakdown: { num_assets, positive_npv, negative_npv, valid_assets, invalid_assets }
     };
 }
