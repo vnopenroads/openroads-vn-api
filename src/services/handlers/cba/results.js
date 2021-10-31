@@ -76,7 +76,14 @@ exports.runSnapshot = async function (req) {
     };
 
     var body = await fetch(url, opts).then((response) => response.text())
-    var body_ = JSON5.parse(body);
+    var body_ = undefined;
+    try {
+        body_ = JSON5.parse(body);
+    } catch {
+        console.log(body);
+        return Boom.badRequest(`Couldn't parse body: ${body}`);
+    }
+
     const insertFn = (e) => prepCbaResultRow(params.snapshot_id, params.config_id, e);
     const rows = body_['data'].map(insertFn);
     console.log(body_['data']);
