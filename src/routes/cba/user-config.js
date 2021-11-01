@@ -32,6 +32,26 @@ module.exports = [
         handler: function (req, res) {
             return handler.wrapHandler(handler.insertConfig, req, res);
         }
+    }, {
+        method: 'POST',
+        path: '/cba/user_configs/duplicate',
+        handler: function (req, res) {
+            return handler.wrapHandler(handler.duplicateConfig, req, res);
+        }
+    }, {
+        method: 'POST',
+        path: '/cba/user_configs/rename',
+        handler: function (req, res) {
+            return handler.wrapHandler(handler.renameConfig, req, res);
+        }
+    }, {
+        method: 'POST',
+        path: '/cba/user_configs/delete',
+        handler: function (req, res) {
+            return handler.wrapHandler(handler.deleteConfig, req, res);
+        }
     }
+
+
 ];
 

@@ -41,6 +41,20 @@ exports.insertConfig = function (req, res) {
         .catch(createErrorHandler());
 }
 
+exports.duplicateConfig = function (req) {
+    var sql = `
+        INSERT INTO "${configTableName}" 
+                    ("name", "discount_rate", "economic_factor", "starting_year", 
+                    "growth_rates", "traffic_levels", "road_works", 
+                    "recurrent_maintenance")
+        SELECT '${req.payload.new_name}', discount_rate, economic_factor, starting_year, 
+                    growth_rates, traffic_levels, road_works, 
+                    recurrent_maintenance
+        FROM ${configTableName}
+        WHERE id = ${req.payload.config_id}`;
+    return knex.raw(sql).then(allGood).catch(createErrorHandler());
+}
+
 exports.selectQuery = function (id, fields) {
     return knex(configTableName)
         .select(fields)
@@ -54,6 +68,22 @@ exports.updateConfig = function (req, res) {
     return knex(configTableName)
         .where({ id })
         .update(buildData(req.payload, false))
+        .then(allGood())
+        .catch(createErrorHandler());
+}
+
+exports.renameConfig = function (req) {
+    return knex(configTableName)
+        .where({ id: req.payload.config_id })
+        .update({ name: req.payload.new_name })
+        .then(allGood())
+        .catch(createErrorHandler());
+}
+
+exports.deleteConfig = function (req) {
+    return knex(configTableName)
+        .where({ id: req.payload.config_id })
+        .delete()
         .then(allGood())
         .catch(createErrorHandler());
 }

@@ -79,7 +79,8 @@ exports.runSnapshot = async function (req) {
     var body_ = undefined;
     try {
         body_ = JSON5.parse(body);
-    } catch {
+    } catch (err) {
+        console.log(err);
         console.log(body);
         return Boom.badRequest(`Couldn't parse body: ${body}`);
     }
