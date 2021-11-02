@@ -20,7 +20,9 @@ CREATE TABLE cba_user_configs (
 
 CREATE INDEX cba_user_configs_idx ON cba_user_configs USING btree (id);
 
-INSERT INTO cba_user_configs
+INSERT INTO cba_user_configs ("name", "discount_rate", "economic_factor", "starting_year", 
+                              "growth_rates", "traffic_levels", "road_works", 
+                              "recurrent_maintenance")
   VALUES ('Default', 0.12, 0.91, 2022, '[]','[]','[]','[]'),
          ('DiscountRate 14%', 0.14, 0.91, 2022, '[]','[]','[]','[]'),   
          ('DiscountRate 16%', 0.16, 0.91, 2022, '[]','[]','[]','[]'),
