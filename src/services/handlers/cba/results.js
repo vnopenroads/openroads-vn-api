@@ -132,10 +132,23 @@ exports.getResultKpis = async function (req, res) {
         var { cost_for_year } = r[0];
         return cost_for_year || 0;
     };
+    var countYr = async (yr) => {
+        var r = await results()
+            .where('npv', '>', 0)
+            .where('work_year', '<=', yr)
+            .count({ count_for_year: 'work_cost' })
+            .catch(utils.errorHandler);
+        var { count_for_year } = r[0];
+        return count_for_year || 0;
+    };
+
 
     var cost1yr = await costYr(1);
     var cost3yr = await costYr(3);
     var cost5yr = await costYr(5);
+    var count1yr = await countYr(1);
+    var count3yr = await countYr(3);
+    var count5yr = await countYr(5);
 
     var r2 = await knex('cba_road_snapshots')
         .where({ id: req.query.snapshot_id })
@@ -164,7 +177,7 @@ exports.getResultKpis = async function (req, res) {
         .select('starting_year as startingYear')
 
     return {
-        cost, cost1yr, cost3yr, cost5yr, npv, ...r4[0], ...r5[0],
+        cost, cost1yr, cost3yr, cost5yr, count1yr, count3yr, count5yr, npv, ...r4[0], ...r5[0],
         assetBreakdown: {
             num_assets, positive_npv, negative_npv, valid_assets, invalid_assets, medium_term, long_term
         }
