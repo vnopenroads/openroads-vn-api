@@ -2,7 +2,7 @@
 
 const assert = require('assert');
 const _ = require('lodash');
-const utils = require('../../util/geometry-utils');
+const utils = require('util/geometry-utils');
 
 describe('geometry utilities', () => {
   it('finds two identical LineStrings the same', () => {

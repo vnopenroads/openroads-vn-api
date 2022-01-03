@@ -26,7 +26,10 @@
     "kes-deployer-update": "kes cf update --kes-folder aws/deployer --profile ds --region us-east-1"
   },
   "//": {
-    "postinstall": "npm run gendoc"
+    "inject-then": "^2.0.0",
+    "kes": "^0.1.6",
+    "should": "^5.2.0",
+    "split": "^0.3.3"
   },
   "repository": {
     "type": "git",
@@ -41,18 +44,6 @@
     "url": "https://github.com/orma/openroads-vn-analytics/issues"
   },
   "homepage": "https://github.com/orma/openroads-vn-api",
-  "//": {
-    "apidoc": "^0.12.3",
-    "bluebird": "^3.5.0",
-    "debug": "^2.2.0",
-    "geojson-stream": "0.0.1",
-    "moment": "^2.18.1",
-    "p-filter": "^1.0.0",
-    "p-map": "^1.2.0",
-    "winston": "^0.9.0",
-    "xmlbuilder": "^4.2.0",
-    "unzip2": "*"
-  },
   "dependencies": {
     "@hapi/hapi": "^20.1.4",
     "@hapi/boom": "^9.1.4",
@@ -84,17 +75,12 @@
   },
   "devDependencies": {
     "@babel/core": "*",
-    "eslint": "*",
     "@babel/eslint-parser": "*",
+    "eslint": "*",
     "inject-then": "*",
     "kes": "*",
+    "mocha": "^2.5.3",
+    "should": "*",
     "supervisor": "*"
-  },
-  "//": {
-    "inject-then": "^2.0.0",
-    "kes": "^0.1.6",
-    "mocha": "^2.2.1",
-    "should": "^5.2.0",
-    "split": "^0.3.3"
   }
 }
