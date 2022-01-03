@@ -32,6 +32,10 @@
 #http://localhost:4000/cba/user_configs/1/growth_rates
 # http://localhost:4000/cba/results
 
+
+http://localhost:4000/field/ids/all
+# http://localhost:4000/map?bbox=123.81042480468751,9.584500864717155,123.81591796875,9.58991730708743
+
 POST http://localhost:4000/cba/user_configs/duplicate HTTP/1.1
 content-type: application/json
 

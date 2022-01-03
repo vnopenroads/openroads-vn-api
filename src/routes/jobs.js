@@ -4,10 +4,7 @@ var Boom = require('@hapi/boom');
 
 function jobHandler(req, res) {
   const jobID = req.params.jobID;
-  rlpGeomQueue.getJob(jobID)
-    .then(data => {
-      res(data);
-    })
+  return rlpGeomQueue.getJob(jobID)
     .catch(e => {
       console.error(e);
       res(Boom.notFound('Job ID not found'));

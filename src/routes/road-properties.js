@@ -1,20 +1,9 @@
 'use strict';
 const Boom = require('@hapi/boom');
-const {
-  applyPatch,
-  validate
-} = require('fast-json-patch');
+const { applyPatch, validate } = require('fast-json-patch');
 const knex = require('../connection.js');
-const {
-  groupBy,
-  some,
-  get,
-  map,
-  each,
-  flatMap,
-  uniq,
-  uniqBy
-} = require('lodash');
+const { groupBy, some, get, map, each,
+  flatMap, uniq, uniqBy } = require('lodash');
 const utils = require('../services/handlers/utils.js')
 
 const validateId = (id) => /^\d{3}([A-ZĐ]{2}|00)\d{5}$/.test(id);

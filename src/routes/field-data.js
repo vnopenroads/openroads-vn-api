@@ -21,13 +21,12 @@ module.exports = [
      */
     method: 'GET',
     path: '/field/ids',
-    handler: function (req, res) {
+    handler: () =>
       knex('field_data_geometries')
         .distinct('road_id')
         .select('road_id as id')
         .whereNotNull('road_id')
-        .then(roads => res(roads.map(road => road.id)));
-    }
+        .then(roads => roads.map(road => road.id))
   },
   {
     /**
@@ -44,13 +43,11 @@ module.exports = [
     */
     method: 'GET',
     path: '/field/ids/all',
-    handler: function (req, res) {
-      knex('road_properties')
-        .distinct('id')
-        .select('id as id')
-        .whereNotNull('id')
-        .then(roads => res(roads.map(road => road.id)));
-    }
+    handler: () => knex('road_properties')
+      .distinct('id')
+      .select('id as id')
+      .whereNotNull('id')
+      .then(roads => roads.map(road => road.id))
   }
 ];
 

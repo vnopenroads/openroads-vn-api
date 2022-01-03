@@ -25,7 +25,7 @@ module.exports = function queryBbox(knex, bbox) {
       .whereBetween('longitude', [(bbox.minLon * ratio) | 0, (bbox.maxLon * ratio) | 0])
       .where('visible', true)
       .select('id')
-      .map(function (row) { return row.id; });
+      .then(rows => rows.map(row => row.id))
   }
 
   function selectWaysFromNodes(nodeIds) {
@@ -144,6 +144,7 @@ module.exports = function queryBbox(knex, bbox) {
   var nodeIds = new Set();
   var wayIds = new Set();
   var relationIds = new Set();
+
 
   return selectNodesFromBbox(bbox)
     .then(function (nodes) {

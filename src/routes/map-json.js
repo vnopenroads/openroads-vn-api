@@ -55,16 +55,14 @@ module.exports = {
     var bbox = new BoundingBox.fromCoordinates(paramString.split(','));
     if (bbox.error) {
       log.error('Could not create bounding box for map-json', bbox);
-      return res(Boom.badRequest(bbox.error));
+      return Boom.badRequest(bbox.error);
     }
 
-    queryBbox(knex, bbox)
-      .then(function (result) {
-        res(toGeoJSON(result));
-      })
+    return queryBbox(knex, bbox)
+      .then(result => toGeoJSON(result))
       .catch(function (err) {
         log.error(err);
-        return res(Boom.wrap(err));
+        return Boom.wrap(err);
       });
   }
 };
