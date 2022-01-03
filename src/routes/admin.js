@@ -295,8 +295,8 @@ module.exports = [
      *
      * @apiExample {curl} Example Usage:
      *  curl -X GET http://localhost:4000/admin/stats
-     *  curl -X GET http://localhost:4000/admin/stats&province=401
-     *  curl -X GET http://localhost:4000/admin/stats&province=401&district=40101
+     *  curl -X GET http://localhost:4000/admin/stats?province=401
+     *  curl -X GET http://localhost:4000/admin/stats?province=401&district=40101
      */
     method: 'GET',
     path: '/admin/stats',
@@ -304,7 +304,7 @@ module.exports = [
       const province = req.query.province || null;
       const district = req.query.district || null;
       const stats = {};
-      knex('admin_boundaries')
+      return knex('admin_boundaries')
         .select('id', 'code', 'parent_id', 'name_en', 'name_vn', 'type', 'total_length as total', 'vpromm_length as vpromm')
         .modify(queryBuilder => {
           if (province && district) {

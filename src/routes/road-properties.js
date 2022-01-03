@@ -21,7 +21,7 @@ function getHandler(req, res) {
 
   utils.checkStandardQueryParams(sortField, sortOrder, page);
 
-  knex('road_properties as roads')
+  return knex('road_properties as roads')
     .select('roads.id', 'roads.properties', 'roads.status')
     .distinct('roads.id')
     .modify(function (queryBuilder) {
@@ -54,7 +54,7 @@ function getHandler(req, res) {
             let status = r.status === null ? 'pending' : r.status;
             return { 'id': r.id, 'properties': r.properties, 'hasOSMData': hasOSMData, 'status': status };
           });
-          return res(results).type('application/json');
+          return results;
         });
     });
 }
@@ -64,7 +64,7 @@ function getByIdHandler(req, res) {
   const provinceCode = req.params.road_id.substring(0, 2);
   const districtCode = req.params.road_id.substring(3, 5);
 
-  knex('road_properties AS roads')
+  return knex('road_properties AS roads')
     .select('roads.id', 'roads.properties', 'roads.status', 'tags.v', 'ways.visible', 'ways.way_id')
     .distinct('roads.id')
     .leftJoin(knex.raw(`(SELECT way_id, v FROM current_way_tags WHERE k = 'or_vpromms') AS tags`), 'roads.id', 'tags.v')
@@ -98,10 +98,8 @@ function getByIdHandler(req, res) {
         });
     })
     .then(function (row) {
-      if (row === undefined) {
-        return res(Boom.notFound());
-      }
-      return res({
+      if (row === undefined) { return Boom.notFound(); }
+      return {
         id: row.id,
         properties: row.properties,
         hasOSMData: !!row.visible,
@@ -109,14 +107,14 @@ function getByIdHandler(req, res) {
         way_id: row.way_id,
         province: row.province,
         district: row.district
-      }).type('application/json');
+      };
     })
     .catch(function (err) {
       console.error('Error GET /properties/roads/{road_id}', err);
       if (err === 'Not Found') {
-        return res(Boom.notFound());
+        return Boom.notFound();
       }
-      return res(Boom.badImplementation());
+      return Boom.badImplementation();
     });
 }
 
@@ -126,7 +124,7 @@ function getByIdGeoJSONHandler(req, res) {
 
   const shouldDownload = typeof req.query.download != 'undefined';
 
-  knex('current_way_tags AS cwt')
+  return knex('current_way_tags AS cwt')
     .select('current_way_tags.way_id', 'current_way_tags.k', 'current_way_tags.v')
     .where('cwt.v', id)
     .leftJoin('current_way_tags', 'current_way_tags.way_id', 'cwt.way_id')
@@ -175,21 +173,21 @@ function getByIdGeoJSONHandler(req, res) {
             })
           );
 
-          let response = res({
+          return {
             type: 'FeatureCollection',
             features
-          }).type('application/json');
+          };
 
+          // TODO-CBA: Handle this function
           if (shouldDownload) {
             return response
               .header('Content-Disposition', `attachment; filename=${id}.geojson`);
           }
-
           return response;
         })
         .catch(function (err) {
           console.error('Error GET /field/geometries/{id}', err);
-          return res(Boom.badImplementation());
+          return Boom.badImplementation();
         });
     });
 
@@ -201,7 +199,7 @@ function getCountHandler(req, res) {
   const district = req.query.district || '';
 
 
-  knex('road_properties as roads')
+  return knex('road_properties as roads')
     .select('roads.id', 'ways.visible AS hasOSMData')
     .distinct('roads.id')
     .leftJoin(knex.raw(`(SELECT way_id, v FROM current_way_tags WHERE k = 'or_vpromms') AS tags`), 'roads.id', 'tags.v')
@@ -248,21 +246,17 @@ function getCountHandler(req, res) {
         });
       });
       total['province'] = province;
-      res(total).type('application/json');
+      return total;
     })
     .catch(function (err) {
       console.error('Error GET /properties/roads/count', err);
-      return res(Boom.badImplementation());
+      return Boom.badImplementation();
     });
 }
 
-
-
-
-
 function createHandler(req, res) {
   if (!validateId(req.params.road_id)) {
-    return res(Boom.badData('Invalid VPROMM ID'));
+    return Boom.badData('Invalid VPROMM ID');
   }
 
   // check if province exists
@@ -274,29 +268,24 @@ function createHandler(req, res) {
     .then(function (rows) {
       if (rows.length) {
         return knex('road_properties')
-          .insert({
-            id: req.params.road_id,
-            properties: {}
-          })
-          .then(function (response) {
-            return res({ id: req.params.road_id }).type('application/json');
-          })
+          .insert({ id: req.params.road_id, properties: {} })
+          .then(() => ({ id: req.params.road_id }))
           .catch(function (err) {
             if (err.constraint === 'road_properties_pkey') {
-              return res(Boom.conflict('Road already exists'));
+              return Boom.conflict('Road already exists');
             }
             console.error('Error PUT /properties/roads/{road_id}', err);
-            return res(Boom.badImplementation('Unknown error'));
+            return Boom.badImplementation('Unknown error');
           });
       } else {
-        return res(Boom.notFound('Invalid province code'));
+        return Boom.notFound('Invalid province code');
       }
     });
 }
 
 function moveHandler(req, res) {
   if (!validateId(req.payload.id)) {
-    return res(Boom.badData());
+    return Boom.badData();
   }
 
   return knex('road_properties')
@@ -314,58 +303,31 @@ function moveHandler(req, res) {
     })
     .then(function () {
       return knex('current_way_tags')
-        .where({
-          k: 'or_vpromms',
-          v: req.params.road_id
-        })
-        .update({
-          v: req.payload.id
-        });
+        .where({ k: 'or_vpromms', v: req.params.road_id })
+        .update({ v: req.payload.id });
     })
-    .then(function (response) {
-      return res({ id: req.payload.id }).type('application/json');
-    })
+    .then(() => ({ id: req.payload.id }))
     .catch(function (err) {
-      if (err.constraint === 'road_properties_pkey') {
-        return res(Boom.conflict());
-      }
-
-      if (err.message === '404') {
-        return res(Boom.notFound());
-      }
+      if (err.constraint === 'road_properties_pkey') { return Boom.conflict(); }
+      if (err.message === '404') { return Boom.notFound(); }
 
       console.error('Error POST /properties/roads/{road_id}/move', err);
-      return res(Boom.badImplementation());
+      return Boom.badImplementation();
     })
 }
 
 function deleteHandler(req, res) {
   return knex('field_data_geometries')
     .where('road_id', req.params.road_id)
-    .update({
-      road_id: null
-    })
-    .then(function () {
-      return knex('point_properties')
-        .where('road_id', req.params.road_id)
-        .update({
-          road_id: null
-        });
-    })
-    .then(function () {
-      return knex('road_properties')
-        .where('id', req.params.road_id)
-        .delete();
-    })
-    .then(function (response) {
-      if (response === 0) {
-        return res(Boom.notFound());
-      }
-
-      res();
+    .update({ road_id: null })
+    .then(() => knex('point_properties').where('road_id', req.params.road_id).update({ road_id: null }))
+    .then(() => knex('road_properties').where('id', req.params.road_id).delete())
+    .then(response => {
+      if (response === 0) { return Boom.notFound(); }
+      return {};
     }).catch(function (err) {
       console.error('Error: DELETE /properties/roads/{road_id}', err);
-      return res(Boom.badImplementation());
+      return Boom.badImplementation();
     });
 }
 
@@ -375,27 +337,23 @@ function patchPropertyHandler(req, res) {
     validate(req.payload) !== undefined ||
     some(req.payload, ({ path }) => path.match(/\//g).length > 1)
   ) {
-    return res(Boom.badData());
+    return Boom.badData();
   }
 
   return knex('road_properties')
     .select('id', 'properties')
     .where({ id: req.params.road_id })
     .then(function ([response]) {
-      if (response === undefined) {
-        return res(Boom.notFound());
-      }
+      if (response === undefined) { return Boom.notFound(); }
 
       return knex('road_properties')
         .where({ id: req.params.road_id })
-        .update({ properties: applyPatch(response.properties, req.payload).newDocument });
-    })
-    .then(function () {
-      res();
+        .update({ properties: applyPatch(response.properties, req.payload).newDocument })
+        .then(() => { });
     })
     .catch(function (err) {
       console.error('Error: PUT /properties/roads/{road_id}', err);
-      return res(Boom.badImplementation());
+      return Boom.badImplementation();
     });
 }
 
@@ -404,14 +362,12 @@ function statusHandler(req, res) {
   const possibleStatus = ['pending', 'reviewed'];
   if (possibleStatus.indexOf(req.payload.status) === -1) {
     console.error('Error POST /properties/roads/{road_id}/status', 'status should be pending or reviewed');
-    return res(Boom.badData('status should be pending or reviewed'));
+    return Boom.badData('status should be pending or reviewed');
   }
 
   return knex('road_properties')
     .where({ id: req.params.road_id })
-    .update({
-      status: req.payload.status
-    })
+    .update({ status: req.payload.status })
     .then(function (response) {
       if (response === 0) {
         // no road_properties rows were updated, meaning id does not exist
@@ -420,16 +376,12 @@ function statusHandler(req, res) {
       }
       return response;
     })
-    .then(function (response) {
-      return res({ id: req.params.road_id }).type('application/json');
-    })
+    .then(() => ({ id: req.params.road_id }))
     .catch(function (err) {
-      if (err.message === '404') {
-        return res(Boom.notFound());
-      }
+      if (err.message === '404') { return Boom.notFound(); }
 
       console.error('Error POST /properties/roads/{road_id}/status', err);
-      return res(Boom.badImplementation());
+      return Boom.badImplementation();
     });
 }
 
