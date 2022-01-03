@@ -1,0 +1,47 @@
+
+# http://localhost:4000/admin/province/units
+# http://localhost:4000/cba/roads/snapshots
+# http://orma-uat.drvn.gov.vn:4000/cba/roads/snapshots
+# http://orma-uat.drvn.gov.vn:4000/cba/user_configs
+
+# POST http://localhost:4000/cba/roads/snapshots/take HTTP/1.1
+# content-type: application/json
+
+# {
+#     "name": "Jam Test",
+#     "province_id": 294,
+#     "num_records": 888,
+#     "valid_records": 420
+# } 
+
+
+# http://localhost:4000/cba/user_configs/1/sub_config/general
+#http://localhost:4000/cba/results/kpis?config_id=1&snapshot_id=2
+# http://localhost:4000/cba/map/road_assets?config_id=1&snapshot_id=2
+#http://localhost:4000/cba/map/province
+# http://localhost:4000/admin/294/info
+# 
+# http://orma-uat.drvn.gov.vn:4000/cba/results/kpis?config_id=2&snapshot_id=1
+
+# http://localhost:4000/cba/results/kpis?snapshot_id=2&config_id=4
+#http://localhost:4000/cba/roads/snapshot/1/stats
+#http://localhost:4000/properties/roads/count
+#jhttp://localhost:4000/cba/user_configs
+#http://localhost:4000/cba/run?snapshot_id=1&config_id=1
+#http://localhost:4000/cba/results/kpis?snapshot_id=1&config_id=1
+#http://localhost:4000/cba/user_configs/1/growth_rates
+# http://localhost:4000/cba/results
+
+
+http://localhost:4000/field/ids/all
+# http://localhost:4000/map?bbox=123.81042480468751,9.584500864717155,123.81591796875,9.58991730708743
+
+POST http://localhost:4000/cba/user_configs/duplicate HTTP/1.1
+content-type: application/json
+
+{
+    "new_name": "Jam Test",
+    "config_id": 1
+} 
+
+

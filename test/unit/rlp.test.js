@@ -2,12 +2,13 @@
 
 const assert = require('assert');
 const _ = require('lodash');
-const { parseRow } = require('../../services/rlp-properties');
-const { cleanGeometry } = require('../../services/rlp-geometries');
+const { parseRow } = require('services/rlp-properties');
+const { cleanGeometry } = require('services/rlp-geometries');
 
 describe('RLP parsing', () => {
   it('can parse property CSV columns', () => {
-    const row = { time: '15:35:49 2017-July-11',
+    const row = {
+      time: '15:35:49 2017-July-11',
       speed: '18.61',
       category: 'POOR',
       start_lat: '22.54621115',
@@ -24,7 +25,7 @@ describe('RLP parsing', () => {
 
     assert.deepEqual(parsed.geom, {
       type: 'Point',
-      coordinates: [ 103.85156932573214, 22.545976895574945 ]
+      coordinates: [103.85156932573214, 22.545976895574945]
     });
     assert.equal(
       parsed.datetime.toISOString(),

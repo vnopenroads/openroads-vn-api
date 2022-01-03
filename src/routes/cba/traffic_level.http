@@ -1,0 +1,24 @@
+
+# Create a new config
+POST http://localhost:4000/cba/user_configs/1/update HTTP/1.1
+content-type: application/json
+
+{"traffic_levels": [
+    { "volume": 25.0, "motor-cycle": 0.75, "small-car": 0.02, "medium-car": 0.05, "delivery": 0.01, "4-wheel": 0.01, "light-truck": 0.12, "medium-truck": 0.03, "heavy-truck": 0.0, "small-bus": 0.01, "medium-bus": 0.0, "large-bus": 0.0 },
+    { "volume": 75.0, "motor-cycle": 0.75, "small-car": 0.02, "medium-car": 0.05, "delivery": 0.01, "4-wheel": 0.01, "light-truck": 0.12, "medium-truck": 0.03, "heavy-truck": 0.0, "small-bus": 0.01, "medium-bus": 0.0, "large-bus": 0.0 },
+    { "volume": 175.0, "motor-cycle": 0.65, "small-car": 0.03, "medium-car": 0.07, "delivery": 0.02, "4-wheel": 0.02, "light-truck": 0.13, "medium-truck": 0.04, "heavy-truck": 0.01, "small-bus": 0.02, "medium-bus": 0.01, "large-bus": 0.0 },
+    { "volume": 375.0, "motor-cycle": 0.65, "small-car": 0.03, "medium-car": 0.07, "delivery": 0.02, "4-wheel": 0.02, "light-truck": 0.13, "medium-truck": 0.04, "heavy-truck": 0.01, "small-bus": 0.02, "medium-bus": 0.01, "large-bus": 0.0 },
+    { "volume": 750.0, "motor-cycle": 0.5, "small-car": 0.05, "medium-car": 0.09, "delivery": 0.04, "4-wheel": 0.04, "light-truck": 0.15, "medium-truck": 0.06, "heavy-truck": 0.02, "small-bus": 0.04, "medium-bus": 0.01, "large-bus": 0.0 },
+    { "volume": 2000.0, "motor-cycle": 0.5, "small-car": 0.05, "medium-car": 0.09, "delivery": 0.04, "4-wheel": 0.04, "light-truck": 0.15, "medium-truck": 0.06, "heavy-truck": 0.02, "small-bus": 0.04, "medium-bus": 0.01, "large-bus": 0.0 },
+    { "volume": 4000.0, "motor-cycle": 0.5, "small-car": 0.05, "medium-car": 0.09, "delivery": 0.04, "4-wheel": 0.04, "light-truck": 0.15, "medium-truck": 0.06, "heavy-truck": 0.02, "small-bus": 0.04, "medium-bus": 0.01, "large-bus": 0.0 },
+    { "volume": 6000.0, "motor-cycle": 0.5, "small-car": 0.05, "medium-car": 0.09, "delivery": 0.04, "4-wheel": 0.04, "light-truck": 0.15, "medium-truck": 0.06, "heavy-truck": 0.02, "small-bus": 0.04, "medium-bus": 0.01, "large-bus": 0.0 },
+    { "volume": 8000.0, "motor-cycle": 0.5, "small-car": 0.05, "medium-car": 0.09, "delivery": 0.04, "4-wheel": 0.04, "light-truck": 0.15, "medium-truck": 0.06, "heavy-truck": 0.02, "small-bus": 0.04, "medium-bus": 0.01, "large-bus": 0.0 },
+    { "volume": 10500.0, "motor-cycle": 0.25, "small-car": 0.08, "medium-car": 0.12, "delivery": 0.07, "4-wheel": 0.07, "light-truck": 0.18, "medium-truck": 0.08, "heavy-truck": 0.05, "small-bus": 0.06, "medium-bus": 0.02, "large-bus": 0.01 },
+    { "volume": 13500.0, "motor-cycle": 0.25, "small-car": 0.08, "medium-car": 0.12, "delivery": 0.07, "4-wheel": 0.07, "light-truck": 0.18, "medium-truck": 0.08, "heavy-truck": 0.05, "small-bus": 0.06, "medium-bus": 0.02, "large-bus": 0.01 },
+    { "volume": 17500.0, "motor-cycle": 0.25, "small-car": 0.08, "medium-car": 0.12, "delivery": 0.07, "4-wheel": 0.07, "light-truck": 0.18, "medium-truck": 0.08, "heavy-truck": 0.05, "small-bus": 0.06, "medium-bus": 0.02, "large-bus": 0.01 },
+    { "volume": 25000.0, "motor-cycle": 0.25, "small-car": 0.08, "medium-car": 0.12, "delivery": 0.07, "4-wheel": 0.07, "light-truck": 0.18, "medium-truck": 0.08, "heavy-truck": 0.05, "small-bus": 0.06, "medium-bus": 0.02, "large-bus": 0.01 },
+    { "volume": 35000.0, "motor-cycle": 0.25, "small-car": 0.08, "medium-car": 0.12, "delivery": 0.07, "4-wheel": 0.07, "light-truck": 0.18, "medium-truck": 0.08, "heavy-truck": 0.05, "small-bus": 0.06, "medium-bus": 0.02, "large-bus": 0.01 },
+    { "volume": 500000.0, "motor-cycle": 0.25, "small-car": 0.08, "medium-car": 0.12, "delivery": 0.07, "4-wheel": 0.07, "light-truck": 0.18, "medium-truck": 0.08, "heavy-truck": 0.05, "small-bus": 0.06, "medium-bus": 0.02, "large-bus": 0.01 }
+]}
+
+# { "traffic_levels": [{"volume": 7, "motor-cycle": 0.75}, {"volume": 9, "motor-cycle": 0.1}] }

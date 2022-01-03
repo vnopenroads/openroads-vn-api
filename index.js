@@ -1,51 +1,55 @@
 'use strict';
 
+require('app-module-path').addPath(`${__dirname}/src`);
+
 var _debug = require('debug');
-var Hapi = require('hapi');
-var Inert = require('inert');
+var Hapi = require('@hapi/hapi');
+var Inert = require('@hapi/inert');
 var util = require('util');
 var xml2json = require('xml2json');
 
 var meta = require('./package.json');
 var debug = _debug(util.format('%s:http', meta.name));
+var shouldDebug = true; // process.env.DS_ENV == 'uat' || process.env.DS_ENV == 'local';
+var debugOptions = {
+  log: ['error'],
+  request: ['error', 'received', 'response']
+};
 
 var server = new Hapi.Server({
-  connections: {
-    routes: {
-      cors: true,
-      payload: {
-        maxBytes: 5e+7,
-        timeout: 100000
-      }
+  routes: {
+    cors: {
+      origin: ['*'],
+      additionalHeaders: ['access-control-allow-origin']
+    },
+    payload: {
+      maxBytes: 5e+7,
+      timeout: 100000
     }
   },
-  debug: process.env.MACROCOSM_DEBUG ? {
-    log: [ 'error' ],
-    request: [ 'error', 'received', 'response' ]
-  } : false
+  debug: shouldDebug ? debugOptions : false,
+  port: process.env.PORT || 4000
 });
 
-server.connection({ port: process.env.PORT || 4000 });
-
-
-server.ext('onRequest', function(req, res) {
+server.ext('onRequest', function (req, res) {
+  console.log(`${req.method.toUpperCase()} ${req.url.href}`);
   debug('%s %s', req.method.toUpperCase(), req.url.href);
-  return res.continue();
+  debug('%s', req.headers);
+  return res.continue;
 });
 
-// Register routes
-server.register(Inert, () => {});
-
-server.register({
-  register: require('hapi-router'),
-  options: {
-    routes: 'routes/*.js'
+server.ext('onPreResponse', function (request, reply) {
+  // Add the `data` from a Boom object to the response
+  if (!request.response.isBoom) {
+    return reply.continue;
   }
-}, function (err) {
-  if (err) throw err;
+  if (request.response.data) {
+    request.response.output.payload.data = request.response.data;
+  }
+  return reply.continue;
 });
 
-server.ext('onPostAuth', function(req, res) {
+server.ext('onPostAuth', function (req, res) {
 
   if (req.mime === 'text/xml' && req.payload.length > 0) {
     debug(req.payload);
@@ -54,22 +58,24 @@ server.ext('onPostAuth', function(req, res) {
     });
   }
 
-  return res.continue();
+  return res.continue;
 });
 
-server.ext('onPreResponse', function (request, reply) {
-  // Add the `data` from a Boom object to the response
-  if (!request.response.isBoom) {
-    return reply.continue();
-  }
-  if (request.response.data) {
-    request.response.output.payload.data = request.response.data;
-  }
-  return reply(request.response);
-});
+// Register routes
+const init = async () => {
 
-server.start(function () {
-  console.log('Server running at:', server.info.uri);
-});
+  await server.register({
+    plugin: require('hapi-router'),
+    options: { routes: 'src/routes/**/*.js' }
+  });
+
+  await server.register(Inert);
+
+  await server.start();
+  console.log(`Server running at: ${server.info.uri}`);
+};
+init();
+
+
 
 module.exports = server;

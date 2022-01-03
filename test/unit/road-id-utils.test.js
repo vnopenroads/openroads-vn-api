@@ -1,7 +1,7 @@
 'use strict';
 
 const assert = require('assert');
-const utils = require('../../util/road-id-utils');
+const utils = require('util/road-id-utils');
 
 describe('road ID utilities', () => {
   it('retrieves a road ID when it is in the path', () => {
