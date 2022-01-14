@@ -182,7 +182,7 @@ describe('changeset upload endpoint', function () {
     });
   });
 
-  it('Deletes 1 node', function (done) {
+  it('deletes 1 node', function (done) {
     knex('current_nodes').where('changeset_id', cid).then(function (nodes) {
       cs.delete('node', new Node(nodes[0]));
       testChangeset.upload(cs.get())
@@ -191,7 +191,7 @@ describe('changeset upload endpoint', function () {
     });
   });
 
-  it('Deletes 1 way', function (done) {
+  it('deletes 1 way', function (done) {
     knex('current_ways').where('changeset_id', cid).then(function (ways) {
       cs.delete('node', new Way(ways[0]));
       testChangeset.upload(cs.get())
@@ -262,7 +262,7 @@ describe('changeset upload endpoint', function () {
 
 describe('upload error handling', function () {
   it('throws a 404 if the changeset is not found', function (done) {
-    server.injectThen({
+    server.inject({
       method: 'POST',
       url: '/changeset/-1/upload',
       payload: {

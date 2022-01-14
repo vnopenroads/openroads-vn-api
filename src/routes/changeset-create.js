@@ -21,7 +21,7 @@ function changesetCreate(req, res) {
     username = req.payload.user;
   }
 
-  knex('users')
+  return knex('users')
     .where('id', uid)
     .then(function (users) {
       if (users.length > 0) {
@@ -64,18 +64,16 @@ function changesetCreate(req, res) {
       });
       return knex('changeset_tags')
         .insert(tags)
-        .then(function () {
-          return id;
-        });
+        .then(() => id);
     })
 
     .then(function (id) {
-      return res(String(id));
+      return String(id);
     })
 
     .catch(function (err) {
       log.error(err);
-      return res(Boom.wrap(err));
+      return Boom.conflict(err);
     });
 }
 

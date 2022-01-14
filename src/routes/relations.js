@@ -59,8 +59,7 @@ module.exports = [
         return res(Boom.badRequest('Valid relation id required.'));
       }
 
-      queryRelations([req.params.id], true)
-        .then(res);
+      return queryRelations([req.params.id], true);
     }
   },
   /**
@@ -137,7 +136,7 @@ module.exports = [
         });
         q = q.select('relation_id');
       }
-      queryRelations(q).then(res);
+      return queryRelations(q);
 
     }
 

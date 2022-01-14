@@ -4,7 +4,7 @@ var server = require('../../bootstrap.test');
 
 module.exports.createGet = function createGet(base) {
   return function (url) {
-    return server.injectThen({
+    return server.inject({
       method: 'GET',
       url: base + url
     });
@@ -23,7 +23,7 @@ module.exports.testChangeset = function testChangeset(uid, user, comment) {
 
   this.create = function create() {
     var _self = this;
-    return server.injectThen({
+    return server.inject({
       method: 'PUT',
       url: '/changeset/create',
       payload: _self.payload
@@ -42,7 +42,7 @@ module.exports.testChangeset = function testChangeset(uid, user, comment) {
       throw new Error('The changeset was not created yet.');
     }
 
-    return server.injectThen({
+    return server.inject({
       method: 'POST',
       url: '/changeset/' + this.changesetId + '/upload',
       payload: {

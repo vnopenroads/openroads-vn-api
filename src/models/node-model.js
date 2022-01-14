@@ -69,7 +69,7 @@ var Node = {
     },
   },
 
-  fromEntity: function(entity, meta) {
+  fromEntity: function (entity, meta) {
     var ratio = RATIO;
     var model = {};
     model.visible = (entity.visible !== 'false' && entity.visible !== false);
@@ -98,7 +98,7 @@ var Node = {
   },
 
   // Return an entity from a JSON node.
-  fromOSM: function(xml) {
+  fromOSM: function (xml) {
 
     // Transfer all attributes.
     var model = {};
@@ -124,44 +124,44 @@ var Node = {
     return model
   },
 
-  canBeDeleted: function(nodeId) {
+  canBeDeleted: function (nodeId) {
     // No need to call parseInt on node_id, as that's already handled upstream.
     return knex(WayNode.tableName)
-    .where('node_id', nodeId)
-    .then(function wayNodeResp(wayNodes) {
-      // If this node belongs to a way, check to see if
-      // any of those ways are visible, aka not deleted yet.
-      // Return false if this node is still part of an existing way.
-      if (wayNodes) {
-        return knex(Way.tableName).whereIn('id', _.map(wayNodes, 'way_id'))
-        .then(function(ways) {
-          var visible = _.chain(ways)
-          .map('visible')
-          .reduce(function(curr, val) { return curr && val; }, true)
-          .value();
-          return visible;
-        });
-      } else {
-        return true;
-      }
-    })
-    .catch(function(err) {
-      throw new Error(err);
-    });
+      .where('node_id', nodeId)
+      .then(function wayNodeResp(wayNodes) {
+        // If this node belongs to a way, check to see if
+        // any of those ways are visible, aka not deleted yet.
+        // Return false if this node is still part of an existing way.
+        if (wayNodes) {
+          return knex(Way.tableName).whereIn('id', _.map(wayNodes, 'way_id'))
+            .then(function (ways) {
+              var visible = _.chain(ways)
+                .map('visible')
+                .reduce(function (curr, val) { return curr && val; }, true)
+                .value();
+              return visible;
+            });
+        } else {
+          return true;
+        }
+      })
+      .catch(function (err) {
+        throw new Error(err);
+      });
   },
 
   // Attach a list of tags to a list of entities
   // by creating a mapping of entities by their id.
-  withTags: function(entities, tags, accessor) {
+  withTags: function (entities, tags, accessor) {
     if (!tags.length) {
       return entities;
     }
     var map = {};
-    for(var i = 0, ii = entities.length; i < ii; ++i) {
+    for (var i = 0, ii = entities.length; i < ii; ++i) {
       var entity = entities[i];
       map[entity.id] = entity;
     }
-    for(i = 0, ii = tags.length; i < ii; ++i) {
+    for (i = 0, ii = tags.length; i < ii; ++i) {
       var tag = tags[i];
       var entity = map[tag[accessor]];
       if (entity) {
@@ -174,24 +174,24 @@ var Node = {
     return entities;
   },
 
-  save: function(q) {
+  save: function (q) {
     var actions = [];
     var model = this;
-    ['create', 'modify', 'delete'].forEach(function(action) {
+    ['create', 'modify', 'delete'].forEach(function (action) {
       if (q.changeset[action] && q.changeset[action].node) {
         actions.push(action);
       }
     });
-    return Promise.all(actions.map(function(action) {
+    return Promise.all(actions.map(function (action) {
       return model[action](q);
     }))
-    .catch(function(err) {
-      log.error('Node changeset fails', err);
-      throw new Error(err);
-    });
+      .catch(function (err) {
+        log.error('Node changeset fails', err);
+        throw new Error(err);
+      });
   },
 
-  create: function(q) {
+  create: function (q) {
 
     var raw = q.changeset.create.node;
 
@@ -200,13 +200,13 @@ var Node = {
     }
 
     // Map each node creation to a model with proper attributes.
-    var models = raw.map(function(entity) { return Node.fromEntity(entity, q.meta); });
+    var models = raw.map(function (entity) { return Node.fromEntity(entity, q.meta); });
 
     function remap(_ids) {
       var ids = [].concat.apply([], _ids);
       log.info('Remapping', ids.length, 'node IDs');
       var tags = [];
-      raw.forEach(function(entity, i) {
+      raw.forEach(function (entity, i) {
         // create a map of the old id to new id for ways, relations to reference.
         q.map.node[entity.id] = ids[i];
         // update the new node id on the changeset
@@ -216,7 +216,7 @@ var Node = {
         // Check for Node tags, and validate as array.
         if (entity.tag) {
           var _tags = validateArray(entity.tag);
-          tags.push(_tags.map(function(t) {
+          tags.push(_tags.map(function (t) {
             return {
               k: t.k,
               v: t.v,
@@ -228,96 +228,90 @@ var Node = {
       return tags;
     }
 
-    function saveTags (tags) {
+    function saveTags(tags) {
       // Only save tags if there are any.
       if (tags.length) {
         tags = [].concat.apply([], tags);
 
-        return Promise.all(Chunk(tags).map(function(tags) {
+        return Promise.all(Chunk(tags).map(function (tags) {
           return q.transaction(NodeTag.tableName).insert(tags)
         }))
 
-        .catch(function(err) {
-          log.error('Creating node tags in create', err);
-          throw new Error(err);
-        });
+          .catch(function (err) {
+            log.error('Creating node tags in create', err);
+            throw new Error(err);
+          });
       }
       return [];
     }
 
-    return Promise.all(Chunk(models).map(function(models) {
+    return Promise.all(Chunk(models).map(function (models) {
       return q.transaction(Node.tableName).insert(models).returning('id');
     }))
-    .then(remap)
-    .then(saveTags)
-    .catch(function(err) {
-      log.error('Inserting new nodes in create', err);
-      throw new Error(err);
-    });
+      .then(remap)
+      .then(saveTags)
+      .catch(function (err) {
+        log.error('Inserting new nodes in create', err);
+        throw new Error(err);
+      });
   },
 
-  modify: function(q) {
+  modify: function (q) {
     var raw = q.changeset.modify.node;
 
     if (!Array.isArray(raw)) {
       raw = [raw];
     }
 
-    function deleteTags () {
-      var ids = raw.map(function(entity) { return parseInt(entity.id, 10); });
+    function deleteTags() {
+      var ids = raw.map(function (entity) { return parseInt(entity.id, 10); });
       return q.transaction(NodeTag.tableName).whereIn('node_id', ids).del();
     }
 
-    return Promise.all(raw.map(function(entity) {
-      return q.transaction(Node.tableName).where({id: entity.id})
+    return Promise.all(raw.map(function (entity) {
+      return q.transaction(Node.tableName).where({ id: entity.id })
         .update(Node.fromEntity(entity, q.meta));
     }))
-    .then(deleteTags)
-    .then(function () {
-      var tags = [];
-      raw.forEach(function(entity, i) {
-        if (entity.tag && entity.tag.length) {
-          tags.push(entity.tag.map(function(t) {
-            return {
-              k: t.k,
-              v: t.v,
-              node_id: entity.id
-            }
-          }));
+      .then(deleteTags)
+      .then(function () {
+        var tags = [];
+        raw.forEach(function (entity, i) {
+          if (entity.tag && entity.tag.length) {
+            tags.push(entity.tag.map(function (t) {
+              return {
+                k: t.k,
+                v: t.v,
+                node_id: entity.id
+              }
+            }));
+          }
+        });
+        if (tags.length) {
+          tags = [].concat.apply([], tags);
+          return q.transaction(NodeTag.tableName).insert(tags);
         }
+        return [];
+      })
+      .catch(function (err) {
+        log.error('Error modifying nodes', err);
+        throw new Error(err);
       });
-      if (tags.length) {
-        tags = [].concat.apply([], tags);
-        return q.transaction(NodeTag.tableName).insert(tags);
-      }
-      return [];
-    })
-    .catch(function(err) {
-      log.error('Error modifying nodes', err);
-      throw new Error(err);
-    });
   },
 
-  'delete': function(q) {
+  'delete': function (q) {
     var ids = _.map(q.changeset['delete'].node, 'id');
 
     return q.transaction(Node.tableName).whereIn('id', ids)
-    .update({ visible: false, changeset_id: q.meta.id }).returning('id')
+      .update({ visible: false, changeset_id: q.meta.id }).returning('id')
 
-    .then(function(invisibleNodes) {
-      return q.transaction(NodeTag.tableName).whereIn('node_id', invisibleNodes)
-      .del().returning('node_id')
-    })
-
-    .tap(function(deleted) {
-      // log.info('Nodes set invisible', invisibleNodes.join(', '));
-      // log.info('Node tags deleted', deleted.join(', '));
-    })
-
-    .catch(function(err) {
-      log.error('Error deleting nodes', err);
-      throw new Error(err);
-    });
+      .then(function (invisibleNodes) {
+        return q.transaction(NodeTag.tableName).whereIn('node_id', invisibleNodes)
+          .del().returning('node_id')
+      })
+      .catch(function (err) {
+        log.error('Error deleting nodes', err);
+        throw new Error(err);
+      });
   }
 };
 

@@ -16,16 +16,16 @@ function upload(req, res) {
   console.log('upload changeset handler', req.params.changesetID);
   var changesetID = req.params.changesetID;
   if (!changesetID || isNaN(changesetID)) {
-    return res(Boom.badRequest('Changeset ID must be a non-zero number'));
+    return Boom.badRequest('Changeset ID must be a non-zero number');
   }
 
   var changesetPayload = req.payload.osmChange;
   if (!changesetPayload) {
     log.error('No json or cannot parse req.payload.osmChange');
-    return res(Boom.badRequest('Problem reading changeset JSON'));
+    return Boom.badRequest('Problem reading changeset JSON');
   }
 
-  knex('changesets')
+  return knex('changesets')
     .where('id', changesetID)
 
     .then(function (meta) {
@@ -42,16 +42,16 @@ function upload(req, res) {
        *   ...
        * </diffResult>
       */
-      return res(changeObject);
+      return changeObject;
     })
 
     .catch(function (err) {
       if (err.name === 'notFound') {
         log.error('Changeset not found', err);
-        return res(Boom.notFound('Could not find changeset'));
+        return Boom.notFound('Could not find changeset');
       } else {
         log.error(err);
-        return res(Boom.badImplementation('Could not complete changeset actions'));
+        return Boom.badImplementation('Could not complete changeset actions');
       }
     });
 }

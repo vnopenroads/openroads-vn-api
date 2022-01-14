@@ -42,7 +42,7 @@ describe('ways route', function () {
           const { created } = JSON.parse(res.payload);
           const wayId = created.way[-1];
           const includedNodes = [created.node[-1], created.node[-2]];
-          return server.injectThen({
+          return server.inject({
             method: 'GET',
             url: `/api/0.6/ways?ways=${wayId}&nodes=true&excludeDoubleLinkedNodes=true`
           }).then(function ({ payload }) {

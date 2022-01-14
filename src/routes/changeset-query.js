@@ -10,7 +10,7 @@ var log = require('../services/log');
 function changesetQuery(req, res) {
   var user = +req.query.user;
   if (isNaN(user) || (!user && user !== 0)) {
-    return res(Boom.badRequest('invalid user ID'));
+    return Boom.badRequest('invalid user ID');
   }
 
   var userName;
@@ -50,11 +50,13 @@ function changesetQuery(req, res) {
           }).filter(Boolean);
           return change;
         }).value();
-      return res(XML.write({ changesets: result }).toString()).type('text/xml');
+
+      // return res(XML.write({ changesets: result }).toString()).type('text/xml');
+      return XML.write({ changesets: result }).toString();
     })
     .catch(function (e) {
       log.error(e);
-      return res(Boom.notFound(e.message));
+      return Boom.notFound(e.message);
     });
 }
 

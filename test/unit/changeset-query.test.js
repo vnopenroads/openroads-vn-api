@@ -8,7 +8,7 @@ var should = require('should');
 describe('changeset query endpoint', function () {
 
   it('queries on user and returns tags, bbox', function (done) {
-    server.injectThen({
+    server.inject({
       method: 'PUT',
       url: '/changeset/create',
       payload: {
@@ -24,7 +24,7 @@ describe('changeset query endpoint', function () {
       }
     })
       .then(function () {
-        server.injectThen({
+        server.inject({
           method: 'GET',
           url: '/api/0.6/changesets?user=1'
         }).then(function (res) {
@@ -38,7 +38,7 @@ describe('changeset query endpoint', function () {
   });
 
   it('queries on user when no tags present', function (done) {
-    server.injectThen({
+    server.inject({
       method: 'PUT',
       url: '/changeset/create',
       payload: {
@@ -50,7 +50,7 @@ describe('changeset query endpoint', function () {
       }
     })
       .then(function () {
-        server.injectThen({
+        server.inject({
           method: 'GET',
           url: '/api/0.6/changesets?user=9'
         }).then(function (res) {
