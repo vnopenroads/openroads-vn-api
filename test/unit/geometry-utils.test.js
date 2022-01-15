@@ -58,7 +58,7 @@ describe('geometry utilities', () => {
       ]
     };
 
-    assert.ifError(utils.geometriesEqualAtPrecision(ls, other, 5));
+    assert.ok(!utils.geometriesEqualAtPrecision(ls, other, 5));
   });
 
   it('finds LineString and MultiLineString different', () => {
@@ -90,7 +90,7 @@ describe('geometry utilities', () => {
       ]]
     };
 
-    assert.ifError(utils.geometriesEqualAtPrecision(ls, other, 5));
+    assert.ok(!utils.geometriesEqualAtPrecision(ls, other, 5));
   });
 
   it('finds two different LineStrings the same at certain precisions', () => {
@@ -125,7 +125,7 @@ describe('geometry utilities', () => {
     assert.ok(utils.geometriesEqualAtPrecision(ls, other, 0));
     assert.ok(utils.geometriesEqualAtPrecision(ls, other, 1));
     assert.ok(utils.geometriesEqualAtPrecision(ls, other, 5));
-    assert.ifError(utils.geometriesEqualAtPrecision(ls, other, 6));
-    assert.ifError(utils.geometriesEqualAtPrecision(ls, other, 100));
+    assert.ok(!utils.geometriesEqualAtPrecision(ls, other, 6));
+    assert.ok(!utils.geometriesEqualAtPrecision(ls, other, 100));
   });
 });
