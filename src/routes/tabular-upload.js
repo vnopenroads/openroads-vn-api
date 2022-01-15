@@ -6,23 +6,23 @@ const errors = require('../util/errors');
 const { NO_ID } = require('../util/road-id-utils');
 const knex = require('../connection.js');
 
-function upload(req, res) {
+function upload(req) {
   var parsed;
   try {
     parsed = csvParse(req.payload.toString());
   } catch (e) {
-    return res(errors.noCSV);
+    return errors.noCSV;
   }
-  if (parsed.columns.length === 0) { return res(errors.noCSVRows); }
-  if (new Set(parsed.columns).size < parsed.columns.length) { return res(errors.noDuplicateTabularHeaders); }
+  if (parsed.columns.length === 0) { return errors.noCSVRows; }
+  if (new Set(parsed.columns).size < parsed.columns.length) { return errors.noDuplicateTabularHeaders; }
 
   const roadIdName = parsed.columns[0];
   const roadIds = parsed.map(p => p[roadIdName]);
 
-  if (parsed.columns.some(c => c.includes('"') || c.includes(','))) { return res(errors.noQuotesInTabularHeader); }
-  if (roadIds.some(id => id.includes('"'))) { return res(errors.noExtraQuotesInTabular); }
-  if (roadIds.includes(null)) { return res(errors.nullRoadIds); }
-  if (roadIds.includes(NO_ID)) { return res(errors.cannotUseNoId); }
+  if (parsed.columns.some(c => c.includes('"') || c.includes(','))) { return errors.noQuotesInTabularHeader); }
+  if (roadIds.some(id => id.includes('"'))) { return errors.noExtraQuotesInTabular; }
+  if (roadIds.includes(null)) { return errors.nullRoadIds; }
+  if (roadIds.includes(NO_ID)) { return errors.cannotUseNoId; }
 
   knex.select()
     .from('road_properties')
@@ -30,7 +30,7 @@ function upload(req, res) {
     .then(existingRoads => {
       const existingIds = existingRoads.map(er => er.id);
       const newIds = _.difference(roadIds, existingIds);
-      if (newIds.length) { return res(errors.unknownRoadIds(newIds)); }
+      if (newIds.length) { return errors.unknownRoadIds(newIds); }
 
       Promise.all(
         existingRoads.map(road =>
@@ -39,7 +39,7 @@ function upload(req, res) {
             Object.assign({}, road.properties, _.omit(parsed.find(p => road.id === p[roadIdName]), roadIdName))
           )
         )
-      ).then(() => res(existingIds));
+      ).then(() => existingIds);
     });
 };
 

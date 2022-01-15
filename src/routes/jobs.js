@@ -2,16 +2,6 @@ const Queue = require('bull');
 const rlpGeomQueue = require('../util/queue');
 var Boom = require('@hapi/boom');
 
-function jobHandler(req, res) {
-  const jobID = req.params.jobID;
-  return rlpGeomQueue.getJob(jobID)
-    .catch(e => {
-      console.error(e);
-      res(Boom.notFound('Job ID not found'));
-    });
-}
-
-
 module.exports = [
   /**
    * @api {GET} /job/:id Get status of job
@@ -22,6 +12,11 @@ module.exports = [
   {
     method: 'GET',
     path: '/job/{jobID}',
-    handler: jobHandler
+    handler: req => {
+      const jobID = req.params.jobID;
+      return rlpGeomQueue.getJob(jobID)
+        .catch(_ => Boom.notFound('Job ID not found'));
+
+    }
   }
 ];

@@ -16,15 +16,13 @@ module.exports = [
      * @apiSuccessExample {array} Success-Response:
      *   ["024BX00040","022BX00029", ...]
      */
-    
+
     method: 'GET',
     path: '/roads/ids',
-    handler: function(req, res) {
-      knex('current_way_tags')
-        .distinct('v')
-        .select('v')
-        .where('k', 'or_vpromms')
-        .then(vpromms => res(vpromms.map(vpromm => vpromm.v)));
-    }
+    handler: () => knex('current_way_tags')
+      .distinct('v')
+      .select('v')
+      .where('k', 'or_vpromms')
+      .then(vpromms => vpromms.map(vpromm => vpromm.v))
   }
 ];

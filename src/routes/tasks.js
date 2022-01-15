@@ -7,7 +7,7 @@ const toGeoJSON = require('../services/osm-data-to-geojson');
 
 const properties = ['id', 'way_id', 'neighbors', 'provinces', 'updated_at', 'districts'];
 
-async function getNextTask(req, res) {
+async function getNextTask(req, h) {
   const skip = req.query.skip ? req.query.skip.split(',') : [];
   const province = req.query.province;
   const district = req.query.district;
@@ -25,7 +25,7 @@ async function getNextTask(req, res) {
     .orderByRaw('random()')
     .limit(1);
 
-  if (!task.length) return res(Boom.notFound('There are no pending tasks'));
+  if (!task.length) return Boom.notFound('There are no pending tasks');
   const ids = [task[0].way_id].concat(task[0].neighbors);
   let boundaryType = 'province';
   let taskProviceOrDistrict = task[0].provinces[0];
@@ -45,9 +45,9 @@ async function getNextTask(req, res) {
       queryWays(knex, ids, true).then(function (ways) {
         const data = toGeoJSON(ways);
         if (!data.features.length) {
-          return res({ 'id': task[0].id }).code(302);
+          return h.response({ 'id': task[0].id }).code(302);
         } else {
-          return res({
+          return h.response({
             id: task[0].id,
             updated_at: task[0].updated_at,
             province: task[0].province,
@@ -56,33 +56,33 @@ async function getNextTask(req, res) {
           }).type('application/json');
         }
       }).catch(function () {
-        return res(Boom.badImplementation('Could not retrieve task'));
+        return Boom.badImplementation('Could not retrieve task');
       });
     });
 }
 
-async function getTask(req, res) {
+async function getTask(req, h) {
   const task = await knex.select(properties)
     .from('tasks')
     .where('id', req.params.taskId);
-  if (!task.length) return res(Boom.notFound('No task with that ID'));
+  if (!task.length) return Boom.notFound('No task with that ID');
   const ids = [task[0].way_id].concat(task[0].neighbors);
   queryWays(knex, ids, true).then(function (ways) {
-    return res({
+    return h.response({
       id: task[0].id,
       updated_at: task[0].updated_at,
       data: toGeoJSON(ways)
     }).type('application/json');
   }).catch(function () {
-    return res(Boom.badImplementation('Could not retrieve task'));
+    return Boom.badImplementation('Could not retrieve task');
   });
 }
 
-async function getTaskCount(req, res) {
+async function getTaskCount(req, h) {
   const province = req.query.province;
   const district = req.query.district;
   if (province && district) {
-    return res(Boom.badImplementation('Cannot query both district and province'));
+    return Boom.badImplementation('Cannot query both district and province');
   }
   const [{ count }] = await knex('tasks')
     .where('pending', false)
@@ -96,16 +96,16 @@ async function getTaskCount(req, res) {
     })
     .count();
 
-  res({ count: Number(count) }).type('application/json');
+  h.response({ count: Number(count) }).type('application/json');
 }
 
-async function setTaskPending(req, res) {
+async function setTaskPending(req) {
   console.log('Setting tasks to pending', req.payload.way_ids.join(', '));
   knex('tasks').whereIn('way_id', req.payload.way_ids).update({ pending: true })
     .then(function () {
-      return res(req.params.taskId);
+      return req.params.taskId;
     }).catch(function () {
-      return res(Boom.badImplementation('Could not update task'));
+      return Boom.badImplementation('Could not update task');
     });
 }
 

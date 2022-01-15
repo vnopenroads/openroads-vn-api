@@ -37,12 +37,9 @@ var rsp = {
   }
 };
 
-function capabilities(req, res) {
-  var response = res(builder.create(rsp).end({
-    pretty: true
-  }));
-
-  response.type('text/xml');
+function capabilities(req, h) {
+  const payload = builder.create(rsp).end({ pretty: true });
+  return h.response(payload).type('text/xml');
 }
 
 module.exports = [

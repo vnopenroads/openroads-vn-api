@@ -54,9 +54,9 @@ module.exports = [
   {
     method: 'GET',
     path: '/relations/{id}',
-    handler: function (req, res) {
+    handler: function (req) {
       if (!req.params.id) {
-        return res(Boom.badRequest('Valid relation id required.'));
+        return Boom.badRequest('Valid relation id required.');
       }
 
       return queryRelations([req.params.id], true);
@@ -104,7 +104,7 @@ module.exports = [
   {
     method: 'GET',
     path: '/relations',
-    handler: function (req, res) {
+    handler: function (req) {
 
       var query = req.query;
 
@@ -123,7 +123,7 @@ module.exports = [
       else {
         var tagKeys = Object.keys(query);
         if (tagKeys.length === 0) {
-          return res(Boom.badRequest('Relations endpoint needs member or tags.'));
+          return Boom.badRequest('Relations endpoint needs member or tags.');
         }
 
         q = knex('current_relation_tags');

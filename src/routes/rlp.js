@@ -156,11 +156,7 @@ async function patchVpromm(way) {
   const wayId = parseInt(way.meta.id, 10);
   const vpromm = way.properties.or_vpromms;
   return knex('current_way_tags')
-    .insert({
-      way_id: wayId,
-      k: 'or_vpromms',
-      v: vpromm
-    })
+    .insert({ way_id: wayId, k: 'or_vpromms', v: vpromm })
     .then(function (response) {
       if (response === 0) {
         throw new Error('404');
@@ -234,7 +230,7 @@ function getGeometriesRLPVersion(fileObject) {
   return false;
 }
 
-async function geometriesHandler(req, res) {
+async function geometriesHandler(req, h) {
   const frontendUrl = process.env.FRONTEND_URL || 'http://openroads-vn.com/';
   const payload = req.payload;
   const filenamePattern = /^.*\/RoadPath.*\.csv$/;
@@ -244,7 +240,7 @@ async function geometriesHandler(req, res) {
   let badPaths = [];
   let hasErrors = false;
   let errMessage = null;
-  payload[Object.keys(req.payload)[0]]
+  return payload[Object.keys(req.payload)[0]]
     .pipe(unzip.Parse())
     .on('entry', async e => {
       const version = getGeometriesRLPVersion(e);
@@ -283,15 +279,8 @@ async function geometriesHandler(req, res) {
         return fr;
       });
 
-      const job = rlpGeomQueue.add({
-        fileReads,
-        fieldDataRoadIds,
-        hasErrors,
-        errMessage
-      }).then(job => {
-        // res({job: job.id});
-        res.redirect(`${frontendUrl}#/en/jobs/${job.id}`);
-      });
+      rlpGeomQueue.add({ fileReads, fieldDataRoadIds, hasErrors, errMessage })
+        .then(job => h.redirect(`${frontendUrl}#/en/jobs/${job.id}`));
     });
 }
 
@@ -313,13 +302,13 @@ function getPropertiesRLPVersion(fileObject) {
   return false;
 }
 
-async function propertiesHandler(req, res) {
+async function propertiesHandler(req) {
 
   const existingRoadIds = await knex.select('id').from('road_properties').map(r => r.id);
 
   let rows = [];
   let badPaths = [];
-  req.payload[Object.keys(req.payload)[0]]
+  return req.payload[Object.keys(req.payload)[0]]
     .pipe(unzip.Parse())
     .on('entry', async e => {
       try {
@@ -336,14 +325,14 @@ async function propertiesHandler(req, res) {
           e.autodrain();
         }
       } catch (e) {
-        return res(errors.propertiesUnknownError)
+        return errors.propertiesUnknownError
       }
     })
     .on('close', async () => {
       // Prevent ingest of bad data
       const fieldDataRoadIds = [...new Set(rows.map(r => r.road_id))];
-      if (badPaths.length) { return res(errors.badPaths(badPaths)); }
-      if (fieldDataRoadIds.length === 0) { return res(errors.noCSV); }
+      if (badPaths.length) { return errors.badPaths(badPaths); }
+      if (fieldDataRoadIds.length === 0) { return errors.noCSV; }
 
       // Strip the `NO_ID` and `ONLY_PROPERTIES` so that they
       // don't appear in the database
@@ -382,8 +371,8 @@ async function propertiesHandler(req, res) {
             properties: r.properties
           }).into('point_properties');
       }))
-        .then(() => res(fieldDataRoadIds))
-        .catch((e) => res(errors.propertiesUnknownError))
+        .then(() => fieldDataRoadIds)
+        .catch((e) => errors.propertiesUnknownError)
     });
 }
 
