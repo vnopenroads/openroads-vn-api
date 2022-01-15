@@ -136,8 +136,8 @@ module.exports = [
         });
         q = q.select('relation_id');
       }
-      return queryRelations(q);
 
+      return queryRelations(q);
     }
 
   }];

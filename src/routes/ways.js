@@ -124,16 +124,16 @@ module.exports = [
      */
     method: 'GET',
     path: '/api/0.6/ways',
-    handler: function (req, res) {
+    handler: function (req) {
       var withNodes = req.query.nodes === 'true';
       var excludeDoubleLinkedNodes = withNodes && req.query.excludeDoubleLinkedNodes === 'true';
       var wayIds = req.query.ways.split(',');
 
       if (wayIds.length === 0 || wayIds.filter(isNaN).length !== 0) {
-        return res(Boom.badRequest('Numerical way IDs must be provided.'));
+        return Boom.badRequest('Numerical way IDs must be provided.');
       }
 
-      queryWays(knex, wayIds)
+      return queryWays(knex, wayIds)
         .then(function (result) {
           var doc = {
             ways: Node.withTags(result.ways, result.waytags, 'way_id')
@@ -158,12 +158,11 @@ module.exports = [
           }
         }).then(function (doc) {
           var xmlDoc = XML.write(doc);
-          var response = res(xmlDoc.toString());
-          response.type('text/xml');
+          return xmlDoc.toString(); // response.type('text/xml');
         })
         .catch(function (err) {
           log.error(err);
-          return res(Boom.wrap(err));
+          return Boom.internal(err);
         });
     }
   }

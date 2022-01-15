@@ -2,8 +2,9 @@
 
 const assert = require('assert');
 const _ = require('lodash');
-const { parseRow } = require('services/rlp-properties');
+const { parseRowV1 } = require('services/rlp-properties');
 const { cleanGeometry } = require('services/rlp-geometries');
+const moment = require('moment');
 
 describe('RLP parsing', () => {
   it('can parse property CSV columns', () => {
@@ -21,15 +22,15 @@ describe('RLP parsing', () => {
       suspension: 'HARD-MEDIUM'
     };
 
-    const parsed = parseRow(row);
+    const parsed = parseRowV1(row);
 
     assert.deepEqual(parsed.geom, {
       type: 'Point',
-      coordinates: [103.85156932573214, 22.545976895574945]
+      coordinates: [103.85156932573213, 22.54597689557495]
     });
     assert.equal(
       parsed.datetime.toISOString(),
-      '2017-07-11T19:35:49.000Z'
+      moment('2017-07-11T15:35:49.000').toISOString()
     );
     assert.ok(_.isEqual(
       new Set(Object.keys(parsed.properties)),

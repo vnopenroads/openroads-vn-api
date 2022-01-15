@@ -8,7 +8,7 @@ const point = require('turf-point');
 const getRoadIdFromPath = require('../util/road-id-utils').getRoadIdFromPath;
 
 function parseRowV1(csvRow) {
-  const DATE_STRING_FORMAT = 'HH:mm:ss YYYY-MMMM-DD';
+  const DATE_STRING_FORMAT = 'HH:mm:ss YYYY-MMMM-DDZ';
   const USED_PROERTIES = ['time', 'start_lat', 'start_lon', 'end_lat', 'end_lon'];
 
   const coord = midpoint(

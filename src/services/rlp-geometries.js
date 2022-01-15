@@ -4,10 +4,10 @@ const _ = require('lodash');
 const fastCSV = require('fast-csv');
 const linestring = require('turf-linestring');
 const moment = require('moment');
-const distance = require('@turf/distance');
+const distance = require('@turf/distance').default;
 const getRoadIdFromPath = require('../util/road-id-utils').getRoadIdFromPath;
 
-function cleanGeometry (points) {
+function cleanGeometry(points) {
   moment.locale('en');
 
   // If a sensor has not made a measurement for a while, then
@@ -49,7 +49,7 @@ function cleanGeometry (points) {
   // This'll work even if there's only one piece
   const longest = pieces.reduce((longest, one) =>
     one.length > longest.length ? one : longest
-  , []);
+    , []);
 
   // Clean up the geometry into a linestring
   const geom = linestring(longest.map(d =>
@@ -75,13 +75,13 @@ function getPoint(row, version) {
   throw new Error('Invalid Version format for geometries');
 }
 
-async function parseGeometries (path, contentsStream, existingRoadIds, version) {
+async function parseGeometries(path, contentsStream, existingRoadIds, version) {
   const roadId = getRoadIdFromPath(path, existingRoadIds);
 
   let points = [];
   return new Promise(resolve =>
     contentsStream.pipe(fastCSV
-      .parse({headers: true})
+      .parse({ headers: true })
       .on('data', d => {
         const point = getPoint(d, version);
         points = points.concat(point);
