@@ -31,11 +31,10 @@ describe('map endpoint', function () {
     server.inject(request('0,0,0.1,0.1'))
       .then(function (res) {
         res.statusCode.should.equal(200);
+        res.headers['content-type'].should.equal('text/xml; charset=utf-8');
         done();
       })
-      .catch(function (err) {
-        return done(err);
-      });
+      .catch(done);
   });
 
   it('yields an empty response when the given bounding box is empty',

@@ -81,9 +81,6 @@ describe('Relations endpoint', function () {
   });
 
   it('Should return a valid relation, using a relation id', function (done) {
-    console.log("-------------------------");
-    console.log(ids.relation);
-    console.log("-------------------------");
     get('/' + ids.relation).then(function (res) {
       res.statusCode.should.eql(200);
       var payload = JSON.parse(res.payload);

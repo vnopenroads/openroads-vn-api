@@ -124,7 +124,7 @@ module.exports = [
      */
     method: 'GET',
     path: '/api/0.6/ways',
-    handler: function (req) {
+    handler: function (req, h) {
       var withNodes = req.query.nodes === 'true';
       var excludeDoubleLinkedNodes = withNodes && req.query.excludeDoubleLinkedNodes === 'true';
       var wayIds = req.query.ways.split(',');
@@ -157,13 +157,9 @@ module.exports = [
               });
           }
         }).then(function (doc) {
-          var xmlDoc = XML.write(doc);
-          return xmlDoc.toString(); // response.type('text/xml');
+          return h.response(XML.write(doc).toString()).type('text/xml');
         })
-        .catch(function (err) {
-          log.error(err);
-          return Boom.internal(err);
-        });
+        .catch(Boom.badRequest);
     }
   }
 ];

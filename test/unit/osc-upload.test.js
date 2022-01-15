@@ -15,26 +15,20 @@ var serverShouldStatus = function (mock, done, status) {
     .then(function (res) {
       res.statusCode.should.eql(status);
       return done();
-    }).catch(function (err) {
-      return done(err);
-    });
+    }).catch(done);
 };
 
 describe('OScUploadController', function () {
   describe('#upload', function () {
     after(function (done) {
       testChangeset.remove()
-        .then(function () {
-          return done();
-        })
+        .then(() => done())
         .catch(done);
     });
 
     before('Create changeset', function (done) {
       testChangeset.create()
-        .then(function () {
-          return done();
-        })
+        .then(() => done())
         .catch(done);
     });
 

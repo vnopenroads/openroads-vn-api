@@ -7,7 +7,7 @@ var XML = require('../services/xml');
 var log = require('../services/log');
 
 // Currently, this only supports querying the changeset table by user.
-function changesetQuery(req, res) {
+function changesetQuery(req, h) {
   var user = +req.query.user;
   if (isNaN(user) || (!user && user !== 0)) {
     return Boom.badRequest('invalid user ID');
@@ -51,8 +51,7 @@ function changesetQuery(req, res) {
           return change;
         }).value();
 
-      // return res(XML.write({ changesets: result }).toString()).type('text/xml');
-      return XML.write({ changesets: result }).toString();
+      return h.response(XML.write({ changesets: result }).toString()).type('text/xml');
     })
     .catch(function (e) {
       log.error(e);

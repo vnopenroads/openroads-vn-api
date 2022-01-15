@@ -6,16 +6,16 @@ var queryBbox = require('../services/query-bbox.js');
 var XML = require('../services/xml.js');
 var BoundingBox = require('../services/bounding-box.js');
 
-function mapHandler(req, res) {
+function mapHandler(req, h) {
   // parse and validate bbox parameter from query
   // See services/BoundingBox.js.
   var paramString = req.query.bbox || '';
   var bbox = new BoundingBox.fromCoordinates(paramString.split(','));
   if (bbox.error) {
-    return res(Boom.badRequest(bbox.error));
+    return Boom.badRequest(bbox.error);
   }
 
-  queryBbox(knex, bbox)
+  return queryBbox(knex, bbox)
     .then(function (result) {
       var xmlDoc = XML.write({
         bbox: bbox,
@@ -23,11 +23,10 @@ function mapHandler(req, res) {
         ways: result.ways,
         relations: result.relations
       });
-      var response = res(xmlDoc.toString());
-      response.type('text/xml');
+      return h.response(xmlDoc.toString()).type('text/xml');
     })
     .catch(function (err) {
-      return res(Boom.wrap(err));
+      return Boom.badRequest(err);
     });
 }
 

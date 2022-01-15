@@ -15,24 +15,20 @@ var flatten = require('lodash').flatten;
 var fc = require('@turf/helpers').featureCollection;
 var Promise = require('bluebird');
 
-function serveSingleWay(req, res) {
+function serveSingleWay(req, h) {
   var wayId = parseInt(req.params.wayId || '', 10);
   if (!wayId || isNaN(wayId)) {
-    return res(Boom.badRequest('Way ID must be a non-zero number'));
+    return Boom.badRequest('Way ID must be a non-zero number');
   }
 
-  queryWays(knex, wayId)
+  return queryWays(knex, wayId)
     .then(function (result) {
       var xmlDoc = XML.write({
         ways: Node.withTags(result.ways, result.waytags, 'way_id')
       });
-      var response = res(xmlDoc.toString());
-      response.type('text/xml');
+      return h.response(xmlDoc.toString()).type('text/xml');
     })
-    .catch(function (err) {
-      log.error(err);
-      return res(Boom.wrap(err));
-    });
+    .catch(Boom.internal);
 }
 
 // convert to decimal degree lat/lon
@@ -43,33 +39,33 @@ function nodeCoordinates(node) {
   ];
 }
 
-function getWayIdBBOX(req, res) {
+function getWayIdBBOX(req) {
   var wayId = req.params.way_id;
   if (!wayId) {
-    return res(Boom.badRequest('Invalid way ID'));
+    return Boom.badRequest('Invalid way ID');
   }
-  queryWays(knex, wayId)
+  return queryWays(knex, wayId)
     .then(function (result) {
       let points = [];
       points = result.nodes.map((node) => {
         return point(nodeCoordinates(node));
       }, points);
       points = fc(flatten(points));
-      return res(bbox(points));
+      return bbox(points);
     })
-    .catch(err => { return res(Boom.badRequest(err)); })
+    .catch(Boom.badRequest);
 }
-function singleWayBBOX(req, res) {
+function singleWayBBOX(req) {
   var vprommsId = req.params.VProMMs_Id;
   if (vprommsId.length !== 10) {
-    return res(Boom.badRequest('VProMMs id must be exactly 10 digits'));
+    return Boom.badRequest('VProMMs id must be exactly 10 digits');
   }
   // get way_id for row where where the 'v' column matches vprommsId;
-  knex('current_way_tags')
+  return knex('current_way_tags')
     .where('v', vprommsId)
     .then(function (result) {
       // make points for each of the returned ways as mutiple ways can have the same VProMMs;
-      Promise.map(result, (res) => {
+      Promise.map(result, (_) => {
         // get nodes of that way, then return bbox that surround those nodes
         return queryWays(knex, result[0].way_id)
           .then(function (result) {
@@ -80,50 +76,32 @@ function singleWayBBOX(req, res) {
           });
       })
         .then(function (points) {
-          points = fc(flatten(points));
-          res(bbox(points));
+          return bbox(fc(flatten(points)));
         });
     })
-    .catch(function (err) {
-      log.error(err);
-      return res(Boom.wrap(err));
-    });
+    .catch(Boom.badRequest);
 }
 
-function patchVprommIdHandler(req, res) {
+function patchVprommIdHandler(req, h) {
   var wayId = parseInt(req.params.wayId || '', 10);
-  if (
-    !validate(req.payload) ||
-    !(req.payload.hasOwnProperty('vprommid'))
-  ) {
-    return res(Boom.badData());
+  if (!validate(req.payload) || !(req.payload.hasOwnProperty('vprommid'))) {
+    return Boom.badData();
   }
   return knex('current_way_tags')
-    .where({
-      way_id: wayId,
-      k: 'or_vpromms'
-    })
-    .update({
-      v: req.payload.vprommid
-    })
+    .where({ way_id: wayId, k: 'or_vpromms' })
+    .update({ v: req.payload.vprommid })
     .then(function (response) {
       if (response === 0) {
         throw new Error('404');
         return response;
       }
-      return res({ wayId: wayId }).type('application/json');
+      return h.response({ wayId: wayId }).type('application/json');
     })
     .catch(function (err) {
-      if (err.constraint) {
-        return res(Boom.conflict());
-      }
-
-      if (err.message === '404') {
-        return res(Boom.notFound());
-      }
-
+      if (err.constraint) { return Boom.conflict(); }
+      if (err.message === '404') { return Boom.notFound(); }
       console.error('Error PATCH /way/tags/vprommid/{wayId}', err);
-      return res(Boom.badImplementation());
+      return Boom.internal();
     });
 }
 

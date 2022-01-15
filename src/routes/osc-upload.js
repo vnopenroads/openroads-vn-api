@@ -8,13 +8,12 @@ var Boom = require('@hapi/boom');
   XML reading and changeset upload
 */
 
-function oscUpload(req, res) {
+function oscUpload(req, h) {
   try {
+    console.log(req.payload.toString());
     var json = XML.read(req.payload.toString());
   } catch (e) {
-    if (e) {
-      return res(Boom.badRequest('Could not parse XML file'));
-    }
+    return Boom.badRequest('Could not parse XML file');
   }
 
   var changesetID = (req.params && req.params.changesetID) || null;
@@ -27,19 +26,18 @@ function oscUpload(req, res) {
     }
   };
   if (!changesetID) {
-    create({ payload: { uid: 99, user: 'openroads' } },
+    return create({ payload: { uid: 99, user: 'openroads' } },
       function (fromCreate) {
         if (fromCreate.isBoom) {
-
           //Couldn't create a changeset
-          res(fromCreate);
+          return fromCreate;
         } else {
           uploadParams.params.changesetID = fromCreate;
-          upload(uploadParams, res);
+          return upload(uploadParams, h);
         }
       });
   } else {
-    upload(uploadParams, res);
+    return upload(uploadParams, h);
   }
 }
 

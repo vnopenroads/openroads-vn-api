@@ -42,10 +42,10 @@ module.exports = [
      */
     method: 'GET',
     path: '/xml/node/{nodeId}',
-    handler: function (req, res) {
+    handler: function (req, h) {
       var nodeId = parseInt(req.params.nodeId || '', 10);
       if (!nodeId || isNaN(nodeId)) {
-        return res(Boom.badRequest('Node ID must be a non-zero number'));
+        return Boom.badRequest('Node ID must be a non-zero number');
       }
 
       Promise.all([
@@ -56,13 +56,9 @@ module.exports = [
           var xmlDoc = XML.write({
             nodes: Node.withTags(result[0], result[1], 'node_id'),
           });
-          var response = res(xmlDoc.toString());
-          response.type('text/xml');
+          return h.response(xmlDoc.toString()).type('text/xml');
         })
-        .catch(function (err) {
-          log.error(err);
-          return res(Boom.wrap(err));
-        });
+        .catch(Boom.internal);
     }
   },
   {
@@ -88,11 +84,11 @@ module.exports = [
      */
     method: 'GET',
     path: '/api/0.6/nodes',
-    handler: function (req, res) {
+    handler: function (req, h) {
       var ids = req.query.nodes.split(',').map(Number);
 
       if (ids.length === 0) {
-        return res(Boom.badRequest('IDs must be provided.'));
+        return Boom.badRequest('IDs must be provided.');
       }
 
       Promise.all([
@@ -105,13 +101,9 @@ module.exports = [
           var xmlDoc = XML.write({
             nodes: Node.withTags(result[0], result[1], 'node_id')
           });
-          var response = res(xmlDoc.toString());
-          response.type('text/xml');
+          return h.response(xmlDoc.toString()).type('text/xml');
         })
-        .catch(function (err) {
-          console.log(err);
-          res(Boom.wrap(err));
-        });
+        .catch(Boom.internal);
     }
   }
 ];

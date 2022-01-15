@@ -94,12 +94,9 @@ module.exports = [
      */
     method: 'GET',
     path: '/api/0.6/user/details',
-    handler: function(req, res) {
-      var response = res(builder.create(rsp).end({
-        pretty: true
-      }));
-
-      response.type('text/xml');
+    handler: function (req, h) {
+      const response = builder.create(rsp).end({ pretty: true });
+      return h.response(response).type('text/xml');
     }
   }
 ];
