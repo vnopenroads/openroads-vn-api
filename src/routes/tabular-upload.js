@@ -19,7 +19,7 @@ function upload(req) {
   const roadIdName = parsed.columns[0];
   const roadIds = parsed.map(p => p[roadIdName]);
 
-  if (parsed.columns.some(c => c.includes('"') || c.includes(','))) { return errors.noQuotesInTabularHeader); }
+  if (parsed.columns.some(c => c.includes('"') || c.includes(','))) { return errors.noQuotesInTabularHeader; }
   if (roadIds.some(id => id.includes('"'))) { return errors.noExtraQuotesInTabular; }
   if (roadIds.includes(null)) { return errors.nullRoadIds; }
   if (roadIds.includes(NO_ID)) { return errors.cannotUseNoId; }

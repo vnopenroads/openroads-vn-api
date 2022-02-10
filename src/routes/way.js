@@ -1,15 +1,13 @@
 'use strict';
 var Boom = require('@hapi/boom');
 
-const {
-  validate
-} = require('fast-json-patch');
+const { validate } = require('fast-json-patch');
 var knex = require('../connection');
 var queryWays = require('../services/query-ways');
 var XML = require('../services/xml');
 var log = require('../services/log');
 var Node = require('../models/node-model');
-var bbox = require('@turf/bbox');
+var bbox = require('@turf/bbox').default;
 var point = require('@turf/helpers').point;
 var flatten = require('lodash').flatten;
 var fc = require('@turf/helpers').featureCollection;
@@ -21,7 +19,7 @@ function serveSingleWay(req, h) {
     return Boom.badRequest('Way ID must be a non-zero number');
   }
 
-  return queryWays(knex, wayId)
+  return queryWays(knex, [wayId])
     .then(function (result) {
       var xmlDoc = XML.write({
         ways: Node.withTags(result.ways, result.waytags, 'way_id')
@@ -41,43 +39,27 @@ function nodeCoordinates(node) {
 
 function getWayIdBBOX(req) {
   var wayId = req.params.way_id;
-  if (!wayId) {
-    return Boom.badRequest('Invalid way ID');
-  }
-  return queryWays(knex, wayId)
-    .then(function (result) {
-      let points = [];
-      points = result.nodes.map((node) => {
-        return point(nodeCoordinates(node));
-      }, points);
-      points = fc(flatten(points));
-      return bbox(points);
-    })
+  if (!wayId) { return Boom.badRequest('Invalid way ID'); }
+  return queryWays(knex, [wayId])
+    .then(result => bbox(fc(flatten(result.nodes.map(node => point(nodeCoordinates(node)))))))
     .catch(Boom.badRequest);
 }
+
 function singleWayBBOX(req) {
   var vprommsId = req.params.VProMMs_Id;
-  if (vprommsId.length !== 10) {
-    return Boom.badRequest('VProMMs id must be exactly 10 digits');
-  }
+  if (vprommsId.length !== 10) { return Boom.badRequest('VProMMs id must be exactly 10 digits'); }
+
   // get way_id for row where where the 'v' column matches vprommsId;
   return knex('current_way_tags')
     .where('v', vprommsId)
     .then(function (result) {
       // make points for each of the returned ways as mutiple ways can have the same VProMMs;
-      Promise.map(result, (_) => {
+      return Promise.map(result, (_) => {
         // get nodes of that way, then return bbox that surround those nodes
-        return queryWays(knex, result[0].way_id)
-          .then(function (result) {
-            // make points from each way node, then use those points to make a bbox
-            return Promise.map(result.nodes, function (node) {
-              return point(nodeCoordinates(node));
-            });
-          });
-      })
-        .then(function (points) {
-          return bbox(fc(flatten(points)));
-        });
+        return queryWays(knex, [result[0].way_id])
+          // make points from each way node, then use those points to make a bbox
+          .then(result => Promise.map(result.nodes, node => point(nodeCoordinates(node))));
+      }).then(points => bbox(fc(flatten(points))));
     })
     .catch(Boom.badRequest);
 }

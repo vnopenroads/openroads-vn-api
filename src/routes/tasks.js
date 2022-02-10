@@ -36,13 +36,13 @@ async function getNextTask(req, h) {
     taskProviceOrDistrict = task[0].districts[0];
   }
 
-  knex('admin_boundaries AS admin')
+  return knex('admin_boundaries AS admin')
     .select('name_en', 'id')
     .where({ type: boundaryType, id: taskProviceOrDistrict })
     .then(function (boundary) {
       task[0].boundary = boundary[0];
       task[0].boundary.type = boundaryType;
-      queryWays(knex, ids, true).then(function (ways) {
+      return queryWays(knex, ids, true).then(function (ways) {
         const data = toGeoJSON(ways);
         if (!data.features.length) {
           return h.response({ 'id': task[0].id }).code(302);
@@ -67,15 +67,17 @@ async function getTask(req, h) {
     .where('id', req.params.taskId);
   if (!task.length) return Boom.notFound('No task with that ID');
   const ids = [task[0].way_id].concat(task[0].neighbors);
-  queryWays(knex, ids, true).then(function (ways) {
-    return h.response({
-      id: task[0].id,
-      updated_at: task[0].updated_at,
-      data: toGeoJSON(ways)
-    }).type('application/json');
-  }).catch(function () {
-    return Boom.badImplementation('Could not retrieve task');
-  });
+  return queryWays(knex, ids, true)
+    .then(ways => {
+      var rv = {
+        id: task[0].id,
+        updated_at: task[0].updated_at,
+        data: toGeoJSON(ways)
+      };
+      return h.response(rv).type('application/json');
+    }).catch(function () {
+      return Boom.badImplementation('Could not retrieve task');
+    });
 }
 
 async function getTaskCount(req, h) {
@@ -87,26 +89,21 @@ async function getTaskCount(req, h) {
   const [{ count }] = await knex('tasks')
     .where('pending', false)
     .modify(function (queryBuilder) {
-      if (province) {
-        queryBuilder.whereRaw(`provinces @> '{${province}}'`);
-      }
-      if (district) {
-        queryBuilder.whereRaw(`districts @> '{${district}}'`);
-      }
+      if (province) { queryBuilder.whereRaw(`provinces @> '{${province}}'`); }
+      if (district) { queryBuilder.whereRaw(`districts @> '{${district}}'`); }
     })
     .count();
 
-  h.response({ count: Number(count) }).type('application/json');
+  return h.response({ count: Number(count) }).type('application/json');
 }
 
-async function setTaskPending(req) {
+function setTaskPending(req, res) {
   console.log('Setting tasks to pending', req.payload.way_ids.join(', '));
-  knex('tasks').whereIn('way_id', req.payload.way_ids).update({ pending: true })
-    .then(function () {
-      return req.params.taskId;
-    }).catch(function () {
-      return Boom.badImplementation('Could not update task');
-    });
+  return knex('tasks')
+    .whereIn('way_id', req.payload.way_ids)
+    .update({ pending: true })
+    .then(() => res.response(req.payload.way_ids).type('application/json'))
+    .catch(() => Boom.badImplementation('Could not update task'));
 }
 
 module.exports = [
