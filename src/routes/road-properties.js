@@ -25,14 +25,10 @@ function getHandler(req, res) {
     .select('roads.id', 'roads.properties', 'roads.status')
     .distinct('roads.id')
     .modify(function (queryBuilder) {
-      if (status) {
-        queryBuilder.andWhere('status', status);
-      }
-      if (province && district) {
-        queryBuilder.whereRaw(`id LIKE '${province}_${district}%'`);
-      } else if (province) {
-        queryBuilder.whereRaw(`id LIKE '${province}%'`);
-      }
+      console.log(status);
+      if (status) { queryBuilder.andWhere('status', status); }
+      if (province && district) { queryBuilder.whereRaw(`id LIKE '${province}_${district}%'`); }
+      else if (province) { queryBuilder.whereRaw(`id LIKE '${province}%'`); }
     })
     .orderBy(sortField, sortOrder)
     .limit(PAGE_SIZE)
@@ -255,9 +251,7 @@ function getCountHandler(req, res) {
 }
 
 function createHandler(req, res) {
-  if (!validateId(req.params.road_id)) {
-    return Boom.badData('Invalid VPROMM ID');
-  }
+  if (!validateId(req.params.road_id)) { return Boom.badData('Invalid VPROMM ID'); }
 
   // check if province exists
   const provinceCode = req.params.road_id.substring(0, 2);
@@ -332,32 +326,32 @@ function deleteHandler(req, res) {
 }
 
 
-function patchPropertyHandler(req, res) {
+async function patchPropertyHandler(req) {
   if (
     validate(req.payload) !== undefined ||
     some(req.payload, ({ path }) => path.match(/\//g).length > 1)
   ) {
     return Boom.badData();
   }
+  console.log("************ JK ******************")
+
+  var ids = await knex('road_properties')
+    .select('id', 'properties')
+    .where({ id: req.params.road_id });
+  console.log(ids);
+  if (ids.length != 1) { return Boom.notFound(`Road with id '${req.params.road_id}' not found`); }
 
   return knex('road_properties')
-    .select('id', 'properties')
     .where({ id: req.params.road_id })
-    .then(function ([response]) {
-      if (response === undefined) { return Boom.notFound(); }
-
-      return knex('road_properties')
-        .where({ id: req.params.road_id })
-        .update({ properties: applyPatch(response.properties, req.payload).newDocument })
-        .then(() => { });
-    })
-    .catch(function (err) {
+    .update({ properties: applyPatch(ids[0].properties, req.payload).newDocument })
+    .then(() => ({}))
+    .catch(err => {
       console.error('Error: PUT /properties/roads/{road_id}', err);
       return Boom.badImplementation();
     });
 }
 
-function statusHandler(req, res) {
+function statusHandler(req) {
 
   const possibleStatus = ['pending', 'reviewed'];
   if (possibleStatus.indexOf(req.payload.status) === -1) {
@@ -414,7 +408,7 @@ module.exports = [
    * ]
    *
    * @apiExample {curl} Example Usage:
-   *  curl -X GET localhost:4000/properties/roads?page=1&sortField=id&sortOrder=asc&province=21&district=TH&status=pending|reviewed
+   *  curl -X GET http://localhost:4000/properties/roads?page=1&sortField=id&sortOrder=asc&province=21&district=TH&status=pending|reviewed
    */
   {
     method: 'GET',
@@ -435,7 +429,7 @@ module.exports = [
    * }
    *
    * @apiExample {curl} Example Usage:
-   *  curl -X GET localhost:4000/properties/roads/212TH00030
+   *  curl -X GET http://localhost:4000/properties/roads/212TH00030
    */
   {
     method: 'GET',
@@ -464,7 +458,7 @@ module.exports = [
    * }
    *
    * @apiExample {curl} Example Usage:
-   *  curl -X GET localhost:4000/properties/roads/212TH00030.geojson
+   *  curl -X GET http://localhost:4000/properties/roads/212TH00030.geojson
    */
   {
     method: 'GET',
@@ -486,7 +480,7 @@ module.exports = [
    * }
    *
    * @apiExample {curl} Example Usage:
-   *  curl -X GET localhost:4000/properties/roads/count?province=21
+   *  curl -X GET http://localhost:4000/properties/roads/count?province=21
    */
   {
     method: 'GET',
@@ -516,7 +510,7 @@ module.exports = [
    *     }
    *
    * @apiExample {curl} Example Usage:
-   *  curl -X PUT http://localhost:4000/properties/roads/123
+   *  curl -X PUT http://localhost:4000/properties/roads/455TT00099
    */
   {
     method: 'PUT',
@@ -540,7 +534,7 @@ module.exports = [
    *     }
    *
    * @apiExample {curl} Example Usage:
-   *  curl -X PATCH- H "Content-Type: application/json-patch+json" -d '[{"op": "replace", path: "/Risk Score", value: "2"}]' http://localhost:4000/properties/roads/123
+   *  curl -X PATCH -H "Content-Type: application/json-patch+json" -d '[{"op": "replace", path: "/Risk Score", value: "2"}]' http://localhost:4000/properties/roads/123
    */
   {
     method: 'PATCH',
