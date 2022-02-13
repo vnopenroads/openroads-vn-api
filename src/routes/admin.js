@@ -22,7 +22,7 @@ module.exports = [
      *
      *
      * @apiSuccessExample {JSON} Example Usage:
-     *  curl http://localhost:4000/district/units
+     *  curl http://localhost:4000/admin/district/units
      *
      * @apiSuccessExample {JSON} Success-Response
      * {
@@ -49,13 +49,7 @@ module.exports = [
       return knex('admin_boundaries')
         .where({ type: level })
         .select('id', 'name_en', 'name_vn')
-        .then((ids) => {
-          // format response per apiSuccessExample spec
-          const resObj = {};
-          resObj[level] = ids;
-          // serve result
-          return (resObj);
-        })
+        .then((ids) => ({ [level]: ids })) // format response per apiSuccessExample spec
         .catch(boomWrapper);
     }
   },
@@ -78,35 +72,36 @@ module.exports = [
      *
      *
      * @apiSuccessExample {JSON} Example Usage:
-     *  curl http://localhost:4000/api/admins/units?name=Nie&limit=2
+     *  curl http://localhost:4000/admin/units?name=Nie&limit=2
      *
      * @apiSuccessExample {JSON} Success-Response
      * [
-     *  {
-     *    "id": 1030523,
-     *    "name_en": "Niem Nghia",
-     *    "name_vn": "Niệm Nghĩa",
-     *    "level": "commune"
-     *  },
-     *  {
-     *    "id": 2010531,
-     *    "name_en": "Niem Son",
-     *    "name_vn": "Niêm Sơn",
-     *    level: "commune"
-     *  }
+     *   {
+     *     "id": 296,
+     *     "name_en": "Dong Van",
+     *     "name_vn": "Huyện Đồng Văn",
+     *     "level": "district"
+     *   },
+     *   {
+     *     "id": 65,
+     *     "name_en": "Hoa Vang",
+     *     "name_vn": "Huyện Hòa Vang",
+     *     "level": "district"
+     *   }
      * ]
+     * 
     */
     method: 'GET',
     path: '/admin/units',
     handler: function (req, res) {
       // parse the query string and the limit setting
+      if (!req.query.name) { return Boom.badRequest('Missing parameter \'name\''); }
       const queryString = req.query.name.toLowerCase();
       const limit = (!Number.isNaN(req.query.limit) && Number(req.query.limit) > 0) ? Number(req.query.limit) : 100;
-      const lang = req.query.lang || 'en';
-      // selects all admin boundaries ids and name_en fields where name_en field matches query string
+      // selects all admin boundaries ids and name fields where name (en or vn) field matches query string
       return knex('admin_boundaries')
-        .where('name_en', 'ILIKE', `${queryString}%`)
-        .orWhere('name_vn', 'ILIKE', `${queryString}%`)
+        .where('name_en', 'ILIKE', `%${queryString}%`)
+        .orWhere('name_vn', 'ILIKE', `%${queryString}%`)
         .select('id', 'name_en', 'name_vn', 'type as level')
         .orderBy('name_en', 'asc')
         .limit(limit)
@@ -140,7 +135,7 @@ module.exports = [
      *
      *
      * @apiSuccessExample {JSON} Example Usage:
-     *  curl http://localhost:4000/admin/10153/info
+     *  curl http://localhost:4000/admin/106/info
      *
      * @apiSuccessExample {JSON} Success-Response
      * {
@@ -174,7 +169,8 @@ module.exports = [
     */
     method: 'GET',
     path: '/admin/{unit_id}/info',
-    handler: function (req, res) {
+    handler: async function (req, res) {
+      console.log('/admin/{unit_id}/info');
       // get unitId from request params
       const unitId = req.params.unit_id;
       // check if unitId is valid length
@@ -187,19 +183,10 @@ module.exports = [
         return Boom.badRequest('unit_id must be a numeric code of length 7, 5, or 3. See documentation');
       }
       // joins two tables made from select statements:
-      //   1. a table with admin:
-      //      - level
-      //      - id
-      //      - parent_id
-      //      - bbox
-      //      - parent_id name
-      //      - parent_id level
-      //   2. a table with admin:
-      //      - id
-      //      - child_admin ids
-      //      - child_admin names
+      //   1. a table with admin (level, id, parent_id, bbox, parent_id name, parent_id level)
+      //   2. a table with admin (id, child_admin ids, child_admin names)
       // on id
-      return knex
+      var info = await knex
         .select(
           'self.id as id',
           'self.name_en as name_en',
@@ -219,31 +206,35 @@ module.exports = [
         .where('self.id', unitId)
         .leftJoin('admin_boundaries AS child', 'self.id', 'child.parent_id')
         .leftJoin('admin_boundaries AS parent', 'self.parent_id', 'parent.id')
-        .groupBy('self.id', 'child.id', 'parent.id', 'child.name_en', 'child.name_vn')
-        .then((info) => {
-          // format the results, making the bounding box of correct spec, finding parent_ids
-          let children = info.map(o => {
-            return { name_en: o.c_name_en, name_vn: o.c_name_vn, id: o.c_id };
-          });
-          let parent = {
-            name_en: info[0].p_name_en,
-            name_vn: info[0].p_name_vn,
-            id: info[0].p_id,
-            level: info[0].p_level
-          };
-          let response = {
-            id: info[0].id,
-            name_en: info[0].name_en,
-            name_vn: info[0].name_vn,
-            level: info[0].level,
-            parent: parent,
-            children: children,
-            children_level: info[0].c_level,
-            bbox: formatBox(info[0].bbox)
-          };
-          return response;
-        })
-        .catch(boomWrapper);
+        .groupBy('self.id', 'child.id', 'parent.id', 'child.name_en', 'child.name_vn');
+
+      if (info.length != 1) {
+        return Boom.notFound(`No admin unit with id = '${unitId}' exists`);
+      }
+
+      var result = info[0];
+      console.log("RESULT: \n ", result);
+      // format the results, making the bounding box of correct spec, finding parent_ids
+      let children = info.map(o => ({ name_en: o.c_name_en, name_vn: o.c_name_vn, id: o.c_id }));
+
+      let parent = {
+        name_en: info[0].p_name_en,
+        name_vn: info[0].p_name_vn,
+        id: info[0].p_id,
+        level: info[0].p_level
+      };
+
+      let response = {
+        id: info[0].id,
+        name_en: info[0].name_en,
+        name_vn: info[0].name_vn,
+        level: info[0].level,
+        parent: parent,
+        children: children,
+        children_level: info[0].c_level,
+        bbox: formatBox(info[0].bbox)
+      };
+      return response;
     }
   },
   {
@@ -260,7 +251,7 @@ module.exports = [
     method: 'GET',
     path: '/admin/roads/total',
     handler: function (req, res) {
-      knex.raw(`
+      return knex.raw(`
         SELECT SUBSTRING(roads.id, 0, 3) AS province_id,
             COUNT(DISTINCT roads.id) AS count,
             COUNT(DISTINCT CASE WHEN ways.visible THEN roads.id ELSE NULL END) AS osmcount
@@ -295,8 +286,8 @@ module.exports = [
      *
      * @apiExample {curl} Example Usage:
      *  curl -X GET http://localhost:4000/admin/stats
-     *  curl -X GET http://localhost:4000/admin/stats?province=401
-     *  curl -X GET http://localhost:4000/admin/stats?province=401&district=40101
+     *  curl -X GET http://localhost:4000/admin/stats?province=455
+     *  curl -X GET http://localhost:4000/admin/stats?province=455&district=463
      */
     method: 'GET',
     path: '/admin/stats',

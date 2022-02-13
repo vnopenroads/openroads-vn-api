@@ -20,7 +20,7 @@ exports.errorHandler = function (e) {
 exports.boomWrapper = function (e) {
   console.log(e);
   // return error if it occurs
-  return (Boom.wrap(e));
+  return Boom.internal(e);
 }
 
 exports.checkStandardQueryParams = function (sortField, sortOrder, page) {

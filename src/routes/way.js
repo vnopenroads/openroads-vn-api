@@ -66,6 +66,7 @@ function singleWayBBOX(req) {
 
 function patchVprommIdHandler(req, h) {
   var wayId = parseInt(req.params.wayId || '', 10);
+  console.log(wayId);
   if (!validate(req.payload) || !(req.payload.hasOwnProperty('vprommid'))) {
     return Boom.badData();
   }
@@ -164,7 +165,7 @@ module.exports = [
   },
   {
     /**
-     * @api {get} /way/:way_id/bbox Get way bbox by Way ID
+     * @api {get} /wayid/:way_id/bbox Get way bbox by Way ID
      * @apiGroup bbox
      * @apiName WayBBox
      * @apiVersion 0.1.0
@@ -172,7 +173,7 @@ module.exports = [
      * @apiParam {String} VProMMs_Id way specific way id.
      *
      * @apiExample {curl} Example Usage:
-     *    curl http://localhost:4000/way/50883/bbox
+     *    curl http://localhost:4000/wayid/50883/bbox
      *
      *
      * @apiSuccessExample {json} Success-Response:

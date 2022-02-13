@@ -2,7 +2,7 @@
 var _ = require('lodash');
 var Promise = require('bluebird');
 
-module.exports = function queryWays(knex, wayIds, excludeNotVisible = false) {
+module.exports = async function queryWays(knex, wayIds, excludeNotVisible = false) {
 
   // helper to make raw queries, because knex version of these
   // simple selects was MUCH slower
@@ -19,81 +19,54 @@ module.exports = function queryWays(knex, wayIds, excludeNotVisible = false) {
   // TODO this currently does not query nodes that are part of relations,
   // or other relations that are part of relations.
   const currentWays = knex('current_ways').whereIn('id', wayIds);
-  if (excludeNotVisible) {
-    currentWays.where('visible', true);
-  }
-  return Promise.all([
-    currentWays,
-    knex('current_way_nodes')
-      .orderBy('way_id', 'asc')
-      .orderBy('sequence_id', 'asc')
-      .whereIn('way_id', wayIds)
-      .distinct('node_id AS id')
-      .select('way_id', 'sequence_id'),
-    knex('current_relation_members')
-      .orderBy('relation_id', 'asc')
-      .orderBy('sequence_id', 'asc')
-      .where('member_type', 'Way')
-      .whereIn('member_id', wayIds)
-      .select('relation_id AS id', 'member_id', 'member_role')
-  ])
-    .then(function (result) {
+  if (excludeNotVisible) { currentWays.where('visible', true); }
 
-      // Now we have all the ways and nodes that we need, so fetch
-      // the associated tags.
+  var ways = await currentWays;
+  var wayIds = _.map(ways, 'id');
 
-      var wayIds = _.map(result[0], 'id');
-      var nodeIds = _(result[1])
-        .map('id')
-        .value();
-      var relationIds = _.map(result[2], 'id');
+  var nodesSql = knex('current_way_nodes')
+    .orderBy('way_id', 'asc')
+    .orderBy('sequence_id', 'asc')
+    .whereIn('way_id', wayIds)
+    .distinct('node_id AS id')
+    .select('way_id', 'sequence_id');
 
-      return Promise.all(result.concat([
-        select('current_nodes', 'id', nodeIds),
-        select('current_way_tags', 'way_id', wayIds),
-        select('current_node_tags', 'node_id', nodeIds),
-        select('current_relations', 'id', relationIds),
-        select('current_relation_tags', 'relation_id', relationIds)
-      ]));
-    })
-    .then(function (resultArr) {
-      var result = {
-        ways: resultArr[0],
-        waynodes: resultArr[1],
-        members: resultArr[2],
-        nodes: resultArr[3],
-        waytags: resultArr[4],
-        nodetags: resultArr[5],
-        relations: resultArr[6],
-        relationtags: resultArr[7]
-      };
+  var waynodes = await nodesSql;
+  var nodeIds = _.map(waynodes, 'id');
 
-      // attach associated nodes and tags to ways
-      result.ways.forEach(function (way) {
-        let nodes = result.waynodes.filter(function (waynode) {
-          return waynode.way_id === way.id;
-        });
-        // makes this compatible with the geojson formatter
-        nodes.forEach(function (waynode) {
-          waynode.node_id = waynode.id;
-        });
-        way.nodes = nodes;
-        way.tags = result.waytags.filter(function (tag) {
-          return tag.way_id === way.id;
-        });
-      });
+  var relationsSql = knex('current_relation_members')
+    .orderBy('relation_id', 'asc')
+    .orderBy('sequence_id', 'asc')
+    .where('member_type', 'Way')
+    .whereIn('member_id', wayIds)
+    .select('relation_id AS id', 'member_id', 'member_role');
+  var members = await relationsSql;
+  var relationIds = _.map(members, 'id');
 
-      result.relations.forEach(function (relation) {
-        relation.members = result.members.filter(function (member) {
-          return member.relation_id === relation.id;
-        });
-        relation.tags = result.relationtags.filter(function (tag) {
-          return tag.relation_id === relation.id;
-        });
-      });
+  // Now we have all the ways and nodes that we need, so fetch
+  // the associated tags.
+  var nodes = await select('current_nodes', 'id', nodeIds);
+  var waytags = await select('current_way_tags', 'way_id', wayIds);
+  var nodetags = await select('current_node_tags', 'node_id', nodeIds);
+  var relations = await select('current_relations', 'id', relationIds);
+  var relationtags = await select('current_relation_tags', 'relation_id', relationIds);
 
-      return result;
+  // attach associated nodes and tags to ways
+  ways.forEach(function (way) {
+    let nodes = waynodes.filter(waynode => waynode.way_id === way.id);
+    nodes.forEach(waynode => waynode.node_id = waynode.id); // make compatible with geojson formatter
+    way.nodes = nodes;
+    way.tags = waytags.filter(tag => tag.way_id === way.id);
+  });
 
+  relations.forEach(function (relation) {
+    relation.members = members.filter(function (member) {
+      return member.relation_id === relation.id;
     });
+    relation.tags = relationtags.filter(function (tag) {
+      return tag.relation_id === relation.id;
+    });
+  });
 
+  return { ways, waynodes, members, nodes, waytags, nodetags, relations, relationtags };
 };
