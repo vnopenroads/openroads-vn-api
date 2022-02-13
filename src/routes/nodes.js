@@ -6,6 +6,14 @@ var XML = require('../services/xml');
 var log = require('../services/log');
 var Node = require('../models/node-model');
 
+
+async function nodeXml(nodeIds, h) {
+  var nodes = await knex('current_nodes').whereIn('id', nodeIds);
+  var tags = await knex('current_node_tags').whereIn('node_id', nodeIds);
+  var xmlDoc = XML.write({ nodes: Node.withTags(nodes, tags, 'node_id') });
+  return h.response(xmlDoc.toString()).type('text/xml');
+}
+
 module.exports = [
   {
     /**
@@ -42,23 +50,13 @@ module.exports = [
      */
     method: 'GET',
     path: '/xml/node/{nodeId}',
-    handler: function (req, h) {
+    handler: async function (req, h) {
       var nodeId = parseInt(req.params.nodeId || '', 10);
       if (!nodeId || isNaN(nodeId)) {
         return Boom.badRequest('Node ID must be a non-zero number');
       }
+      return nodeXml([nodeId], h);
 
-      Promise.all([
-        knex('current_nodes').where('id', nodeId),
-        knex('current_node_tags').where('node_id', nodeId)
-      ])
-        .then(function (result) {
-          var xmlDoc = XML.write({
-            nodes: Node.withTags(result[0], result[1], 'node_id'),
-          });
-          return h.response(xmlDoc.toString()).type('text/xml');
-        })
-        .catch(Boom.internal);
     }
   },
   {
@@ -84,26 +82,10 @@ module.exports = [
      */
     method: 'GET',
     path: '/api/0.6/nodes',
-    handler: function (req, h) {
+    handler: async function (req, h) {
       var ids = req.query.nodes.split(',').map(Number);
-
-      if (ids.length === 0) {
-        return Boom.badRequest('IDs must be provided.');
-      }
-
-      Promise.all([
-        knex('current_nodes').whereIn('id', ids),
-        knex('current_node_tags').whereIn('node_id', ids)
-      ])
-        .then(function (result) {
-          console.log('result:', result);
-
-          var xmlDoc = XML.write({
-            nodes: Node.withTags(result[0], result[1], 'node_id')
-          });
-          return h.response(xmlDoc.toString()).type('text/xml');
-        })
-        .catch(Boom.internal);
+      if (ids.length === 0) { return Boom.badRequest('IDs must be provided.'); }
+      return nodeXml(ids, h);
     }
   }
 ];

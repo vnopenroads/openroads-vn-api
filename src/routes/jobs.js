@@ -15,7 +15,7 @@ module.exports = [
     handler: req => {
       const jobID = req.params.jobID;
       return rlpGeomQueue.getJob(jobID)
-        .catch(_ => Boom.notFound('Job ID not found'));
+        .catch(_ => Boom.notFound(`Job ID (${jobID}) not found`));
 
     }
   }
