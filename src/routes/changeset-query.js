@@ -9,9 +9,7 @@ var log = require('../services/log');
 // Currently, this only supports querying the changeset table by user.
 function changesetQuery(req, h) {
   var user = +req.query.user;
-  if (isNaN(user) || (!user && user !== 0)) {
-    return Boom.badRequest('invalid user ID');
-  }
+  if (isNaN(user) || (!user && user !== 0)) { return Boom.badRequest('invalid user ID'); }
 
   var userName;
   return knex.select('display_name').from('users')

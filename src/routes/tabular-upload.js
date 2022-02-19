@@ -1,7 +1,10 @@
 'use strict';
 
+//  import {csvParse} from 'd3-dsv';
+var csvParse = undefined;
+import('d3-dsv').then((x) => csvParse = x.csvParse);
+
 const _ = require('lodash');
-const csvParse = import('d3-dsv').csvParse;
 const errors = require('../util/errors');
 const { NO_ID } = require('../util/road-id-utils');
 const knex = require('../connection.js');
@@ -11,6 +14,7 @@ function upload(req) {
   try {
     parsed = csvParse(req.payload.toString());
   } catch (e) {
+    console.log("ERROR: ", e);
     return errors.noCSV;
   }
   if (parsed.columns.length === 0) { return errors.noCSVRows; }
@@ -24,7 +28,7 @@ function upload(req) {
   if (roadIds.includes(null)) { return errors.nullRoadIds; }
   if (roadIds.includes(NO_ID)) { return errors.cannotUseNoId; }
 
-  knex.select()
+  return knex.select()
     .from('road_properties')
     .whereIn('id', roadIds)
     .then(existingRoads => {

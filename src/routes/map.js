@@ -77,7 +77,7 @@ module.exports = [
      * @apiParam {Number[4]} bbox [min_lon, min_lat, max_lon, max_lat]
      *
      * @apiExample {curl} Example Usage:
-     *    curl http://localhost:4000/xml/map?bbox=123.81042480468751,9.584500864717155,123.81591796875,9.58991730708743
+     *    curl http://localhost:4000/api/0.6/map?bbox=123.81042480468751,9.584500864717155,123.81591796875,9.58991730708743
      *
      * @apiSuccessExample {xml} Success-Response:
      *  <osm version="6" generator="OpenRoads">

@@ -12,29 +12,20 @@ var models = {
   relation: require('../models/relation.js')
 };
 
-function upload(req, res) {
+async function upload(req, res) {
   console.log('upload changeset handler', req.params.changesetID);
   var changesetID = req.params.changesetID;
-  if (!changesetID || isNaN(changesetID)) {
-    return Boom.badRequest('Changeset ID must be a non-zero number');
-  }
+  if (!changesetID || isNaN(changesetID)) { return Boom.badRequest('Changeset ID must be a non-zero number'); }
 
   var changesetPayload = req.payload.osmChange;
   if (!changesetPayload) {
     log.error('No json or cannot parse req.payload.osmChange');
     return Boom.badRequest('Problem reading changeset JSON');
   }
+  var [changeset] = await knex('changesets').where('id', changesetID);
+  if (changeset === undefined) { throw Boom.notFound(`No such changeset ${changesetID}`); }
 
-  return knex('changesets')
-    .where('id', changesetID)
-
-    .then(function (meta) {
-      if (meta.length === 0) {
-        throw { name: 'notFound' };
-      }
-      return _upload(meta[0], changesetPayload);
-    })
-
+  return _upload(changeset, changesetPayload)
     .then(function (changeObject) {
       /* TODO
        * <diffResult generator="OpenStreetMap Server" version="0.6">
@@ -44,15 +35,9 @@ function upload(req, res) {
       */
       return changeObject;
     })
-
-    .catch(function (err) {
-      if (err.name === 'notFound') {
-        log.error('Changeset not found', err);
-        return Boom.notFound('Could not find changeset');
-      } else {
-        log.error(err);
-        return Boom.badImplementation('Could not complete changeset actions');
-      }
+    .catch((err) => {
+      log.error(err);
+      return Boom.internal('Could not complete changeset actions');
     });
 }
 
@@ -234,17 +219,14 @@ module.exports = [
      * @apiDescription Upload an OsmChange document to a given changeset.
      * Returns a <code>diffResult</code>.
      *
-     * @apiExample {xml} Payload
-     *  <osmChange version="0.6" generator="acme osm editor">
-     *    <modify>
-     *      <node id="1234" changeset="42" version="2" lat="12.1234567" lon="-8.7654321"/>
-     *        <tag k="amenity" v="school"/>
-     *      </node>
-     *    </modify>
-     *  </osmChange>
-     *
      * @apiExample {curl} Example Usage:
-     *  curl -d @change.osc -H 'Content-Type: text/xml' http://localhost:4000/api/0.6/changeset/1/upload
+     *  curl -d '<osmChange version="0.6" generator="acme osm editor">
+     *     <modify>
+     *       <node id="1234" changeset="42" version="2" lat="12.1234567" lon="-8.7654321">
+     *         <tag k="amenity" v="school"/>
+     *       </node>
+     *     </modify>
+     *   </osmChange>'  -H 'Content-Type: text/xml' http://localhost:4000/changeset/1/upload
      */
     method: 'POST',
     path: '/api/0.6/changeset/{changesetID}/upload',
