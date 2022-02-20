@@ -23,11 +23,12 @@ module.exports.testChangeset = function testChangeset(uid, user, comment) {
 
   this.create = function create() {
     var _self = this;
-    return server.inject({
+    var payload = {
       method: 'PUT',
       url: '/changeset/create',
       payload: _self.payload
-    })
+    };
+    return server.inject(payload)
       .then(function (res) {
         res.statusCode.should.eql(200);
         var id = +res.payload;
@@ -42,14 +43,18 @@ module.exports.testChangeset = function testChangeset(uid, user, comment) {
       throw new Error('The changeset was not created yet.');
     }
 
-    return server.inject({
+    var payload = {
       method: 'POST',
       url: '/changeset/' + this.changesetId + '/upload',
-      payload: {
-        osmChange: data
-      }
-    })
-      .then(function (res) {
+      payload: { osmChange: data }
+    };
+
+    // console.log("PAYLOAD.method:  ", payload.method);
+    // console.log("PAYLOAD.url:     ", payload.url);
+    // console.log("PAYLOAD.payload: ", payload.payload);
+
+    return server.inject(payload)
+      .then(res => {
         res.statusCode.should.eql(200);
         return res;
       });

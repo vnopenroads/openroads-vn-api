@@ -51,7 +51,7 @@ var Relation = {
   },
 
 
-  fromEntity: function(entity, meta) {
+  fromEntity: function (entity, meta) {
     var model = {};
     model.visible = (entity.visible !== 'false' && entity.visible !== false);
     model.version = parseInt(entity.version, 10) || 1;
@@ -70,18 +70,19 @@ var Relation = {
     return model;
   },
 
-  fromOSM: function(xml) {
+  fromOSM: function (xml) {
   },
 
-  createDependents: function(raw, ids, map, transaction) {
+  createDependents: function (raw, ids, map, transaction) {
     var tags = [];
     var members = [];
-    raw.forEach(function(entity, i) {
+    raw.forEach(function (entity, i) {
 
       var id = ids[i];
+      console.log("Trying to get an id from: ", ids[i]);
       if (entity.tag) {
         var _tags = validateArray(entity.tag);
-        tags.push(_tags.map(function(tag) {
+        tags.push(_tags.map(function (tag) {
           return {
             k: tag.k,
             v: tag.v,
@@ -92,7 +93,7 @@ var Relation = {
 
       if (entity.member) {
         var _members = validateArray(entity.member);
-        members.push(_members.map(function(member, i) {
+        members.push(_members.map(function (member, i) {
 
           // We can use the map variable to get the newly-created entity ID
           // if the one that came from the editor is a negative value.
@@ -107,72 +108,72 @@ var Relation = {
     });
 
     return Promise.all([
-      {data: members, table: Member.tableName},
-      {data: tags, table: RelationTag.tableName}
-    ].map(function(d) {
+      { data: members, table: Member.tableName },
+      { data: tags, table: RelationTag.tableName }
+    ].map(function (d) {
       if (d.data.length) {
         var data = [].concat.apply([], d.data);
         return transaction(d.table).insert(data);
       }
       return [];
     }))
-    .catch(function(err) {
-      log.error('Creating relation tags and members', err);
-      throw new Error(err);
-    });
+      .catch(function (err) {
+        log.error('Creating relation tags and members', err);
+        throw new Error(err);
+      });
   },
 
-  destroyDependents: function(ids, transaction) {
+  destroyDependents: function (ids, transaction) {
     return Promise.all([
       transaction(Member.tableName).whereIn('relation_id', ids).del(),
       transaction(RelationTag.tableName).whereIn('relation_id', ids).del()
-    ]).catch(function(err) {
+    ]).catch(function (err) {
       log.error('Destroying relation tags and members', err);
     });
   },
 
-  save: function(q) {
+  save: function (q) {
     var actions = [];
     var model = this;
-    ['create', 'modify', 'delete'].forEach(function(action) {
+    ['create', 'modify', 'delete'].forEach(function (action) {
       if (q.changeset[action] && q.changeset[action].relation) {
         actions.push(action);
       }
     });
-    return Promise.all(actions.map(function(action) {
+    return Promise.all(actions.map(function (action) {
       return model[action](q);
     }))
-    .catch(function(err) {
-      log.error('Relation changeset fails', err);
-      throw new Error(err);
-    });
+      .catch(function (err) {
+        log.error('Relation changeset fails', err);
+        throw new Error(err);
+      });
   },
 
-  create: function(q) {
+  create: function (q) {
     var raw = validateArray(q.changeset.create.relation);
 
-    var models = raw.map(function(entity) {
+    var models = raw.map(function (entity) {
       return Relation.fromEntity(entity, q.meta);
     });
 
     return q.transaction(Relation.tableName).insert(models).returning('id')
-    .then(function(ids) {
-      // We don't necessarily need to update these ids, but it's useful for testing,
-      // as this will be included in the server response.
-      raw.forEach(function(entity, i) {
-        q.map.relation[entity.id] = ids[i];
-      });
+      .then(function (ids) {
+        // We don't necessarily need to update these ids, but it's useful for testing,
+        // as this will be included in the server response.
+        raw.forEach(function (entity, i) {
+          q.map.relation[entity.id] = ids[i].id;
+        });
 
-      // Save members and tags.
-      return Relation.createDependents(raw, ids, q.map, q.transaction);
-    })
-    .catch(function(err) {
-      log.error('Inserting new relations', err);
-      throw new Error(err);
-    });
+        // Save members and tags.
+        return Relation.createDependents(raw, _.map(ids, 'id'), q.map, q.transaction);
+      })
+      .catch(function (err) {
+        log.error('Inserting new relations', err);
+        throw new Error(err);
+      });
   },
 
-  modify: function(q) {
+  modify: function (q) {
     var raw = q.changeset.modify.relation;
 
     if (!Array.isArray(raw)) {
@@ -181,25 +182,25 @@ var Relation = {
 
     var ids = _.map(raw, 'id');
 
-    return Promise.all(raw.map(function(entity) {
+    return Promise.all(raw.map(function (entity) {
       var model = Relation.fromEntity(entity, q.meta);
       return q.transaction(Relation.tableName).where({ id: entity.id }).update(model)
     }))
-    .then(function() {
-      return Relation.destroyDependents(ids, q.transaction);
-    })
-    .then(function() {
-      return Relation.createDependents(raw, ids, q.map, q.transaction);
-    })
-    .catch(function(err) {
-      log.error('Modifying relationship status, it\'s complicated', err);
-      throw new Error(err);
-    });
+      .then(function () {
+        return Relation.destroyDependents(ids, q.transaction);
+      })
+      .then(function () {
+        return Relation.createDependents(raw, ids, q.map, q.transaction);
+      })
+      .catch(function (err) {
+        log.error('Modifying relationship status, it\'s complicated', err);
+        throw new Error(err);
+      });
   },
 
   // TODO this destroy function does not implement a check
   // to see if any relation is a part of any other relation.
-  'delete': function(q) {
+  'delete': function (q) {
     var raw = q.changeset['delete'].relation;
 
     if (!Array.isArray(raw)) {
@@ -209,14 +210,14 @@ var Relation = {
     var ids = _.map(raw, 'id');
 
     return q.transaction(Relation.tableName).whereIn('id', ids)
-    .update({ visible: false, changeset_id: q.meta.id }).returning('id')
-    .then(function(removed) {
-      return Relation.destroyDependents(removed, q.transaction);
-    })
-    .catch(function(err) {
-      log.error('Deleting relations in delete', err);
-      throw new Error(err);
-    });
+      .update({ visible: false, changeset_id: q.meta.id }).returning('id')
+      .then(function (removed) {
+        return Relation.destroyDependents(removed, q.transaction);
+      })
+      .catch(function (err) {
+        log.error('Deleting relations in delete', err);
+        throw new Error(err);
+      });
     return query;
   }
 };

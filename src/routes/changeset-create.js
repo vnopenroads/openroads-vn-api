@@ -6,7 +6,7 @@ var knex = require('../connection');
 var validateArray = require('../util/validate-array');
 var log = require('../services/log');
 
-function changesetCreate(req, res) {
+async function changesetCreate(req, res) {
   var now = new Date();
   var changeset = {};
   var uid = 1;
@@ -21,60 +21,48 @@ function changesetCreate(req, res) {
     username = req.payload.user;
   }
 
-  return knex('users')
-    .where('id', uid)
-    .then(function (users) {
-      if (users.length > 0) {
-        return uid;
-      }
-      return knex('users')
-        .insert({
-          id: uid,
-          display_name: username,
-          // TODO: we aren't using the following fields; they're just here to
-          // cooperate w the database schema.
-          email: uid + '@email.org',
-          pass_crypt: '00000000000000000000000000000000',
-          data_public: true,
-          creation_time: new Date()
-        });
-    })
-
-    .then(function () {
-      // TODO do this in a transaction
-      return knex('changesets')
-        .returning('id')
-        .insert({
-          user_id: uid,
-          created_at: now,
-          closed_at: now,
-          num_changes: 0
-        });
-    })
-
-    .then(function (ids) {
-      if (!ids.length) { throw new Error('Could not add changeset to database.'); }
-      var id = ids[0];
-      if (changeset.tag == null || changeset.tag.length === 0) { return id; }
-
-      var tags = changeset.tag.map(function (tag) {
-        return _.extend({}, tag, {
-          changeset_id: id
-        });
-      });
-      return knex('changeset_tags')
-        .insert(tags)
-        .then(() => id);
-    })
-
-    .then(function (id) {
-      return String(id);
-    })
-
-    .catch(function (err) {
-      log.error(err);
-      return Boom.conflict(err);
+  var [user] = await knex('users').where('id', uid);
+  if (user == undefined) {
+    await knex('users').insert({
+      id: uid,
+      display_name: username,
+      // TODO: we aren't using the following fields; they're just here to
+      // cooperate w the database schema.
+      email: uid + '@email.org',
+      pass_crypt: '00000000000000000000000000000000',
+      data_public: true,
+      creation_time: new Date()
     });
+  }
+
+
+  // TODO do this in a transaction
+  var [{ id }] = await knex('changesets')
+    .returning('id')
+    .insert({
+      user_id: uid,
+      created_at: now,
+      closed_at: now,
+      num_changes: 0
+    });
+
+  console.log(id);
+
+  if (id == undefined) { throw new Error('Could not add changeset to database.'); }
+  if (changeset.tag == null || changeset.tag.length === 0) { return id; }
+
+  var tags = changeset.tag.map(tag => _.extend({}, tag, { changeset_id: id }));
+  return knex('changeset_tags').insert(tags).then(() => id);
+  // })
+
+  // .then(function (id) {
+  //   return String(id);
+  // })
+
+  // .catch(function (err) {
+  //   log.error(err);
+  //   return Boom.conflict(err);
+  // });
 }
 
 module.exports = [

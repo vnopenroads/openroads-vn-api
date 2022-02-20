@@ -1,5 +1,6 @@
 'use strict'
-const fetch = require('node-fetch');
+var fetch = undefined;
+import('node-fetch').then(e => fetch = e.default);
 const knex = require('connection');
 const utils = require('../utils.js');
 const config = require('config/config').config;
@@ -58,40 +59,38 @@ function copySnapshotData(id, payload) {
     return prom;
 }
 
-function retrieveSnapshotMeta(id) {
+async function retrieveSnapshotMeta(id) {
     console.log("Generating meta data for " + id);
-    return (result) => {
-        return knex('cba_road_snapshots_data')
-            .select('*')
-            .where('cba_road_snapshot_id', '=', id)
-            .then((response) => {
-                var url = `${config.cba_api}/evaluate_assets`;
-                var opts = {
-                    method: 'POST',
-                    body: JSON.stringify(response.map(utils.convertToPythonFormat)),
-                    headers: { 'Content-Type': 'application/json' }
-                };
-                return fetch(url, opts)
-                    .then((response) => response.text())
-                    .then((raw_response) => {
-                        try {
-                            let response = JSON.parse(raw_response);
-                            var total = response['stats']['valid'] + response['stats']['invalid'];
-                            return knex('cba_road_snapshots')
-                                .update({
-                                    num_records: total,
-                                    valid_records: response['stats']['valid'],
-                                    invalid_reasons: response['invalids']
-                                })
-                                .where({ id });
-                        } catch (err) {
-                            console.error("Error:", err);
-                            console.error("Response body:", raw_response);
-                            return Boom.internal("Error in response from CBA API");
-                        }
-                    });
-            });
-    }
+    var response = await knex('cba_road_snapshots_data')
+        .select('*')
+        .where('cba_road_snapshot_id', '=', id);
+
+    var url = `${config.cba_api}/evaluate_assets`;
+    var opts = {
+        method: 'POST',
+        body: JSON.stringify(response.map(utils.convertToPythonFormat)),
+        headers: { 'Content-Type': 'application/json' }
+    };
+
+    return fetch(url, opts)
+        .then((response) => response.text())
+        .then((raw_response) => {
+            try {
+                let response = JSON.parse(raw_response);
+                var total = response['stats']['valid'] + response['stats']['invalid'];
+                return knex('cba_road_snapshots')
+                    .update({
+                        num_records: total,
+                        valid_records: response['stats']['valid'],
+                        invalid_reasons: response['invalids']
+                    })
+                    .where({ id });
+            } catch (err) {
+                console.error("Error:", err);
+                console.error("Response body:", raw_response);
+                return Boom.internal("Error in response from CBA API");
+            }
+        });
 }
 
 function delete1() {
@@ -101,27 +100,19 @@ function delete2() {
     return knex('cba_road_snapshots_data').where('cba_road_snapshot_id', '>', 2).del();
 }
 
-exports.createSnapshot = function (req, res) {
-
-    return knex('cba_road_snapshots').insert(req.payload, 'id')
-        .then((result) => {
-            var [snapshotId] = result;
-            console.log(`Got snapshotId: ${snapshotId}`);
-            return copySnapshotData(snapshotId, req.payload)
-                .then(retrieveSnapshotMeta(snapshotId));
-        })
-        .catch(utils.errorHandler);
+exports.createSnapshot = async function (req, res) {
+    var [snapshotId] = await knex('cba_road_snapshots').insert(req.payload, 'id');
+    console.log(`Got snapshotId: ${snapshotId.id}`);
+    return copySnapshotData(snapshotId.id, req.payload).then(retrieveSnapshotMeta(snapshotId.id));
 }
 
-function getSnapshotRoads(id) {
-    console.log("SnapshotId: " + id);
+exports.getSnapshotRoads = function getSnapshotRoads(id) {
+    console.log("Getting snapshot roads for SnapshotId: " + id);
     return knex('cba_road_snapshots_data')
         .select('*')
         .where('cba_road_snapshot_id', '=', id)
-        // .limit(500)
         .then((response) => response.map(utils.convertToPythonFormat));
 }
-exports.getSnapshotRoads = getSnapshotRoads;
 
 exports.getRoads = function (req, res) {
     const province = req.query.province;

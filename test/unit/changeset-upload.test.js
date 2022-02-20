@@ -26,30 +26,18 @@ function makeNodes(changesetId, ii) {
 }
 
 describe('changeset upload endpoint', function () {
-  after(function (done) {
-    testChangeset.remove()
-      .then(function () {
-        return done();
-      })
-      .catch(done);
-  });
+  after(done => testChangeset.remove().then(done).catch(done));
 
-  before('Create changeset', function (done) {
-    testChangeset.create()
-      .then(function (changesetId) {
-        cid = changesetId;
-        return done();
-      })
-      .catch(done);
-  });
+  before('Create changeset', done => testChangeset.create()
+    .then(changesetId => { cid = changesetId; return done(); })
+    .catch(done)
+  );
 
   var cs = new Change();
 
-  beforeEach(function () {
-    cs.wipe();
-  });
+  beforeEach(() => cs.wipe());
 
-  it('Creates 1 node', function (done) {
+  it('Creates 1 node', done => {
     cs.create('node', new Node({ changeset: cid }));
     testChangeset.upload(cs.get())
       .then(function (res) { return done(); })
@@ -94,7 +82,7 @@ describe('changeset upload endpoint', function () {
     ];
     cs.create('node', nodes).create('way', ways);
     testChangeset.upload(cs.get())
-      .then(function (res) { return done(); })
+      .then(_ => done())
       .catch(done);
   });
 
@@ -104,36 +92,30 @@ describe('changeset upload endpoint', function () {
     var relation = new Relation({ changeset: cid }).members('node', nodes).members('way', way);
     cs.create('node', nodes).create('way', way).create('relation', relation);
     testChangeset.upload(cs.get())
-      .then(function (res) { return done(); })
+      .then(_ => done())
       .catch(done);
   });
 
   it('Modifies 1 node', function (done) {
-    knex('current_nodes').where('changeset_id', cid).then(function (nodes) {
+    knex('current_nodes').limit(1).then(nodes => {
       nodes[0].changeset = cid;
       cs.modify('node', new Node(nodes[0]));
       testChangeset.upload(cs.get())
-        .then(function (res) { return done(); })
+        .then(res => done())
         .catch(done);
     });
   });
 
   it('Modifies up to 50 nodes', function (done) {
-    knex('current_nodes').where('changeset_id', cid).then(function (nodes) {
-      var newNodes = [];
-      var modified = 0;
-      nodes = nodes.slice(0, 50);
-      nodes.forEach(function (node) {
-        if (node) {
-          node.changeset = cid;
-          modified += 1;
-          newNodes.push(new Node(node));
-        }
+    knex('current_nodes').limit(50).then(function (nodes) {
+      var newNodes = nodes.slice(0, 50).map(node => {
+        node.changeset = cid;
+        return new Node(node);
       });
-      log.info('Modifying ' + modified + ' nodes');
+      log.info('Modifying ' + newNodes.length + ' nodes');
       cs.modify('node', newNodes);
       testChangeset.upload(cs.get())
-        .then(function (res) { return done(); })
+        .then(_ => done())
         .catch(done);
     });
   });
@@ -150,29 +132,24 @@ describe('changeset upload endpoint', function () {
     });
   });
 
-  it('Creates 500 nodes, modifies up to 10 ways', function (done) {
-    knex('current_ways').where('changeset_id', cid).then(function (ways) {
+  it('Creates 500 nodes, modifies up to 10 ways', done => {
+    knex('current_ways').limit(10).then(ways => {
       ways = ways.slice(0, 10);
       var nodes = makeNodes(cid, 500);
-      var newWays = [];
-      var modified = 0;
-      ways.forEach(function (way) {
-        if (way) {
-          modified += 1;
-          way.changeset = cid;
-          newWays.push(new Way(way).nodes(nodes));
-        }
+      var newWays = ways.map(way => {
+        way.changeset = cid;
+        return new Way(way).nodes(nodes);
       });
-      log.info('Modifying ' + modified + ' ways');
+      log.info('Modifying ' + newWays.length + ' ways');
       cs.create('node', nodes).modify('way', newWays);
       testChangeset.upload(cs.get())
-        .then(function (res) { return done(); })
+        .then(_ => done())
         .catch(done);
     });
   });
 
   it('Modifies a relation', function (done) {
-    knex('current_relations').where('changeset_id', cid).then(function (relations) {
+    knex('current_relations').limit(1).then(function (relations) {
       var nodes = makeNodes(cid, 150);
       var relation = new Relation({ id: relations[0].id, changeset: cid }).members('node', nodes);
       cs.create('node', nodes).modify('relation', relation);

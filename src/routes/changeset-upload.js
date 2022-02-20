@@ -41,55 +41,45 @@ async function upload(req, res) {
     });
 }
 
-function _upload(meta, changeset) {
+async function _upload(meta, payload) {
   // Useful to keep track of how long stuff takes.
-  var time = new Date();
   log.info('Starting changeset transaction');
-  return knex.transaction(function (transaction) {
+  return knex.transaction(async function (transaction) {
 
     var queryData = {
       // Map of old ids to newly-created ones.
-      map: {
-        node: {},
-        way: {},
-        relation: {}
-      },
+      map: { node: {}, way: {}, relation: {} },
       transaction: transaction,
-      changeset: changeset,
+      changeset: payload,
       meta: meta
     };
+    var catchFn = err => {
+      // Once we get here, rollback should happen automatically,
+      // since we are returning promises in this transaction.
+      // https://github.com/tgriesser/knex/issues/362
 
-    return models.node.save(queryData)
-      .then(function () {
-        log.info('Nodes transaction completed', (new Date() - time) / 1000, 'seconds');
-        time = new Date();
-        return models.way.save(queryData);
-      })
-      .then(function () {
-        log.info('Ways transaction completed', (new Date() - time) / 1000, 'seconds');
-        time = new Date();
-        return models.relation.save(queryData);
-      })
-      .then(function (saved) {
-        log.info('Relations transaction completed', (new Date() - time) / 1000, 'seconds');
-        time = new Date();
-        var newMeta = updateChangeset(meta, changeset);
-        return knex('changesets')
-          .where('id', meta.id)
-          .update(newMeta)
-          .then(function () {
-            log.info('New changeset updated', (new Date() - time) / 1000, 'seconds');
-            return { changeset: Object.assign({}, newMeta, saved), created: queryData.map };
-          });
-      })
-      .catch(function (err) {
-        // Once we get here, rollback should happen automatically,
-        // since we are returning promises in this transaction.
-        // https://github.com/tgriesser/knex/issues/362
+      log.error('Changeset update fails', err);
+      throw 'Could not update changeset';
+    };
 
-        log.error('Changeset update fails', err);
-        throw 'Could not update changeset';
-      });
+    var time = new Date();
+    await models.node.save(queryData).catch(catchFn);
+    log.info('Nodes transaction completed', (new Date() - time) / 1000, 'seconds');
+
+    time = new Date();
+    await models.way.save(queryData).catch(catchFn);
+    log.info('Ways transaction completed', (new Date() - time) / 1000, 'seconds');
+
+    time = new Date();
+    var saved = await models.relation.save(queryData).catch(catchFn);
+    log.info('Relations transaction completed', (new Date() - time) / 1000, 'seconds');
+
+    time = new Date();
+    var newMeta = updateChangeset(meta, payload);
+    await knex('changesets').where('id', meta.id).update(newMeta).catch(catchFn);
+    log.info('New changeset updated', (new Date() - time) / 1000, 'seconds');
+
+    return { changeset: Object.assign({}, newMeta, saved), created: queryData.map };
   });
 }
 

@@ -1,5 +1,5 @@
 'use strict'
-const fetch = require('node-fetch');
+// const fetch = require('node-fetch');
 const knex = require('connection');
 const utils = require('../utils.js');
 var Boom = require('@hapi/boom');

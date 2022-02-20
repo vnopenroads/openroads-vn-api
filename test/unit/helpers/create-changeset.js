@@ -9,15 +9,13 @@ function toArray(val) {
 }
 
 function parse(entities) {
-  return toArray(entities).map(function(entity) {
-    if (entity.get) {
-      return entity.get();
-    }
+  return toArray(entities).map(entity => {
+    if (entity.get) { return entity.get(); }
     else return entity
   })
 }
 
-var newChange = function(obj) {
+var newChange = function (obj) {
   var change = {
     create: {},
     modify: {},
@@ -28,38 +26,32 @@ var newChange = function(obj) {
   return this;
 }
 
-newChange.prototype.create = function(type, entities) {
+newChange.prototype.create = function (type, entities) {
   entities = parse(entities);
-  if (this.change.create[type] && this.change.create[type].length) {
-    this.change.create[type] = this.change.create[type].concat(entities);
-  }
-  else this.change.create[type] = entities;
+  var x = this.change.create[type];
+  this.change.create[type] = (x && x.length) ? x.concat(entities) : entities;
   return this;
 }
 
-newChange.prototype.modify = function(type, entities) {
+newChange.prototype.modify = function (type, entities) {
   entities = parse(entities);
-  if (this.change.modify[type] && this.change.modify[type].length) {
-    this.change.modify[type] = this.change.modify[type].concat(entities);
-  }
-  else this.change.modify[type] = entities;
+  var x = this.change.modify[type];
+  this.change.modify[type] = (x && x.length) ? x.concat(entities) : entities;
   return this;
 }
 
-newChange.prototype.delete = function(type, entities) {
+newChange.prototype.delete = function (type, entities) {
   entities = parse(entities);
-  if (this.change.delete[type] && this.change.delete[type].length) {
-    this.change.delete[type] = this.change.delete[type].concat(entities);
-  }
-  else this.change.delete[type] = entities;
+  var x = this.change.delete[type];
+  this.change.delete[type] = (x && x.length) ? x.concat(entities) : entities;
   return this;
 }
 
-newChange.prototype.get = function() {
+newChange.prototype.get = function () {
   return this.change;
 }
 
-newChange.prototype.wipe = function() {
+newChange.prototype.wipe = function () {
   this.change = {
     create: {},
     modify: {},

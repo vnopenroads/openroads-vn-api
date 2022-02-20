@@ -5,7 +5,7 @@ var Changeset = require('./helpers/create-changeset');
 
 describe('changeset create endpoint', function () {
   it('saves bounding box and returns a numerical changeset id.', function (done) {
-    server.inject({
+    var payload = {
       method: 'PUT',
       url: '/changeset/create',
       payload: {
@@ -15,14 +15,13 @@ describe('changeset create endpoint', function () {
           changeset: new Changeset().getAttrs()
         }
       }
-    }).then(function (res) {
+    };
+
+    server.inject(payload).then(function (res) {
       res.statusCode.should.eql(200);
       var id = +res.payload;
       (id).should.be.within(0, Number.MAX_VALUE);
       done();
-    })
-      .catch(function (err) {
-        return done(err);
-      });
+    }).catch(done);
   });
 });

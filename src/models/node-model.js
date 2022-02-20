@@ -19,6 +19,9 @@ var WayNode = require('./way-node.js');
 var Way = require('./way.js');
 var validateArray = require('../util/validate-array');
 
+var toArray = val => _.isArray(val) ? val : [val];
+var flatten = arr => [].concat.apply([], arr);
+
 var Node = {
 
   tableName: 'current_nodes',
@@ -182,9 +185,7 @@ var Node = {
         actions.push(action);
       }
     });
-    return Promise.all(actions.map(function (action) {
-      return model[action](q);
-    }))
+    return Promise.all(actions.map(action => model[action](q)))
       .catch(function (err) {
         log.error('Node changeset fails', err);
         throw new Error(err);
@@ -192,26 +193,21 @@ var Node = {
   },
 
   create: function (q) {
-
-    var raw = q.changeset.create.node;
-
-    if (!Array.isArray(raw)) {
-      raw = [raw];
-    }
+    var raw = toArray(q.changeset.create.node);
 
     // Map each node creation to a model with proper attributes.
     var models = raw.map(function (entity) { return Node.fromEntity(entity, q.meta); });
 
     function remap(_ids) {
-      var ids = [].concat.apply([], _ids);
-      log.info('Remapping', ids.length, 'node IDs');
+      var ids = flatten(_ids);
       var tags = [];
+
       raw.forEach(function (entity, i) {
         // create a map of the old id to new id for ways, relations to reference.
-        q.map.node[entity.id] = ids[i];
+        q.map.node[entity.id] = ids[i].id;
         // update the new node id on the changeset
         // TODO is this step necessary?
-        entity.id = ids[i];
+        entity.id = ids[i].id;
 
         // Check for Node tags, and validate as array.
         if (entity.tag) {
@@ -225,13 +221,14 @@ var Node = {
           }));
         }
       });
+
       return tags;
     }
 
     function saveTags(tags) {
       // Only save tags if there are any.
       if (tags.length) {
-        tags = [].concat.apply([], tags);
+        tags = flatten(tags);
 
         return Promise.all(Chunk(tags).map(function (tags) {
           return q.transaction(NodeTag.tableName).insert(tags)
@@ -245,9 +242,8 @@ var Node = {
       return [];
     }
 
-    return Promise.all(Chunk(models).map(function (models) {
-      return q.transaction(Node.tableName).insert(models).returning('id');
-    }))
+    var insertNodePromises = Chunk(models).map(c => q.transaction(Node.tableName).insert(c).returning('id'));
+    return Promise.all(insertNodePromises)
       .then(remap)
       .then(saveTags)
       .catch(function (err) {
@@ -257,11 +253,7 @@ var Node = {
   },
 
   modify: function (q) {
-    var raw = q.changeset.modify.node;
-
-    if (!Array.isArray(raw)) {
-      raw = [raw];
-    }
+    var raw = toArray(q.changeset.modify.node);
 
     function deleteTags() {
       var ids = raw.map(function (entity) { return parseInt(entity.id, 10); });
@@ -287,8 +279,7 @@ var Node = {
           }
         });
         if (tags.length) {
-          tags = [].concat.apply([], tags);
-          return q.transaction(NodeTag.tableName).insert(tags);
+          return q.transaction(NodeTag.tableName).insert(flatten(tags));
         }
         return [];
       })

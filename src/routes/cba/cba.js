@@ -2,6 +2,8 @@ const snapshotHandler = require('../../services/handlers/cba/snapshots.js')
 const resultsHandler = require('../../services/handlers/cba/results.js')
 const mapHandler = require('../../services/handlers/cba/map.js')
 
+console.log("JAMIE");
+
 module.exports = [
   {
     method: 'GET',
