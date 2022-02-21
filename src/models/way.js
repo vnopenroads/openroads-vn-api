@@ -165,7 +165,7 @@ var Way = {
 
     var _ids = await Promise.all(wayInsertPromises).catch(catchFn);
     var ids = [].concat.apply([], _ids);
-    log.info('Remapping', ids.length, 'way IDs');
+    log.debug('Remapping', ids.length, 'way IDs');
 
     var wayNodes = [];
     var tags = [];
@@ -254,18 +254,19 @@ var Way = {
     return q.transaction(WayNode.tableName).insert(wayNodes);
   },
 
-  'delete': function (q) {
+  'delete': async function (q) {
+    var catchFn = err => { log.error('Deleting ways in delete', err); return Boom.internal(err); };
     var ids = _.map(q.changeset['delete'].way, 'id');
-    return q.transaction(Way.tableName).whereIn('id', ids)
-      .update({ visible: false, changeset_id: q.meta.id }).returning('id')
-      .then(function (invisibleWays) {
-        q.transaction(WayTag.tableName).whereIn('way_id', invisibleWays).del();
-        return q.transaction(WayNode.tableName).whereIn('way_id', invisibleWays).del()
-      })
-      .catch(function (err) {
-        log.error('Deleting ways in delete', err);
-        throw new Error(err);
-      });
+    var invisibleWays = await q.transaction(Way.tableName)
+      .whereIn('id', ids)
+      .update({ visible: false, changeset_id: q.meta.id })
+      .returning('id')
+      .catch(catchFn);
+
+    var invisibleIds = invisibleWays.map(e => e.id);
+    await q.transaction(WayTag.tableName).whereIn('way_id', invisibleIds).del().catch(catchFn);
+    await q.transaction(WayNode.tableName).whereIn('way_id', invisibleIds).del().catch(catchFn);
+
   }
 };
 

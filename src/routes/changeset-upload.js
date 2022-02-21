@@ -13,7 +13,6 @@ var models = {
 };
 
 async function upload(req, res) {
-  console.log('upload changeset handler', req.params.changesetID);
   var changesetID = req.params.changesetID;
   if (!changesetID || isNaN(changesetID)) { return Boom.badRequest('Changeset ID must be a non-zero number'); }
 
@@ -43,7 +42,7 @@ async function upload(req, res) {
 
 async function _upload(meta, payload) {
   // Useful to keep track of how long stuff takes.
-  log.info('Starting changeset transaction');
+  log.debug('Starting changeset transaction');
   return knex.transaction(async function (transaction) {
 
     var queryData = {
@@ -64,20 +63,20 @@ async function _upload(meta, payload) {
 
     var time = new Date();
     await models.node.save(queryData).catch(catchFn);
-    log.info('Nodes transaction completed', (new Date() - time) / 1000, 'seconds');
+    log.debug('Nodes transaction completed', (new Date() - time) / 1000, 'seconds');
 
     time = new Date();
     await models.way.save(queryData).catch(catchFn);
-    log.info('Ways transaction completed', (new Date() - time) / 1000, 'seconds');
+    log.debug('Ways transaction completed', (new Date() - time) / 1000, 'seconds');
 
     time = new Date();
     var saved = await models.relation.save(queryData).catch(catchFn);
-    log.info('Relations transaction completed', (new Date() - time) / 1000, 'seconds');
+    log.debug('Relations transaction completed', (new Date() - time) / 1000, 'seconds');
 
     time = new Date();
     var newMeta = updateChangeset(meta, payload);
     await knex('changesets').where('id', meta.id).update(newMeta).catch(catchFn);
-    log.info('New changeset updated', (new Date() - time) / 1000, 'seconds');
+    log.debug('New changeset updated', (new Date() - time) / 1000, 'seconds');
 
     return { changeset: Object.assign({}, newMeta, saved), created: queryData.map };
   });

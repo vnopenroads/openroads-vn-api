@@ -296,7 +296,7 @@ var Node = {
       .update({ visible: false, changeset_id: q.meta.id }).returning('id')
 
       .then(function (invisibleNodes) {
-        return q.transaction(NodeTag.tableName).whereIn('node_id', invisibleNodes)
+        return q.transaction(NodeTag.tableName).whereIn('node_id', _.map(invisibleNodes, 'id'))
           .del().returning('node_id')
       })
       .catch(function (err) {

@@ -46,23 +46,11 @@ async function changesetCreate(req, res) {
       num_changes: 0
     });
 
-  console.log(id);
-
   if (id == undefined) { throw new Error('Could not add changeset to database.'); }
   if (changeset.tag == null || changeset.tag.length === 0) { return id; }
 
   var tags = changeset.tag.map(tag => _.extend({}, tag, { changeset_id: id }));
   return knex('changeset_tags').insert(tags).then(() => id);
-  // })
-
-  // .then(function (id) {
-  //   return String(id);
-  // })
-
-  // .catch(function (err) {
-  //   log.error(err);
-  //   return Boom.conflict(err);
-  // });
 }
 
 module.exports = [

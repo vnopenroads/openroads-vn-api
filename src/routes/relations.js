@@ -142,30 +142,15 @@ module.exports = [
 
   }];
 
-function queryRelations(relationIds, full) {
-  return knex('current_relations')
-    .whereIn('id', relationIds)
-    .then(function (rels) {
-      return Promise.all([
-        knex('current_relation_tags')
-          .whereIn('relation_id', relationIds),
-        full ? knex('current_relation_members')
-          .whereIn('relation_id', relationIds) : []
-      ])
-        .then(function (result) {
-          var tags = result[0];
-          var members = result[1];
-          rels.forEach(function (rel) {
-            rel.tags = tags.filter(function (t) {
-              return t.relation_id === rel.id;
-            });
-            if (full) {
-              rel.members = members.filter(function (m) {
-                return m.relation_id === rel.id;
-              });
-            }
-          });
-          return rels;
-        });
-    });
+async function queryRelations(relationIds, full) {
+  var rels = await knex('current_relations').whereIn('id', relationIds);
+  var tags = await knex('current_relation_tags').whereIn('relation_id', relationIds);
+  var members = full ? await knex('current_relation_members').whereIn('relation_id', relationIds) : []
+  rels.forEach(function (rel) {
+    rel.tags = tags.filter(t => t.relation_id === rel.id);
+    if (full) {
+      rel.members = members.filter(m => m.relation_id === rel.id);
+    }
+  });
+  return rels;
 }

@@ -1,14 +1,10 @@
 'use strict';
 var knex = require('connection');
 var server = require('../../bootstrap.test');
+var log = require('services/log.js');
 
 module.exports.createGet = function createGet(base) {
-  return function (url) {
-    return server.inject({
-      method: 'GET',
-      url: base + url
-    });
-  }
+  return url => server.inject({ method: 'GET', url: base + url })
 };
 
 module.exports.testChangeset = function testChangeset(uid, user, comment) {
@@ -21,21 +17,19 @@ module.exports.testChangeset = function testChangeset(uid, user, comment) {
     osm: { changeset: {} }
   };
 
-  this.create = function create() {
+  this.create = async function create() {
     var _self = this;
     var payload = {
       method: 'PUT',
       url: '/changeset/create',
       payload: _self.payload
     };
-    return server.inject(payload)
-      .then(function (res) {
-        res.statusCode.should.eql(200);
-        var id = +res.payload;
-        id.should.be.within(0, Number.MAX_VALUE);
-        _self.changesetId = id;
-        return id;
-      });
+    var res = await server.inject(payload);
+    res.statusCode.should.eql(200);
+    var id = +res.payload;
+    id.should.be.within(0, Number.MAX_VALUE);
+    _self.changesetId = id;
+    return id;
   };
 
   this.upload = function upload(data) {
@@ -60,65 +54,36 @@ module.exports.testChangeset = function testChangeset(uid, user, comment) {
       });
   };
 
-  this.remove = function remove() {
+  this.remove = async function remove() {
     var _self = this;
     if (this.changesetId === null) {
       throw new Error('The changeset was not created yet.');
     }
 
-    return knex.transaction(function (transaction) {
-      var nodeIds = knex.select('id')
-        .from('current_nodes')
-        .where('changeset_id', _self.changesetId);
+    return knex.transaction(async function (transaction) {
+      var nodeIds = knex.select('id').from('current_nodes').where('changeset_id', _self.changesetId);
+      var wayIds = knex.select('id').from('current_ways').where('changeset_id', _self.changesetId);
+      var relationIds = knex.select('id').from('current_relations').where('changeset_id', _self.changesetId);
 
-      var wayIds = knex.select('id')
-        .from('current_ways')
-        .where('changeset_id', _self.changesetId);
-
-      var relationIds = knex.select('id')
-        .from('current_relations')
-        .where('changeset_id', _self.changesetId);
-
-      return transaction('current_way_nodes')
-        .whereIn('node_id', nodeIds)
-        .orWhereIn('way_id', wayIds)
-        .del()
-        .returning('*')
-        .then(function (deleted) {
-          console.log(deleted.length, 'way nodes deleted');
-          return transaction('current_way_tags').whereIn('way_id', wayIds).del().returning('*');
-        })
-        .then(function (deleted) {
-          console.log(deleted.length, 'way tags deleted');
-          return transaction('current_node_tags').whereIn('node_id', nodeIds).del().returning('*');
-        })
-        .then(function (deleted) {
-          console.log(deleted.length, 'node tags deleted');
-          return transaction('current_relation_tags').whereIn('relation_id', relationIds).del().returning('*');
-        })
-        .then(function (deleted) {
-          console.log(deleted.length, 'relation tags deleted');
-          return transaction('current_relation_members').whereIn('relation_id', relationIds).del().returning('*');
-        })
-        .then(function (deleted) {
-          console.log(deleted.length, 'relation members deleted');
-          return transaction('current_ways').where('changeset_id', _self.changesetId).del().returning('*');
-        })
-        .then(function (deleted) {
-          console.log(deleted.length, 'nodes deleted');
-          return transaction('current_nodes').where('changeset_id', _self.changesetId).del().returning('*');
-        })
-        .then(function (deleted) {
-          console.log(deleted.length, 'ways deleted');
-          return transaction('current_relations').where('changeset_id', _self.changesetId).del().returning('*');
-        })
-        .then(function (deleted) {
-          console.log(deleted.length, 'relations deleted');
-          return transaction('changesets').where('id', _self.changesetId).del().returning('*');
-        })
-        .then(function (deleted) {
-          console.log(deleted.length, 'changesets deleted');
-        });
+      var deleted = await transaction('current_way_nodes').whereIn('node_id', nodeIds).orWhereIn('way_id', wayIds).del().returning('*');
+      log.debug(deleted.length, 'way nodes deleted');
+      var deleted = await transaction('current_way_tags').whereIn('way_id', wayIds).del().returning('*');
+      log.debug(deleted.length, 'way tags deleted');
+      var deleted = await transaction('current_node_tags').whereIn('node_id', nodeIds).del().returning('*');
+      log.debug(deleted.length, 'node tags deleted');
+      var deleted = await transaction('current_relation_tags').whereIn('relation_id', relationIds).del().returning('*');
+      log.debug(deleted.length, 'relation tags deleted');
+      var deleted = await transaction('current_relation_members').whereIn('relation_id', relationIds).del().returning('*');
+      log.debug(deleted.length, 'relation members deleted');
+      var deleted = await transaction('current_ways').where('changeset_id', _self.changesetId).del().returning('*');
+      log.debug(deleted.length, 'nodes deleted');
+      var deleted = await transaction('current_nodes').where('changeset_id', _self.changesetId).del().returning('*');
+      log.debug(deleted.length, 'ways deleted');
+      var deleted = await transaction('current_relations').where('changeset_id', _self.changesetId).del().returning('*');
+      log.debug(deleted.length, 'relations deleted');
+      var deleted = await transaction('changesets').where('id', _self.changesetId).del().returning('*');
+      log.debug(deleted.length, 'changesets deleted');
     });
   };
 }
+

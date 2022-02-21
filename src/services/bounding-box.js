@@ -4,7 +4,7 @@ var _ = require('lodash');
 var ratio = require('./ratio.js');
 var maxArea = require('./max-area.js');
 
-var nullLatLon = [null,null,null,null];
+var nullLatLon = [null, null, null, null];
 var lonLimit = 180.0;
 var latLimit = 90.0;
 
@@ -19,7 +19,7 @@ function Bbox(minMaxLatLon) {
   // Check that coordinates exist and are numbers
   // Check that the min/max makes sense
   if (!isValidBounds(bounds)) {
-    this.logError('Latitude/longitude bounds must be valid coordinates.');
+    this.logError(`Latitude/longitude bounds must be valid coordinates, got '${bounds}'`);
   }
   else if (bounds[0] > bounds[2] && bounds[0] !== bounds[2]) {
     this.logError('The minimum longitude must be less than the maximum, but is not.');
@@ -28,9 +28,9 @@ function Bbox(minMaxLatLon) {
     this.logError('The minimum latitude must be less than the maximum, but is not.');
   }
   else if (bounds[0] < -lonLimit ||
-      bounds[1] < -latLimit ||
-      bounds[2] > +lonLimit ||
-      bounds[3] > +latLimit) {
+    bounds[1] < -latLimit ||
+    bounds[2] > +lonLimit ||
+    bounds[3] > +latLimit) {
     this.logError('Latitudes and longitudes are not within bounds.');
   }
   else if ((bounds[2] - bounds[0]) * (bounds[3] - bounds[1]) > maxArea) {
@@ -53,31 +53,31 @@ function Bbox(minMaxLatLon) {
   return this;
 }
 
-Bbox.prototype.logError = function(msg) {
+Bbox.prototype.logError = function (msg) {
   this.error = msg;
 };
 
-Bbox.prototype.area = function() {
+Bbox.prototype.area = function () {
   return (this.maxLon - this.minLon) * (this.maxLat - this.minLat);
 };
 
-Bbox.prototype.centerLon = function() {
+Bbox.prototype.centerLon = function () {
   return (this.minLon + this.maxLon) / 2.0;
 };
 
-Bbox.prototype.centerLat = function() {
+Bbox.prototype.centerLat = function () {
   return (this.minLat + this.maxLat) / 2.0;
 };
 
-Bbox.prototype.width = function() {
+Bbox.prototype.width = function () {
   return this.maxLon - this.minLon;
 };
 
-Bbox.prototype.height = function() {
+Bbox.prototype.height = function () {
   return this.maxLat - this.minLat;
 };
 
-Bbox.prototype.toArray = function() {
+Bbox.prototype.toArray = function () {
   return [this.minLon, this.minLat, this.maxLon, this.maxLat];
 };
 
@@ -90,11 +90,11 @@ Bbox.prototype.toObject = function () {
   });
 };
 
-Bbox.prototype.toString = function() {
+Bbox.prototype.toString = function () {
   return this.toArray().join(',');
 };
 
-Bbox.prototype.toScaled = function() {
+Bbox.prototype.toScaled = function () {
   this.minLon *= ratio;
   this.minLat *= ratio;
   this.maxLon *= ratio;
@@ -104,7 +104,7 @@ Bbox.prototype.toScaled = function() {
 
 function isValidBounds(bounds) {
   if (bounds.length !== 4) return false;
-  for(var i = 0; i < 4; ++i) {
+  for (var i = 0; i < 4; ++i) {
     var coord = bounds[i];
     if (typeof coord === 'undefined' || isNaN(coord)) {
       return false;
@@ -114,27 +114,19 @@ function isValidBounds(bounds) {
 };
 
 var getBbox = {
-  fromCoordinates: function(coordinates) {
-    if (_.every(coordinates, function(coordinate) {
-      return coordinate && !isNaN(coordinate);
-    })) {
+  fromCoordinates: function (coordinates) {
+    if (_.every(coordinates, c => c && !isNaN(c))) {
       return new Bbox(coordinates);
-    }
-    else {
+    } else {
       return new Bbox(nullLatLon);
     }
   },
-  fromScaledActions: function(actions) {
-    var lat = [];
-    var lon = [];
-    var nodes = _.filter(actions, function(action) {
-      return action.model === 'node';
-    });
-    for(var i = 0, ii = nodes.length; i < ii; ++i) {
-      var attributes = nodes[i].attributes;
-      lon.push(parseFloat(attributes.longitude));
-      lat.push(parseFloat(attributes.latitude));
-    }
+
+  fromScaledActions: function (actions) {
+    var nodes = _.filter(actions, action => action.model === 'node');
+
+    var lat = nodes.map(n => parseFloat(n.attributes.lat || n.attributes.latitude));
+    var lon = nodes.map(n => parseFloat(n.attributes.lon || n.attributes.longitude));
     return new Bbox([
       _.min(lon) / ratio,
       _.min(lat) / ratio,
@@ -142,16 +134,14 @@ var getBbox = {
       _.max(lat) / ratio
     ]);
   },
-  fromNodes: function(nodes) {
-    var lat = [];
-    var lon = [];
-    for(var i = 0, ii = nodes.length; i < ii; ++i) {
-      var node = nodes[i];
-      lon.push(parseFloat(node.lon));
-      lat.push(parseFloat(node.lat));
-    }
-    return new Bbox([ _.min(lon), _.min(lat), _.max(lon), _.max(lat) ]);
+
+  fromNodes: function (nodes) {
+    if (nodes.length == 0) { return new Bbox([0, 0, 0, 0]); }
+    var lat = nodes.map(n => parseFloat(n.lat || n.latitude));
+    var lon = nodes.map(n => parseFloat(n.lon || n.longitude));
+    return new Bbox([_.min(lon), _.min(lat), _.max(lon), _.max(lat)]);
   },
+
   fromChangeset: function (cs) {
     return new Bbox([cs.min_lon, cs.min_lat, cs.max_lon, cs.max_lat]);
   }

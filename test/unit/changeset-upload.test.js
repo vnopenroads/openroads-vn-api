@@ -112,7 +112,7 @@ describe('changeset upload endpoint', function () {
         node.changeset = cid;
         return new Node(node);
       });
-      log.info('Modifying ' + newNodes.length + ' nodes');
+      log.debug('Mchangeset upload endpointodifying ' + newNodes.length + ' nodes');
       cs.modify('node', newNodes);
       testChangeset.upload(cs.get())
         .then(_ => done())
@@ -121,7 +121,7 @@ describe('changeset upload endpoint', function () {
   });
 
   it('Creates 500 nodes, Modifies a way with 500 nodes', function (done) {
-    knex('current_ways').where('changeset_id', cid).then(function (ways) {
+    knex('current_ways').limit(1).then(function (ways) {
       var nodes = makeNodes(cid, 500);
       ways[0].changeset = cid;
       var way = new Way(ways[0]).nodes(nodes);
@@ -140,7 +140,7 @@ describe('changeset upload endpoint', function () {
         way.changeset = cid;
         return new Way(way).nodes(nodes);
       });
-      log.info('Modifying ' + newWays.length + ' ways');
+      log.debug('Modifying ' + newWays.length + ' ways');
       cs.create('node', nodes).modify('way', newWays);
       testChangeset.upload(cs.get())
         .then(_ => done())
@@ -160,35 +160,33 @@ describe('changeset upload endpoint', function () {
   });
 
   it('deletes 1 node', function (done) {
-    knex('current_nodes').where('changeset_id', cid).then(function (nodes) {
+    knex('current_nodes').limit(1).then(function (nodes) {
       cs.delete('node', new Node(nodes[0]));
       testChangeset.upload(cs.get())
-        .then(function (res) { return done(); })
+        .then(_ => done())
         .catch(done);
     });
   });
 
   it('deletes 1 way', function (done) {
-    knex('current_ways').where('changeset_id', cid).then(function (ways) {
-      cs.delete('node', new Way(ways[0]));
+    knex('current_ways').limit(1).then(function (ways) {
+      cs.delete('way', new Way(ways[0]));
       testChangeset.upload(cs.get())
-        .then(function (res) { return done(); })
+        .then(_ => done())
         .catch(done);
     });
   });
 
   it('Deletes up to 500 nodes', function (done) {
-    knex('current_nodes').where('changeset_id', cid).then(function (nodes) {
+    knex('current_nodes').limit(500).then(function (nodes) {
       nodes = nodes.slice(0, 500);
       cs.delete('node', nodes);
-      testChangeset.upload(cs.get())
-        .then(function (res) { return done(); })
-        .catch(done);
+      testChangeset.upload(cs.get()).then(_ => done()).catch(done);
     });
   });
 
   it('Deletes 1 relation', function (done) {
-    knex('current_relations').where('changeset_id', cid).then(function (relations) {
+    knex('current_relations').limit(1).then(function (relations) {
       relations = relations[0];
       cs.delete('relation', relations);
       testChangeset.upload(cs.get())

@@ -10,7 +10,6 @@ var Boom = require('@hapi/boom');
 
 function oscUpload(req, h) {
   try {
-    console.log(req.payload.toString());
     var json = XML.read(req.payload.toString());
   } catch (e) {
     return Boom.badRequest('Could not parse XML file');

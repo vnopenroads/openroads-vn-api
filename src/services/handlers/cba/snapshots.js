@@ -86,7 +86,7 @@ async function retrieveSnapshotMeta(id) {
                     })
                     .where({ id });
             } catch (err) {
-                console.error("Error:", err);
+                console.error("E-rror:", err);
                 console.error("Response body:", raw_response);
                 return Boom.internal("Error in response from CBA API");
             }
@@ -105,6 +105,7 @@ exports.createSnapshot = async function (req, res) {
     console.log(`Got snapshotId: ${snapshotId.id}`);
     return copySnapshotData(snapshotId.id, req.payload).then(retrieveSnapshotMeta(snapshotId.id));
 }
+
 
 exports.getSnapshotRoads = function getSnapshotRoads(id) {
     console.log("Getting snapshot roads for SnapshotId: " + id);

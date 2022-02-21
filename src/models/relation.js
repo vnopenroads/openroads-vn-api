@@ -79,7 +79,6 @@ var Relation = {
     raw.forEach(function (entity, i) {
 
       var id = ids[i];
-      console.log("Trying to get an id from: ", ids[i]);
       if (entity.tag) {
         var _tags = validateArray(entity.tag);
         tags.push(_tags.map(function (tag) {
@@ -212,7 +211,7 @@ var Relation = {
     return q.transaction(Relation.tableName).whereIn('id', ids)
       .update({ visible: false, changeset_id: q.meta.id }).returning('id')
       .then(function (removed) {
-        return Relation.destroyDependents(removed, q.transaction);
+        return Relation.destroyDependents(removed.map(e => e.id), q.transaction);
       })
       .catch(function (err) {
         log.error('Deleting relations in delete', err);

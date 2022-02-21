@@ -19,7 +19,7 @@ describe('map endpoint', function () {
         res.statusCode.should.not.eql(200);
         var result = JSON.parse(res.payload);
         result.message.should
-          .equal('Latitude/longitude bounds must be valid coordinates.');
+          .equal("Latitude/longitude bounds must be valid coordinates, got '0,0,1'");
         done();
       })
       .catch(function (err) {

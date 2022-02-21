@@ -32,7 +32,6 @@ var server = new Hapi.Server({
 });
 
 server.ext('onRequest', function (req, res) {
-  console.log(`${req.method.toUpperCase()} ${req.url.href}`);
   debug('%s %s', req.method.toUpperCase(), req.url.href);
   debug('%s', req.headers);
   return res.continue;
