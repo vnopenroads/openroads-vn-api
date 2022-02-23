@@ -75,6 +75,18 @@ module.exports.testChangeset = function testChangeset(uid, user, comment) {
       log.debug(deleted.length, 'relation tags deleted');
       var deleted = await transaction('current_relation_members').whereIn('relation_id', relationIds).del().returning('*');
       log.debug(deleted.length, 'relation members deleted');
+
+
+      // console.log("===============");
+      // var x = await transaction('current_ways').where('changeset_id', _self.changesetId).select('*');
+      // console.log(x);
+      // var ids = x.map(r => r.id);
+      // console.log(ids);
+      // var y = await transaction('tasks').whereIn('id', ids).select('*');
+      // console.log(y);
+      // console.log("===============");
+
+
       var deleted = await transaction('current_ways').where('changeset_id', _self.changesetId).del().returning('*');
       log.debug(deleted.length, 'nodes deleted');
       var deleted = await transaction('current_nodes').where('changeset_id', _self.changesetId).del().returning('*');

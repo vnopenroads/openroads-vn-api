@@ -15,12 +15,15 @@ main() {
 }
 
 SQL_FILES=".//db/migrations/20210803000000_add_user_config.sql .//db/migrations/20210821000000_add_road_snapshots.sql .//db/sql/functions/cba.sql .//db/sql/views/cba_roads.sql"
+
 setup_local() {
 
     for i in $SQL_FILES; do 
         psql -h localhost -U orma orma -f $i
     done
 }
+
+
 
 setup_uat() {
     ssh cba-worldbank "mkdir -p ~/openroads-vn-api/current/db/tmp_cba"
@@ -29,4 +32,11 @@ setup_uat() {
     ssh cba-worldbank "find ~/openroads-vn-api/current/db/tmp_cba/ -iname '*.sql' -exec psql -U orma -h localhost -d orma -f {} \;"
 }
 
-main "$@"
+build_empty() {
+    psql -h localhost -U orma orma -c "DROP schema public CASCADE; CREATE schema public;"
+    for i in db/migrations/*; do 
+      psql -h localhost -U orma orma -f $i
+    done
+}
+
+build_empty "$@"

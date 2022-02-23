@@ -14,6 +14,10 @@ SET default_tablespace = '';
 
 SET default_with_oids = false;
 
+
+-- Make sure we are spatial enabled
+CREATE EXTENSION postgis;
+
 --
 -- Name: nwr_enum; Type: TYPE; Schema: public; Owner: -
 --
