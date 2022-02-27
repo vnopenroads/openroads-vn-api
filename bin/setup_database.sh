@@ -23,8 +23,6 @@ setup_local() {
     done
 }
 
-
-
 setup_uat() {
     ssh cba-worldbank "mkdir -p ~/openroads-vn-api/current/db/tmp_cba"
     scp ${SQL_FILES} cba-worldbank:~/openroads-vn-api/current/db/tmp_cba/
@@ -33,9 +31,13 @@ setup_uat() {
 }
 
 build_empty() {
-    psql -h localhost -U orma orma -c "DROP schema public CASCADE; CREATE schema public;"
+    local dbname=$1; shift
+
+    psql -U orma -h localhost -tc "SELECT 1 FROM pg_database WHERE datname = '${dbname}'" | grep -q 1 || \
+       psql -h localhost -U orma orma -c "CREATE DATABASE ${dbname};"
+    psql -h localhost -U orma ${dbname} -c "DROP schema public CASCADE; CREATE schema public;"
     for i in db/migrations/*; do 
-      psql -h localhost -U orma orma -f $i
+      psql -h localhost -U orma ${dbname} -f $i
     done
 }
 
