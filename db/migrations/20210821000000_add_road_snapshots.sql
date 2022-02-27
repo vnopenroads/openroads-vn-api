@@ -96,10 +96,3 @@ CREATE TABLE cba_snapshot_results (
 );
 CREATE INDEX cba_snapshot_results_idx ON cba_snapshot_results USING btree (cba_road_snapshot_id);
 
-
-
-CREATE TABLE tester (
-  id SERIAL PRIMARY KEY,
-  j jsonb
-);
- 

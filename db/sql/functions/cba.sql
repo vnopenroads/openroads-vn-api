@@ -59,6 +59,7 @@ CREATE OR REPLACE FUNCTION normalise_width(xx text) RETURNS float AS $$
 DECLARE
 BEGIN
   IF xx = '6+' OR xx = '6;5' THEN RETURN 6.0;
+  ELSIF xx ILIKE '%test%' THEN RETURN 6;
   ELSE RETURN cast(xx as float);
   END IF;
 END;
