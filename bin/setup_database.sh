@@ -41,4 +41,4 @@ build_empty() {
     done
 }
 
-build_empty "$@"
+main "$@"
