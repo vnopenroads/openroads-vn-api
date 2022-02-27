@@ -10,7 +10,7 @@ var xml2json = require('xml2json');
 
 var meta = require('./package.json');
 var debug = _debug(util.format('%s:http', meta.name));
-var shouldDebug = false; // process.env.DS_ENV == 'uat' || process.env.DS_ENV == 'local';
+var shouldDebug = true; // process.env.DS_ENV == 'uat' || process.env.DS_ENV == 'local';
 var debugOptions = {
   log: ['error'],
   request: ['error', 'received', 'response']
