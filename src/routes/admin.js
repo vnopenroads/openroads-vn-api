@@ -208,10 +208,8 @@ module.exports = [
         .leftJoin('admin_boundaries AS parent', 'self.parent_id', 'parent.id')
         .groupBy('self.id', 'child.id', 'parent.id', 'child.name_en', 'child.name_vn');
 
-      console.log(q.toString());
-
       var info = await q;
-      if (info.length != 1) {
+      if (info.length < 1) {
         return Boom.notFound(`No admin unit with id = '${unitId}' exists`);
       }
 
