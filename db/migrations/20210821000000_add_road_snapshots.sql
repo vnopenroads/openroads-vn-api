@@ -3,7 +3,7 @@
 --
 
 -- Metadata table to manage road snapshots
-DROP TABLE cba_road_snapshots;
+DROP TABLE IF EXISTS cba_road_snapshots;
 CREATE TABLE cba_road_snapshots (
   	id SERIAL PRIMARY KEY,
     name text,
@@ -24,7 +24,7 @@ CREATE INDEX cba_road_snapshots_idx ON cba_road_snapshots USING btree (id);
 
 
 -- And the data table to store the snapshotted records
-DROP TABLE cba_road_snapshots_data;
+DROP TABLE IF EXISTS cba_road_snapshots_data;
 CREATE TABLE cba_road_snapshots_data (
   	id SERIAL PRIMARY KEY,
     cba_road_snapshot_id bigint,
@@ -58,7 +58,7 @@ CREATE TABLE cba_road_snapshots_data (
 CREATE INDEX cba_road_snapshots_data_idx ON cba_road_snapshots USING btree (id);
 
 
-DROP TABLE cba_road_snapshots_data;
+DROP TABLE IF EXISTS cba_road_snapshots_data;
 
 SELECT 1 as cba_road_snapshot_id, *
 INTO cba_road_snapshots_data
@@ -67,7 +67,7 @@ WHERE province = 294
 ;
 
 
-DROP TABLE cba_snapshot_results;
+DROP TABLE IF EXISTS cba_snapshot_results;
 CREATE TABLE cba_snapshot_results (
   	id SERIAL PRIMARY KEY,
     cba_road_snapshot_id bigint,
