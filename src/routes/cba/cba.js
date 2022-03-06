@@ -35,9 +35,9 @@ module.exports = [
     handler: snapshotHandler.createSnapshot
   },
   {
-    method: 'GET',
+    method: 'POST',
     path: '/cba/roads/snapskhot/{snapshot_id}/rename',
-    handler: (req, res) => snapshotHandler.renameSnapshot(req.params.snapshot_id)
+    handler: (req, res) => snapshotHandler.renameSnapshot(req.params.snapshot_id, req.payload)
   },
   {
     method: 'GET',
