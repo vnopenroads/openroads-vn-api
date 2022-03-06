@@ -34,6 +34,11 @@ module.exports = [
     path: '/cba/roads/snapshots/take',
     handler: snapshotHandler.createSnapshot
   },
+  {
+    method: 'GET',
+    path: '/cba/roads/snapshot/{snapshot_id}/delete',
+    handler: snapshotHandler.deleteSnapshot(req.params.snapshot_id)
+  },
 
   // CBA Running and Results
   {
