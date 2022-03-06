@@ -36,12 +36,12 @@ module.exports = [
   },
   {
     method: 'POST',
-    path: '/cba/roads/snapskhot/{snapshot_id}/rename',
+    path: '/cba/roads/snapshot/{snapshot_id}/rename',
     handler: (req, res) => snapshotHandler.renameSnapshot(req.params.snapshot_id, req.payload)
   },
   {
     method: 'GET',
-    path: '/cba/roads/snapskhot/{snapshot_id}/delete',
+    path: '/cba/roads/snapshot/{snapshot_id}/delete',
     handler: (req, res) => snapshotHandler.deleteSnapshot(req.params.snapshot_id)
   },
 
