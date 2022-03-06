@@ -26,7 +26,7 @@ exports.getSnapshotStats = async function (snapshotId) {
         .catch(utils.errorHandler);
 }
 
-exports.renameSnapshot = function (snapshotId, payload) {
+exports.renameSnapshot = async function (snapshotId, payload) {
     var count = await knex('cba_road_snapshots').where('id', snapshotId).count().first();
     if (count.count == 0) {
         return Boom.badRequest("No such snapshotId: " + snapshotId);
