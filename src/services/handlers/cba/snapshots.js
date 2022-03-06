@@ -27,30 +27,19 @@ exports.getSnapshotStats = async function (snapshotId) {
 }
 
 exports.deleteSnapshot = async function (snapshotId) {
-    console.log(snapshotId);
     var count = await knex('cba_road_snapshots').where('id', snapshotId).count().first();
     // if (count.count == 0) {
-    //     return Boom.badRequest("No such snapshotId: " + snapshotId);
-    //  }
+    // return Boom.badRequest("No such snapshotId: " + snapshotId);
+    // }
 
-    var deleteId = knex('cba_road_snapshots')
-        .delete()
-        .where('id', snapshotId)
-        .catch(utils.errorHandler);
-    var deleteData = knex('cba_road_snapshots_data')
-        .delete()
-        .where('cba_road_snapshot_id', snapshotId)
-        .catch(utils.errorHandler);
-    var deleteResults = knex('cba_snapshot_results')
-        .delete()
-        .where('cba_road_snapshot_id', snapshotId)
-        .catch(utils.errorHandler);
+
+    var f = (tablename, id_col) => knex(tablename).delete().where(id_col, snapshotId).catch(utils.errorHandler);
+    var deleteId = f('cba_road_snapshots', 'id');
+    var deleteData = f('cba_road_snapshots_data', 'cba_road_snapshot_id')
+    var deleteResults = f('cba_snapshot_results', 'cba_road_snapshot_id')
 
     const [r, d, i] = await Promise.all([deleteResults, deleteData, deleteId]);
-    console.log(r);
-    console.log(d);
-    console.log(i);
-    return 42;
+    return { "Deleted": { "assets": d, "result_records": r } }
 }
 
 exports.getSnapshotSurfaceTypeStats = function (snapshotId) {
