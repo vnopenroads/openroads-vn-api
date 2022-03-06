@@ -15,6 +15,11 @@ module.exports = [
   },
   {
     method: 'GET',
+    path: '/cba/roads/snapshots_all',
+    handler: knex('cba_road_snapshots').select('*')
+  },
+  {
+    method: 'GET',
     path: '/cba/roads/snapshot/{snapshot_id}/stats',
     handler: (req, res) => snapshotHandler.getSnapshotStats(req.params.snapshot_id)
   },
