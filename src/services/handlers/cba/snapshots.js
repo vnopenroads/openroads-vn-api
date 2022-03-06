@@ -32,6 +32,7 @@ exports.renameSnapshot = async function (snapshotId, payload) {
         return Boom.badRequest("No such snapshotId: " + snapshotId);
     }
 
+    console.log(payload);
     console.log(payload.name);
 
     return 7;
