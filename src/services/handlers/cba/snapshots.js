@@ -33,10 +33,22 @@ exports.deleteSnapshot = async function (snapshotId) {
         return Boom.badRequest("No such snapshotId: " + snapshotId);
     }
 
-    return knex('cba_road_snapshots')
+    var deleteId = knex('cba_road_snapshots')
         .delete()
         .where('id', snapshotId)
         .catch(utils.errorHandler);
+    var deleteData = knex('cba_road_snapshots_data')
+        .delete()
+        .where('cba_road_snapshot_id', snapshotId)
+        .catch(utils.errorHandler);
+    var deleteResults = knex('cba_snapshot_results')
+        .delete()
+        .where('cba_road_snapshot_id', snapshotId)
+        .catch(utils.errorHandler);
+
+    # select cba_road_snapshot_id, count(*) from cba_snapshot_results group by  cba_road_snapshot_id;
+
+    return await Promise.all([deleteResults, deleteData, deleteId]);
 }
 
 exports.getSnapshotSurfaceTypeStats = function (snapshotId) {
