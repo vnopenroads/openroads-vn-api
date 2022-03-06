@@ -136,3 +136,11 @@ tmp
 cloudformation.yml
 package-lock.json
 *.pyc
+*backup*
+bin/20220213
+data/*
+data.prod_copy/*
+psql_dump*
+foo.txt
+new.txt
+old.txt
