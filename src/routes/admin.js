@@ -213,8 +213,6 @@ module.exports = [
         return Boom.notFound(`No admin unit with id = '${unitId}' exists`);
       }
 
-      var result = info[0];
-      console.log("RESULT: \n ", result);
       // format the results, making the bounding box of correct spec, finding parent_ids
       let children = info.map(o => ({ name_en: o.c_name_en, name_vn: o.c_name_vn, id: o.c_id }));
 

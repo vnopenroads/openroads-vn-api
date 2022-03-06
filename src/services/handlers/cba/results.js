@@ -68,9 +68,11 @@ exports.runSnapshot = async function (req) {
     var assets = await snapshotHandler.getSnapshotRoads(params.snapshot_id);
     var url = `${config.cba_api}/run_sections`;
     var cbaConfig = await configHandler.selectQuery(params.config_id, ['discount_rate', 'economic_factor', 'growth_rates', 'traffic_levels', 'road_works']);
+
     console.log("=--------=");
     console.log(cbaConfig);
     console.log("=--------=");
+
     var opts = {
         method: 'POST',
         body: JSON.stringify({ config: cbaConfig, assets: assets }),
@@ -89,8 +91,8 @@ exports.runSnapshot = async function (req) {
 
     const insertFn = (e) => prepCbaResultRow(params.snapshot_id, params.config_id, e);
     const rows = body_['data'].map(insertFn);
-    console.log(body_['data']);
-    console.log(rows[0]);
+    // console.log(body_['data']);
+    // console.log(rows[0]);
     return deleteResultFn(params.snapshot_id, params.config_id)
         .then(() => knex.batchInsert('cba_snapshot_results', rows, 1))
         .catch(function (error) { console.log(error); });
@@ -166,7 +168,7 @@ exports.getResultKpis = async function (req, res) {
         .where('npv', '>', 0)
         .where('work_year', '<=', 5)
         .count({ 'medium_term': 'work_year' })
-    console.log(r3b);
+    // console.log(r3b);
     var medium_term = parseInt(r3b[0].medium_term)
     var long_term = positive_npv - medium_term;
 
