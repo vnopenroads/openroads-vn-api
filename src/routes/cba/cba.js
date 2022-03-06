@@ -1,3 +1,4 @@
+const knex = require('connection');
 const snapshotHandler = require('../../services/handlers/cba/snapshots.js')
 const resultsHandler = require('../../services/handlers/cba/results.js')
 const mapHandler = require('../../services/handlers/cba/map.js')
