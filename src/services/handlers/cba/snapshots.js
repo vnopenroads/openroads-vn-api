@@ -31,7 +31,7 @@ exports.renameSnapshot = async function (snapshotId, payload) {
     if (count.count == 0) { return Boom.badRequest("No such snapshotId: " + snapshotId); }
     if (!payload.name) { return Boom.badRequest('Expected payload {"name": "new name"} '); }
 
-    return knex('cba_road_snapshots').update({ name: payload.name, }).where({ snapshot_id: id });
+    return knex('cba_road_snapshots').update({ name: payload.name, }).where({ snapshot_id: snapshotId });
 }
 
 
