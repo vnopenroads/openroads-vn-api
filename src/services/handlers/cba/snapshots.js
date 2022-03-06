@@ -29,9 +29,9 @@ exports.getSnapshotStats = async function (snapshotId) {
 exports.deleteSnapshot = async function (snapshotId) {
     console.log(snapshotId);
     var count = await knex('cba_road_snapshots').where('id', snapshotId).count().first();
-    if (count.count == 0) {
-        return Boom.badRequest("No such snapshotId: " + snapshotId);
-    }
+    // if (count.count == 0) {
+    //     return Boom.badRequest("No such snapshotId: " + snapshotId);
+    //  }
 
     var deleteId = knex('cba_road_snapshots')
         .delete()
