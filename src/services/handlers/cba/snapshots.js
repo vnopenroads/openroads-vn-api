@@ -46,8 +46,6 @@ exports.deleteSnapshot = async function (snapshotId) {
         .where('cba_road_snapshot_id', snapshotId)
         .catch(utils.errorHandler);
 
-    # select cba_road_snapshot_id, count(*) from cba_snapshot_results group by  cba_road_snapshot_id;
-
     return await Promise.all([deleteResults, deleteData, deleteId]);
 }
 
