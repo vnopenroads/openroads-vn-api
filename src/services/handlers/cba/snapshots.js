@@ -31,7 +31,8 @@ exports.renameSnapshot = async function (snapshotId, payload) {
     if (count.count == 0) { return Boom.badRequest("No such snapshotId: " + snapshotId); }
     if (!payload.name) { return Boom.badRequest('Expected payload {"name": "new name"} '); }
 
-    return knex('cba_road_snapshots').update({ name: payload.name, }).where({ id: snapshotId });
+    const numUpdated = await knex('cba_road_snapshots').update({ name: payload.name, }).where({ id: snapshotId });
+    return { "update": `${numUpdated} records` }
 }
 
 
@@ -42,7 +43,7 @@ exports.deleteSnapshot = async function (snapshotId) {
     var deleteResults = f('cba_snapshot_results', 'cba_road_snapshot_id')
 
     const [r, d, i] = await Promise.all([deleteResults, deleteData, deleteId]);
-    return { "Deleted": { "snapshots": i, "assets": d, "result_records": r } }
+    return { "delete": { "snapshots": i, "assets": d, "result_records": r } }
 }
 
 exports.getSnapshotSurfaceTypeStats = function (snapshotId) {
