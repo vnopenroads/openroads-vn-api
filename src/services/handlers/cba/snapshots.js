@@ -26,6 +26,19 @@ exports.getSnapshotStats = async function (snapshotId) {
         .catch(utils.errorHandler);
 }
 
+exports.deleteSnapshot = async function (snapshotId) {
+    console.log(snapshotId);
+    var count = await knex('cba_road_snapshots').where('id', snapshotId).count().first();
+    if (count.count == 0) {
+        return Boom.badRequest("No such snapshotId: " + snapshotId);
+    }
+
+    return knex('cba_road_snapshots')
+        .delete()
+        .where('id', snapshotId)
+        .catch(utils.errorHandler);
+}
+
 exports.getSnapshotSurfaceTypeStats = function (snapshotId) {
     return knex('cba_road_snapshots_data')
         .select('surface_type')
