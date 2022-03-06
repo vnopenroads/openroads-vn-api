@@ -106,7 +106,16 @@ function delete2() {
 exports.createSnapshot = async function (req, res) {
     var [snapshotId] = await knex('cba_road_snapshots').insert(req.payload, 'id');
     console.log(`Got snapshotId: ${snapshotId.id}`);
-    return copySnapshotData(snapshotId.id, req.payload).then(retrieveSnapshotMeta(snapshotId.id));
+
+    var x = await knex('cba_road_snapshots_data').groupBy('cba_road_snapshot_id').count()
+    console.log(x)
+
+    var _ = await copySnapshotData(snapshotId.id, req.payload);
+
+    var x = await knex('cba_road_snapshots_data').groupBy('cba_road_snapshot_id').count()
+    console.log(x)
+
+    return retrieveSnapshotMeta(snapshotId.id);
 }
 
 
