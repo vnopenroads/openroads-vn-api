@@ -46,7 +46,11 @@ exports.deleteSnapshot = async function (snapshotId) {
         .where('cba_road_snapshot_id', snapshotId)
         .catch(utils.errorHandler);
 
-    return await Promise.all([deleteResults, deleteData, deleteId]);
+    [r, d, i] = await Promise.all([deleteResults, deleteData, deleteId]);
+    console.log(r);
+    console.log(d);
+    console.log(i);
+    return 42;
 }
 
 exports.getSnapshotSurfaceTypeStats = function (snapshotId) {
