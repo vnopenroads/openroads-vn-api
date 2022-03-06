@@ -64,6 +64,7 @@ async function retrieveSnapshotMeta(id) {
     var response = await knex('cba_road_snapshots_data')
         .select('*')
         .where('cba_road_snapshot_id', '=', id);
+    console.log("   ... num assets: " + response.length);
 
     var url = `${config.cba_api}/evaluate_assets`;
     var opts = {
@@ -77,7 +78,9 @@ async function retrieveSnapshotMeta(id) {
         .then((raw_response) => {
             try {
                 let response = JSON.parse(raw_response);
-                var total = response['stats']['valid'] + response['stats']['invalid'];
+                let num_valid = response['stats']['valid']
+                var total = num_valid + response['stats']['invalid'];
+                console.log(`   ... got response, valid: ${num_valid} / ${total}`);
                 return knex('cba_road_snapshots')
                     .update({
                         num_records: total,
