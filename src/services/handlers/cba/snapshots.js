@@ -80,6 +80,31 @@ function copySnapshotData(id, payload) {
 }
 
 async function retrieveSnapshotMeta(id) {
+
+    var raw_response = await evaluateAssets(id);
+    try {
+        let response = JSON.parse(raw_response);
+        let num_valid = response['stats']['valid']
+        var total = num_valid + response['stats']['invalid'];
+        console.log(`   ... got response, valid: ${num_valid} / ${total}`);
+        var update_dict = {
+            num_records: total,
+            valid_records: response['stats']['valid'],
+            invalid_reasons: { "reasons": response['invalids'], "way_ids": response['invalid_way_ids'] }
+        };
+        console.log(update_dict);
+        return knex('cba_road_snapshots')
+            .update(update_dict)
+            .where({ id });
+    } catch (err) {
+        console.error("E-rror:", err);
+        console.error("Response body:", raw_response);
+        return Boom.internal("Error in response from CBA API");
+    }
+}
+exports.retrieveSnapshotMeta = retrieveSnapshotMeta;
+
+async function evaluateAssets(id) {
     console.log("Generating meta data for " + id);
     var response = await knex('cba_road_snapshots_data')
         .select('*')
@@ -93,28 +118,9 @@ async function retrieveSnapshotMeta(id) {
         headers: { 'Content-Type': 'application/json' }
     };
 
-    return fetch(url, opts)
-        .then((response) => response.text())
-        .then((raw_response) => {
-            try {
-                let response = JSON.parse(raw_response);
-                let num_valid = response['stats']['valid']
-                var total = num_valid + response['stats']['invalid'];
-                console.log(`   ... got response, valid: ${num_valid} / ${total}`);
-                return knex('cba_road_snapshots')
-                    .update({
-                        num_records: total,
-                        valid_records: response['stats']['valid'],
-                        invalid_reasons: response['invalids']
-                    })
-                    .where({ id });
-            } catch (err) {
-                console.error("E-rror:", err);
-                console.error("Response body:", raw_response);
-                return Boom.internal("Error in response from CBA API");
-            }
-        });
+    return fetch(url, opts).then(response => response.text())
 }
+exports.evaluateAssets = evaluateAssets;
 
 function delete1() {
     return knex('cba_road_snapshots').where('id', '>', 2).del();

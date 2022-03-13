@@ -30,6 +30,16 @@ module.exports = [
     handler: (req, res) => snapshotHandler.getSnapshotRoads(req.params.snapshot_id)
   },
   {
+    method: 'GET',
+    path: '/cba/roads/snapshot/{snapshot_id}/evaluate',
+    handler: (req, res) => snapshotHandler.evaluateAssets(req.params.snapshot_id)
+  },
+  {
+    method: 'GET',
+    path: '/cba/roads/snapshot/{snapshot_id}/update_meta',
+    handler: (req, res) => snapshotHandler.retrieveSnapshotMeta(req.params.snapshot_id)
+  },
+  {
     method: 'POST',
     path: '/cba/roads/snapshots/take',
     handler: snapshotHandler.createSnapshot
